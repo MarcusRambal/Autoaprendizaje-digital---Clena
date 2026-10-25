@@ -8,8 +8,7 @@ export interface NavLinkItem {
 export const NAV_LINKS: Record<string, NavLinkItem[]> = {
   admin: [
     { label: 'Inicio', path: '/Admin' },
-    { label: 'Editar Guias', path: '/Admin/EditGuides' },
-    { label: 'Editar Quiz', path: '/Admin/EditQuiz' },
+    { label: 'Panel de Control', path: '/Admin/ControlPanel' },
     { label: 'Solicitudes', path: '/Admin/Requests' },
     { label: 'Estadísticas', path: '/Admin/Statistics' },
   ],

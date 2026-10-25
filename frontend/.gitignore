@@ -23,5 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+#Variables de entorno
+.env
+
 
 homeImage.jpeg

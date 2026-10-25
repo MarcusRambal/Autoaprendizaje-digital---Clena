@@ -11,10 +11,7 @@ export const AdminPanel = () => {
 
       <div className="options-container" id="options-container">   
         <div className="option" id="edit-option">
-          <Link to="/Admin/EditGuides">Crear o Editar guías</Link>
-        </div>
-        <div className="option" id="edit-quiz-option">
-          <Link to="/Admin/EditQuiz">Crear o Editar cuestionarios</Link>
+          <Link to="/Admin/ControlPanel">Panel de Control</Link>
         </div>
         <div className="option" id="requests-option">
           <Link to="/Admin/Requests">Solicitudes</Link>

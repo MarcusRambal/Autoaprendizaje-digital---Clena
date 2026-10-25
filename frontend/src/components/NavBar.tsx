@@ -1,4 +1,5 @@
 // NavBar.tsx
+import './NavBar.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { NAV_LINKS } from '../../config/navConfig';
 import { useAuth } from '../../services/authContext';

@@ -17,13 +17,13 @@ import { Progress } from './StudentsHome/routes/Progress';
 
 // AdminPanel
 import { AdminPanel } from './AdminPanel/AdminPanel';
-import { EditGuidesPanel } from './AdminPanel/routes/EditGuidesPanel';
-import { EditQuizPanel } from './AdminPanel/routes/EditQuizPanel';
+import { ControlPanel } from './AdminPanel/routes/ControlPanel';
 import { RequestPanel } from './AdminPanel/routes/RequestPanel';
 import { StatisticsPanel } from './AdminPanel/routes/StatisticsPanel';
 
 // ProtectedRoute
 import { ProtectedRoute } from './components/ProtectedRoute';
+
 
 const router = createBrowserRouter([
   // --- Rutas Públicas ---
@@ -82,12 +82,8 @@ const router = createBrowserRouter([
             element: <AdminPanel />,
           },
           {
-            path: 'EditGuides',
-            element: <EditGuidesPanel />,
-          },
-          {
-            path: 'EditQuiz',
-            element: <EditQuizPanel />,
+            path: 'ControlPanel',
+            element: <ControlPanel/>
           },
           {
             path: 'Requests',
