@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
+:root {
+  --clena-white: #FFFFFF;
+  --clena-orange: #DF8329;
+  --clena-yellow: #F1B633;
+  --clena-purple: #652E4E;
+}
+
 * {
   font-family: 'Atkinson Hyperlegible', sans-serif;
   margin: 0;

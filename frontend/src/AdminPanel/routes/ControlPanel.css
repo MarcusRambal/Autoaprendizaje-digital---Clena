@@ -5,6 +5,29 @@
   width: 100%;
 }
 
+.control-panel-search {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 42rem;
+}
+
+.control-panel-search label {
+  font-weight: 700;
+}
+
+.control-panel-search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.control-panel-search-controls input {
+  flex: 1 1 16rem;
+}
+
+.control-panel [hidden] {
+  display: none !important;
+}
 
 .control-panel-grid {
   display: grid;

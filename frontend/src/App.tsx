@@ -18,8 +18,8 @@ import { Progress } from './StudentsHome/routes/Progress';
 // AdminPanel
 import { AdminPanel } from './AdminPanel/AdminPanel';
 import { ControlPanel } from './AdminPanel/routes/ControlPanel';
-import { RequestPanel } from './AdminPanel/routes/RequestPanel';
-import { StatisticsPanel } from './AdminPanel/routes/StatisticsPanel';
+import { HelpRequestManager } from './AdminPanel/routes/HelpRequestManager';
+import { StatsDashboard } from './AdminPanel/routes/StatsDashboard';
 
 // ProtectedRoute
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -87,11 +87,11 @@ const router = createBrowserRouter([
           },
           {
             path: 'Requests',
-            element: <RequestPanel />,
+            element: <HelpRequestManager />,
           },
           {
             path: 'Statistics',
-            element: <StatisticsPanel />,
+            element: <StatsDashboard />,
           },
         ],
       },

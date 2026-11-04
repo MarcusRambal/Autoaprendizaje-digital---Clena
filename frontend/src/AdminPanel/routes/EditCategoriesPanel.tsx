@@ -1,11 +1,13 @@
 import './EditCategoriesPanel.css';
 import { useState, type FormEvent } from 'react';
-import type { Category } from '../../../types/quizGuides';
+import type { Category } from '../../../types/contracts';
+import { matchesSearch } from './searchContent';
 
 type ViewState = 'createView' | 'editView' | 'deleteView';
 
 interface EditCategoriesPanelProps {
   categories: Category[];
+  searchQuery: string;
   onCreate: (title: string) => void;
   onSave: (category: Category) => void;
   onDelete: (categoryId: number) => string | null;
@@ -14,12 +16,13 @@ interface EditCategoriesPanelProps {
 interface EditCategoryRowProps {
   category: Category;
   categories: Category[];
+  hidden: boolean;
   onSave: (updatedCategory: Category) => void;
 }
 
 const normalizeTitle = (title: string) => title.toLowerCase().replace(/\s+/g, '');
 
-const EditCategoryRow = ({ category, categories, onSave }: EditCategoryRowProps) => {
+const EditCategoryRow = ({ category, categories, hidden, onSave }: EditCategoryRowProps) => {
   const [draftTitle, setDraftTitle] = useState(category.title);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +50,7 @@ const EditCategoryRow = ({ category, categories, onSave }: EditCategoryRowProps)
   const isChanged = draftTitle.trim() !== category.title;
 
   return (
-    <li className="edit-category-item">
+    <li className="edit-category-item" hidden={hidden}>
       <div className="input-group">
         <input
           type="text"
@@ -59,7 +62,7 @@ const EditCategoryRow = ({ category, categories, onSave }: EditCategoryRowProps)
           }}
           className={error ? 'input-error' : ''}
         />
-        {error && <span className="error-text">{error}</span>}
+        {error && <span className="error-text" role="alert">{error}</span>}
       </div>
       <button type="button" onClick={handleSave} disabled={!isChanged}>Guardar</button>
     </li>
@@ -68,6 +71,7 @@ const EditCategoryRow = ({ category, categories, onSave }: EditCategoryRowProps)
 
 export const EditCategoriesPanel = ({
   categories,
+  searchQuery,
   onCreate,
   onSave,
   onDelete
@@ -76,6 +80,7 @@ export const EditCategoriesPanel = ({
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const filteredCategories = categories.filter(category => matchesSearch(searchQuery, category.title));
 
   const handleCreateCategory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -106,14 +111,15 @@ export const EditCategoriesPanel = ({
 
   return (
     <div className="edit-panel">
-      <h1>Panel de Categorías</h1>
+      <h2>Panel de Categorías</h2>
       <p>Modifica y administra las categorías de la plataforma.</p>
 
       <div className="viewCreateEditGuides">
-        <div className="viewButton">
+        <div className="viewButton" role="group" aria-label="Acciones de categorías">
           <button
             type="button"
             className={`buttonGuide ${viewState === 'createView' ? 'active' : ''}`}
+            aria-pressed={viewState === 'createView'}
             onClick={() => setViewState('createView')}
           >
             Crear Categoría
@@ -121,6 +127,7 @@ export const EditCategoriesPanel = ({
           <button
             type="button"
             className={`buttonGuide ${viewState === 'editView' ? 'active' : ''}`}
+            aria-pressed={viewState === 'editView'}
             onClick={() => setViewState('editView')}
           >
             Editar Categoría
@@ -128,6 +135,7 @@ export const EditCategoriesPanel = ({
           <button
             type="button"
             className={`buttonGuide ${viewState === 'deleteView' ? 'active' : ''}`}
+            aria-pressed={viewState === 'deleteView'}
             onClick={() => {
               setDeleteError(null);
               setViewState('deleteView');
@@ -142,7 +150,9 @@ export const EditCategoriesPanel = ({
             <h3>Crear Nueva Categoría</h3>
             <form className="create-category-form" onSubmit={handleCreateCategory}>
               <div className="input-group">
+                <label htmlFor="new-category-title">Nombre de la categoría</label>
                 <input
+                  id="new-category-title"
                   type="text"
                   placeholder="Nombre de la categoría"
                   value={newCategoryTitle}
@@ -152,7 +162,7 @@ export const EditCategoriesPanel = ({
                   }}
                   className={createError ? 'input-error' : ''}
                 />
-                {createError && <span className="error-text">{createError}</span>}
+                {createError && <span className="error-text" role="alert">{createError}</span>}
               </div>
               <button type="submit">Crear</button>
             </form>
@@ -160,9 +170,10 @@ export const EditCategoriesPanel = ({
             <div className="category-view-container">
               <h3>Categorías Creadas</h3>
               <ul className="category-view-list">
-                {categories.map(category => <li key={category.id}>{category.title}</li>)}
+                {filteredCategories.map(category => <li key={category.id}>{category.title}</li>)}
               </ul>
               {categories.length === 0 && <p>No hay categorías creadas.</p>}
+              {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
             </div>
           </div>
         )}
@@ -177,11 +188,13 @@ export const EditCategoriesPanel = ({
                     key={`${category.id}-${category.title}`}
                     category={category}
                     categories={categories}
+                    hidden={!matchesSearch(searchQuery, category.title)}
                     onSave={onSave}
                   />
                 ))}
               </ul>
             ) : <p>No hay categorías para editar.</p>}
+            {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
           </div>
         )}
 
@@ -191,16 +204,17 @@ export const EditCategoriesPanel = ({
             {deleteError && <p className="error-text" role="alert">{deleteError}</p>}
             {categories.length > 0 ? (
               <ul className="delete-category-list">
-                {categories.map(category => (
+                {filteredCategories.map(category => (
                   <li className="delete-category-item" key={category.id}>
                     {category.title}{' '}
-                    <button type="button" onClick={() => handleDeleteCategory(category.id)}>
+                    <button type="button" aria-label={`Eliminar categoría ${category.title}`} onClick={() => handleDeleteCategory(category.id)}>
                       Eliminar
                     </button>
                   </li>
                 ))}
               </ul>
             ) : <p>No hay categorías para eliminar.</p>}
+            {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
           </div>
         )}
       </div>

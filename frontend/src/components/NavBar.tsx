@@ -1,6 +1,6 @@
 // NavBar.tsx
 import './NavBar.css';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { NAV_LINKS } from '../../config/navConfig';
 import { useAuth } from '../../services/authContext';
 
@@ -19,7 +19,7 @@ export const NavBar = () => {
   };
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="Navegación principal">
       <div className="navBar-logo">
         <Link to="/">Clena</Link>
       </div>
@@ -27,7 +27,7 @@ export const NavBar = () => {
       <ul className="nav-links">
         {currentLinks.map((link) => (
           <li key={link.path}>
-            <Link to={link.path}>{link.label}</Link>
+            <NavLink to={link.path} end>{link.label}</NavLink>
           </li>
         ))}
       </ul>

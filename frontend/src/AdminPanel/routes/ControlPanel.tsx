@@ -1,6 +1,6 @@
 import './ControlPanel.css';
 import { useState } from 'react';
-import type { Category, Guide, Quiz } from '../../../types/quizGuides';
+import type { Category, Guide, Quiz } from '../../../types/contracts';
 import { EditCategoriesPanel } from './EditCategoriesPanel';
 import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
@@ -21,10 +21,11 @@ const nextId = <T extends { id: number }>(items: T[]) =>
   items.reduce((largestId, item) => Math.max(largestId, item.id), 0) + 1;
 
 export const ControlPanel = () => {
-  const [activeSection, setActiveSection] = useState<'guides' | 'quizzes'>('guides');
+  const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>('guides');
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [guides, setGuides] = useState<Guide[]>(initialGuides);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleCreateCategory = (title: string) => {
     setCategories(current => [...current, { id: nextId(current), title }]);
@@ -92,57 +93,78 @@ export const ControlPanel = () => {
 
   return (
     <div className="control-panel">
-      <h2>Control Panel</h2>
+      <div className="control-panel-search">
+        <label htmlFor="control-panel-search">Buscar contenido</label>
+        <div className="control-panel-search-controls">
+          <input
+            id="control-panel-search"
+            type="search"
+            placeholder="Buscar por nombre o categoría"
+            value={searchQuery}
+            onChange={event => setSearchQuery(event.target.value)}
+          />
+          {searchQuery && (
+            <button type="button" onClick={() => setSearchQuery('')}>Limpiar búsqueda</button>
+          )}
+        </div>
+      </div>
+      <div className="section-tabs" role="group" aria-label="Sección del panel de control">
+        <button
+          type="button"
+          className={`tab-btn ${activeSection === 'categories' ? 'active' : ''}`}
+          aria-pressed={activeSection === 'categories'}
+          onClick={() => setActiveSection('categories')}
+        >
+          Categorías
+        </button>
+        <button
+          type="button"
+          className={`tab-btn ${activeSection === 'guides' ? 'active' : ''}`}
+          aria-pressed={activeSection === 'guides'}
+          onClick={() => setActiveSection('guides')}
+        >
+          Guías
+        </button>
+        <button
+          type="button"
+          className={`tab-btn ${activeSection === 'quizzes' ? 'active' : ''}`}
+          aria-pressed={activeSection === 'quizzes'}
+          onClick={() => setActiveSection('quizzes')}
+        >
+          Quizzes
+        </button>
+      </div>
 
-      <div className="control-panel-grid">
-        <aside className="control-panel-left">
+      <div className="section-content">
+        <div hidden={activeSection !== 'categories'}>
           <EditCategoriesPanel
             categories={categories}
+            searchQuery={searchQuery}
             onCreate={handleCreateCategory}
             onSave={handleSaveCategory}
             onDelete={handleDeleteCategory}
           />
-        </aside>
-
-        <main className="control-panel-right">
-          <div className="section-tabs">
-            <button
-              type="button"
-              className={`tab-btn ${activeSection === 'guides' ? 'active' : ''}`}
-              onClick={() => setActiveSection('guides')}
-            >
-              Guías
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${activeSection === 'quizzes' ? 'active' : ''}`}
-              onClick={() => setActiveSection('quizzes')}
-            >
-              Quizzes
-            </button>
-          </div>
-
-          <div className="section-content">
-            {activeSection === 'guides' && (
-              <EditGuidesPanel
-                categories={categories}
-                guides={guides}
-                onCreate={handleCreateGuide}
-                onSave={handleSaveGuide}
-                onDelete={handleDeleteGuide}
-              />
-            )}
-            {activeSection === 'quizzes' && (
-              <EditQuizPanel
-                categories={categories}
-                quizzes={quizzes}
-                onCreate={handleCreateQuiz}
-                onSave={handleSaveQuiz}
-                onDelete={handleDeleteQuiz}
-              />
-            )}
-          </div>
-        </main>
+        </div>
+        <div hidden={activeSection !== 'guides'}>
+          <EditGuidesPanel
+            categories={categories}
+            guides={guides}
+            searchQuery={searchQuery}
+            onCreate={handleCreateGuide}
+            onSave={handleSaveGuide}
+            onDelete={handleDeleteGuide}
+          />
+        </div>
+        <div hidden={activeSection !== 'quizzes'}>
+          <EditQuizPanel
+            categories={categories}
+            quizzes={quizzes}
+            searchQuery={searchQuery}
+            onCreate={handleCreateQuiz}
+            onSave={handleSaveQuiz}
+            onDelete={handleDeleteQuiz}
+          />
+        </div>
       </div>
     </div>
   );
