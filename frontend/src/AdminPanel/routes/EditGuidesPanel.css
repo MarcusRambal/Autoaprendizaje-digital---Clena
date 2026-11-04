@@ -13,3 +13,75 @@
     color: black;
 }
 
+.edit-panel .category-view-list {
+    flex-direction: column;
+    padding: 0;
+    list-style: none;
+}
+
+.edit-panel .category-view-list li {
+    padding: 0;
+}
+
+.guide-preview-button {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 16px 24px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.guide-preview-button small {
+    color: #64748b;
+}
+
+.guide-preview-button:focus-visible,
+.guide-preview-header button:focus-visible {
+    outline: 3px solid #5c183e;
+    outline-offset: 2px;
+}
+
+.guide-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 16px;
+    background: #ffffff;
+    border: 1px solid #eef2f6;
+    border-radius: 10px;
+}
+
+.guide-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.guide-preview-header h3 {
+    margin: 0;
+}
+
+.guide-preview-header button {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: #5c183e;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.guide-preview-frame {
+    width: 100%;
+    height: min(75vh, 800px);
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+}

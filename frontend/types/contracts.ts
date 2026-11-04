@@ -5,14 +5,4 @@ export interface User {
   [key: string]: any;
 }
 
-export interface Category {
-  id: number;
-  title: string;
-}
-
-export type Guide = {
-  id: number;
-  title: string;
-  file: string | File;
-  category: string;
-}
+export type { Category, Guide } from './quizGuides';
