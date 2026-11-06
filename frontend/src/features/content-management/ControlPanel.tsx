@@ -4,6 +4,8 @@ import type { Category, Guide, Quiz } from '../../../types/contracts';
 import { EditCategoriesPanel } from './EditCategoriesPanel';
 import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
+import { togglePublished } from './publication';
+import { matchesSearch } from './searchContent';
 
 const initialCategories: Category[] = [
   { id: 1, title: 'Categoria 1' },
@@ -44,14 +46,17 @@ interface ControlPanelData {
 
 interface ControlPanelProps {
   initialData?: ControlPanelData;
+  mode?: 'all' | 'categories' | 'content';
 }
 
-export const ControlPanel = ({ initialData }: ControlPanelProps) => {
-  const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>('guides');
+export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) => {
+  const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>(mode === 'categories' ? 'categories' : 'guides');
   const [categories, setCategories] = useState<Category[]>(initialData?.categories ?? initialCategories);
   const [guides, setGuides] = useState<Guide[]>(initialData?.guides ?? initialGuides);
   const [quizzes, setQuizzes] = useState<Quiz[]>(initialData?.quizzes ?? []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [publishedGuides, setPublishedGuides] = useState<number[]>([]);
+  const [publishedQuizzes, setPublishedQuizzes] = useState<number[]>([]);
 
   const handleCreateCategory = (title: string) => {
     setCategories(current => [...current, { id: nextId(current), title }]);
@@ -101,6 +106,7 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
 
   const handleDeleteGuide = (guideId: number) => {
     setGuides(current => current.filter(guide => guide.id !== guideId));
+    setPublishedGuides(current => current.filter(id => id !== guideId));
   };
 
   const handleCreateQuiz = (quiz: Omit<Quiz, 'id'>) => {
@@ -115,40 +121,42 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
 
   const handleDeleteQuiz = (quizId: number) => {
     setQuizzes(current => current.filter(quiz => quiz.id !== quizId));
+    setPublishedQuizzes(current => current.filter(id => id !== quizId));
   };
 
   return (
     <div className="control-panel">
       <header className="control-panel-header">
-        <h1>Panel de control</h1>
-        <p>Organiza las categorías, guías y quizzes de la plataforma.</p>
+        <h1>{mode === 'categories' ? 'Categorías' : mode === 'content' ? 'Guías y quizzes' : 'Panel de control'}</h1>
+        <p>{mode === 'categories' ? 'Organiza las categorías de la plataforma.' : mode === 'content' ? 'Organiza las guías y quizzes de la plataforma.' : 'Organiza las categorías, guías y quizzes de la plataforma.'}</p>
+        <p role="status"><strong>Demostración:</strong> los datos son de prueba y los cambios no se guardan en el servidor.</p>
       </header>
       <div className="control-panel-toolbar">
         <div className="section-tabs" role="group" aria-label="Sección del panel de control">
-          <button
+          {mode !== 'content' && <button
             type="button"
             className={`tab-btn ${activeSection === 'categories' ? 'active' : ''}`}
             aria-pressed={activeSection === 'categories'}
             onClick={() => setActiveSection('categories')}
           >
             Categorías
-          </button>
-          <button
+          </button>}
+          {mode !== 'categories' && <button
             type="button"
             className={`tab-btn ${activeSection === 'guides' ? 'active' : ''}`}
             aria-pressed={activeSection === 'guides'}
             onClick={() => setActiveSection('guides')}
           >
             Guías
-          </button>
-          <button
+          </button>}
+          {mode !== 'categories' && <button
             type="button"
             className={`tab-btn ${activeSection === 'quizzes' ? 'active' : ''}`}
             aria-pressed={activeSection === 'quizzes'}
             onClick={() => setActiveSection('quizzes')}
           >
             Quizzes
-          </button>
+          </button>}
         </div>
         <div className="control-panel-search">
           <label htmlFor="control-panel-search">Buscar contenido</label>
@@ -168,7 +176,7 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
       </div>
 
       <div className="section-content">
-        <div hidden={activeSection !== 'categories'}>
+        {mode !== 'content' && <div hidden={activeSection !== 'categories'}>
           <EditCategoriesPanel
             categories={categories}
             searchQuery={searchQuery}
@@ -176,8 +184,8 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
             onSave={handleSaveCategory}
             onDelete={handleDeleteCategory}
           />
-        </div>
-        <div hidden={activeSection !== 'guides'}>
+        </div>}
+        {mode !== 'categories' && <div hidden={activeSection !== 'guides'}>
           <EditGuidesPanel
             categories={categories}
             guides={guides}
@@ -186,8 +194,24 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
             onSave={handleSaveGuide}
             onDelete={handleDeleteGuide}
           />
-        </div>
-        <div hidden={activeSection !== 'quizzes'}>
+          {mode === 'content' && (
+            <section aria-labelledby="guide-publication-title">
+              <h2 id="guide-publication-title">Publicación de guías (demostración)</h2>
+              <p>Estos cambios son locales y no publican contenido en el catálogo.</p>
+              <ul>
+                {guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category)).map(guide => (
+                  <li key={guide.id}>
+                    {guide.title} — {publishedGuides.includes(guide.id) ? 'Publicada (ejemplo)' : 'Borrador'}
+                    {' '}<button type="button" onClick={() => setPublishedGuides(current => togglePublished(current, guide.id))}>
+                      {publishedGuides.includes(guide.id) ? 'Despublicar' : 'Publicar'} {guide.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>}
+        {mode !== 'categories' && <div hidden={activeSection !== 'quizzes'}>
           <EditQuizPanel
             categories={categories}
             quizzes={quizzes}
@@ -196,7 +220,24 @@ export const ControlPanel = ({ initialData }: ControlPanelProps) => {
             onSave={handleSaveQuiz}
             onDelete={handleDeleteQuiz}
           />
-        </div>
+          {mode === 'content' && (
+            <section aria-labelledby="quiz-publication-title">
+              <h2 id="quiz-publication-title">Publicación de cuestionarios (demostración)</h2>
+              <p>Estos cambios son locales y no publican contenido en el catálogo.</p>
+              {quizzes.length === 0 && <p>Crea un cuestionario de ejemplo para probar esta función.</p>}
+              <ul>
+                {quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category)).map(quiz => (
+                  <li key={quiz.id}>
+                    {quiz.name} — {publishedQuizzes.includes(quiz.id) ? 'Publicado (ejemplo)' : 'Borrador'}
+                    {' '}<button type="button" onClick={() => setPublishedQuizzes(current => togglePublished(current, quiz.id))}>
+                      {publishedQuizzes.includes(quiz.id) ? 'Despublicar' : 'Publicar'} {quiz.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>}
       </div>
     </div>
   );

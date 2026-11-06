@@ -1,0 +1,19 @@
+.welcome-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f7f3f5;
+  color: #281b23;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+.welcome-content { max-width: 46rem; }
+.welcome-content h1 { font-size: clamp(2.2rem, 5vw, 3.5rem); line-height: 1.15; color: #4a1f3a; margin: 0.8rem 0 1.2rem; }
+.welcome-content p { margin: 1rem 0; }
+.welcome-brand { color: #652e4e; font-weight: 700; }
+.welcome-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin: 2rem 0; }
+.welcome-actions a { display: inline-flex; align-items: center; min-height: 3.25rem; padding: 0.65rem 1rem; border: 2px solid #652e4e; border-radius: 0.5rem; color: #4a1f3a; font-weight: 700; }
+.welcome-actions .welcome-primary { background: #652e4e; color: white; }
+.welcome-actions a:focus-visible { outline: 3px solid #a34a00; outline-offset: 3px; }

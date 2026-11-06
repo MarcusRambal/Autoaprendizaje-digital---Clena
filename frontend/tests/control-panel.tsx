@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '../src/global.css';
-import '../src/AdminPanel/AdminTheme.css';
-import { ControlPanel } from '../src/AdminPanel/routes/ControlPanel';
+import '../src/shared/styles/OperationsTheme.css';
+import { ControlPanel } from '../src/features/content-management/ControlPanel';
 import { controlPanelData } from './fixtures/controlPanelData';
 
 createRoot(document.getElementById('root')!).render(

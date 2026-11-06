@@ -1,16 +1,16 @@
 // MainLayout.tsx
 import { Outlet, useLocation } from 'react-router-dom';
 import { NavBar } from './components/NavBar';
-import './AdminPanel/AdminTheme.css';
+import './shared/styles/OperationsTheme.css';
 
 export const MainLayout = () => {
-  const isAdmin = /^\/admin(?:\/|$)/i.test(useLocation().pathname);
+  const isAdmin = /^\/(?:admin|staff)(?:\/|$)/i.test(useLocation().pathname);
 
   return (
-    <div className={isAdmin ? 'admin-layout' : undefined}>
-      {isAdmin && <a className="skip-link" href="#main-content">Saltar al contenido principal</a>}
+    <div className={isAdmin ? 'admin-layout' : 'public-layout'}>
+      <a className="skip-link" href="#main-content">Saltar al contenido principal</a>
       <NavBar />
-      <main className="content" id={isAdmin ? 'main-content' : undefined} tabIndex={isAdmin ? -1 : undefined}>
+      <main className="content" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
     </div>

@@ -1,32 +1,9 @@
 import './HelpRequestManager.css';
 import { useState, type FormEvent } from 'react';
-import type { HelpRequest, RequestStatus } from '../../../types/contracts';
+import type { HelpRequest, RequestStatus } from '../../../../types/contracts';
+import { initialRequests } from '../demoData';
 
-const initialRequests: HelpRequest[] = [
-  {
-    id: 1,
-    requesterName: 'María López',
-    topic: 'Correo electrónico',
-    date: '2026-10-28',
-    status: 'Pendiente'
-  },
-  {
-    id: 2,
-    requesterName: 'José Ramírez',
-    topic: 'Navegación web',
-    date: '2026-10-29',
-    status: 'En Atención'
-  },
-  {
-    id: 3,
-    requesterName: 'Elena Torres',
-    topic: 'Redes Sociales',
-    date: '2026-10-30',
-    status: 'Resuelta'
-  }
-];
-
-const requestStatuses: RequestStatus[] = ['Pendiente', 'En Atención', 'Resuelta'];
+const requestStatuses: RequestStatus[] = ['Pendiente', 'En Atención', 'Atendida'];
 
 const formatDate = (date: string) => {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -80,7 +57,7 @@ export const HelpRequestManager = () => {
     <section className="help-request-manager">
       <header>
         <h1>Solicitudes de ayuda</h1>
-        <p>Registra y administra las solicitudes de los usuarios.</p>
+        <p role="status"><strong>Demostración:</strong> las solicitudes son ejemplos locales. No llegan avisos del público ni se guardan los cambios.</p>
       </header>
 
       <form className="request-form" onSubmit={handleCreateRequest}>

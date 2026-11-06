@@ -30,7 +30,7 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
-export type RequestStatus = 'Pendiente' | 'En Atención' | 'Resuelta';
+export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida';
 
 export interface HelpRequest {
   id: number;

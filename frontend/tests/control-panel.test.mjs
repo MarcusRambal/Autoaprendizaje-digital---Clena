@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { categories, guides, quizzes } from './fixtures/controlPanelData.ts';
-import { matchesSearch } from '../src/AdminPanel/routes/searchContent.ts';
+import { matchesSearch } from '../src/features/content-management/searchContent.ts';
 
 test('los datos simulados son abundantes y mantienen sus relaciones', () => {
   assert.equal(categories.length, 26);

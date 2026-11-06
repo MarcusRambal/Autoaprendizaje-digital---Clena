@@ -1,21 +1,7 @@
 import './StatsDashboard.css';
 import { useState } from 'react';
-import type { DashboardStats } from '../../../types/contracts';
-
-const initialStats: DashboardStats = {
-  totalRequests: 18,
-  resolvedRequests: 12,
-  topCategories: [
-    { label: 'Correo electrónico', value: 45 },
-    { label: 'Navegación web', value: 32 },
-    { label: 'Redes Sociales', value: 27 }
-  ],
-  topGuides: [
-    { label: 'Primeros pasos con el correo', value: 68 },
-    { label: 'Cómo navegar por internet', value: 51 },
-    { label: 'Uso seguro de redes sociales', value: 39 }
-  ]
-};
+import type { DashboardStats } from '../../../../types/contracts';
+import { initialStats } from '../demoData';
 
 export const StatsDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>(initialStats);
@@ -46,7 +32,7 @@ export const StatsDashboard = () => {
     <section className="stats-dashboard">
       <header>
         <h1>Estadísticas</h1>
-        <p>Resumen de la actividad de la plataforma.</p>
+        <p role="status"><strong>Demostración:</strong> estas cifras son ejemplos, no actividad real de la plataforma.</p>
       </header>
 
       <div className="stats-summary">
@@ -90,6 +76,7 @@ export const StatsDashboard = () => {
         </section>
       </div>
 
+      <p>El número de participantes y los fallos por cuestionario estarán disponibles cuando se implemente el módulo de métricas.</p>
       <button type="button" onClick={handleSimulateActivity}>Simular Nueva Actividad</button>
     </section>
   );
