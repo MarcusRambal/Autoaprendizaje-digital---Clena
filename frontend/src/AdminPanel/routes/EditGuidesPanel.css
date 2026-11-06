@@ -85,3 +85,49 @@
     border: 1px solid #e2e8f0;
     border-radius: 6px;
 }
+
+.admin-layout .guide-edit-fields {
+    display: grid;
+    flex: 1 1 35rem;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.admin-layout .guide-edit-field {
+    display: grid;
+    min-width: 0;
+    gap: 0.4rem;
+    align-content: start;
+    font-size: 0.95rem;
+}
+
+.admin-layout .guide-edit-field :is(input, select) {
+    font-weight: 400;
+}
+
+.admin-layout .guide-edit-file,
+.admin-layout .guide-edit-fields .error-text {
+    grid-column: 1 / -1;
+}
+
+.admin-layout .guide-edit-item > button {
+    align-self: end;
+}
+
+.admin-layout .file-info {
+    color: #705c68;
+    font-size: 0.9rem;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+    .admin-layout .guide-edit-fields {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-layout .guide-edit-item > button {
+        width: 100%;
+    }
+}

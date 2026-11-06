@@ -1,6 +1,10 @@
 .admin-layout {
+  --admin-surface: #f7f3f5;
+  --admin-border: #8a7781;
+  --admin-divider: #e7dfe4;
+  --admin-muted: #705c68;
   min-height: 100vh;
-  background: var(--clena-white);
+  background: #faf8f9;
   color: var(--clena-purple);
   font-size: 1.125rem;
   line-height: 1.5;
@@ -33,8 +37,9 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem 2rem;
-  padding: 1rem clamp(1rem, 3vw, 2.5rem);
-  border-bottom: 5px solid var(--clena-orange);
+  align-items: center;
+  padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
+  border-bottom: 3px solid var(--clena-orange);
   background: var(--clena-purple);
   color: var(--clena-white);
 }
@@ -61,7 +66,7 @@
   align-items: center;
   min-height: 3rem;
   padding: 0.55rem 0.8rem;
-  border-radius: 0.4rem;
+  border-radius: 0.6rem;
   color: var(--clena-white);
   font-weight: 700;
   text-decoration: none;
@@ -76,9 +81,9 @@
 }
 
 .admin-layout .content {
-  width: min(100%, 100rem);
+  width: min(100%, 90rem);
   margin: 0 auto;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 4vw, 3rem);
 }
 
 .admin-layout h1,
@@ -90,7 +95,8 @@
 }
 
 .admin-layout h1 {
-  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  letter-spacing: -0.025em;
 }
 
 .admin-layout h2 {
@@ -98,7 +104,7 @@
 }
 
 .admin-layout h3 {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .admin-layout p {
@@ -120,7 +126,7 @@
   min-height: 3rem;
   padding: 0.65rem 1rem;
   border: 2px solid var(--clena-purple);
-  border-radius: 0.45rem;
+  border-radius: 0.6rem;
   background: var(--clena-purple);
   color: var(--clena-white);
   font-weight: 700;
@@ -141,10 +147,10 @@
 
 .admin-layout button:disabled,
 .admin-layout .create-category-form button:disabled {
-  border-style: dashed;
-  background: var(--clena-white);
+  border-color: transparent;
+  background: #eae3e7;
   color: var(--clena-purple);
-  opacity: 0.7;
+  opacity: 0.75;
   cursor: not-allowed;
 }
 
@@ -160,10 +166,27 @@
   min-width: 0;
   min-height: 3rem;
   padding: 0.65rem;
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.4rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.55rem;
   background: var(--clena-white);
   color: var(--clena-purple);
+}
+
+.admin-layout input[type="file"] {
+  padding: 0.4rem;
+  font-size: 1rem;
+}
+
+.admin-layout input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .admin-layout input::placeholder,
@@ -221,10 +244,10 @@
 .admin-layout .option {
   margin: 0;
   padding: 0;
-  border: 2px solid var(--clena-purple);
-  border-top: 8px solid var(--clena-orange);
-  border-radius: 0.6rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.85rem;
   background: var(--clena-white);
+  box-shadow: 0 6px 24px rgba(65, 34, 52, 0.05);
 }
 
 .admin-layout .option a {
@@ -239,29 +262,37 @@
 
 .admin-layout .option a strong {
   font-size: 1.4rem;
+}
+
+.admin-layout .option a:hover {
+  border-radius: inherit;
+  background: var(--admin-surface);
+}
+
+.admin-layout .option a:hover strong {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
-.admin-layout .option a:hover {
-  background: var(--clena-yellow);
-}
-
 .admin-layout .control-panel {
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .admin-layout .section-content {
   min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--admin-divider);
+  border-radius: 1rem;
+  background: var(--clena-white);
+  box-shadow: 0 8px 30px rgba(65, 34, 52, 0.04);
 }
 
 .admin-layout .edit-panel,
 .admin-layout .edit-quiz-panel {
   gap: 1rem;
   margin: 0;
-  padding: clamp(1rem, 2vw, 1.5rem);
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.6rem;
+  padding: 0;
+  border: 0;
   background: var(--clena-white);
 }
 
@@ -269,7 +300,7 @@
 .admin-layout .viewButton {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.35rem;
   width: 100%;
   margin: 0 0 1rem;
   padding: 0;
@@ -281,20 +312,41 @@
 .admin-layout .viewButton .buttonGuide {
   min-height: 3rem;
   padding: 0.6rem 0.85rem;
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.4rem;
-  background: var(--clena-white);
+  border: 2px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
   color: var(--clena-purple);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
+.admin-layout .section-tabs {
+  padding: 0.3rem;
+  border-radius: 0.8rem;
+  background: #eee8ec;
+}
+
+.admin-layout .viewButton {
+  gap: 0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-layout .viewButton .buttonGuide.active {
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  box-shadow: inset 0 -3px 0 var(--clena-purple);
+}
+
 .admin-layout .section-tabs .tab-btn.active,
-.admin-layout .viewButton .buttonGuide.active,
-.admin-layout .section-tabs .tab-btn:hover,
-.admin-layout .viewButton .buttonGuide:hover {
+.admin-layout .section-tabs .tab-btn:hover:not(.active),
+.admin-layout .viewButton .buttonGuide:hover:not(.active) {
   background: var(--clena-purple);
   color: var(--clena-white);
+}
+
+.admin-layout .section-tabs .tab-btn.active {
+  box-shadow: 0 2px 6px rgba(65, 34, 52, 0.18);
 }
 
 .admin-layout .viewButton .buttonGuide.active::after {
@@ -319,10 +371,10 @@
   flex-direction: column;
   align-items: stretch;
   gap: 1rem;
-  padding: 1rem;
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.5rem;
-  background: var(--clena-white);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
   color: var(--clena-purple);
   font-size: 1.125rem;
   box-shadow: none;
@@ -336,7 +388,7 @@
 .admin-layout :is(.category-view-list, .edit-category-list, .delete-category-list, .quiz-management-list) {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
   margin-top: 0.75rem;
   padding: 0;
 }
@@ -348,12 +400,18 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin: 0;
-  padding: 0.75rem;
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.45rem;
-  background: var(--clena-white);
+  padding: 1.25rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
   color: var(--clena-purple);
   font-size: 1.125rem;
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-layout :is(.category-view-list li, .edit-category-item, .delete-category-item, .quiz-management-list li):hover {
+  background: var(--admin-surface);
   box-shadow: none;
   transform: none;
 }
@@ -371,14 +429,14 @@
   align-items: flex-start;
   padding: 1rem;
   border: 0;
-  background: var(--clena-white);
+  background: transparent;
   color: var(--clena-purple);
   text-align: left;
 }
 
 .admin-layout .guide-preview-button small {
-  color: inherit;
-  font-size: 1.125rem;
+  color: var(--admin-muted);
+  font-size: 1rem;
 }
 
 .admin-layout .guide-view-layout.has-preview {
@@ -407,6 +465,10 @@
   color: var(--clena-purple);
 }
 
+.admin-layout .guide-preview-button:hover small {
+  color: inherit;
+}
+
 .admin-layout .quiz-question-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -415,8 +477,8 @@
 
 .admin-layout :is(.guide-preview, .quiz-question, .quiz-card, .stats-card, .stats-list) {
   padding: 1rem;
-  border: 2px solid var(--clena-purple);
-  border-radius: 0.5rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.75rem;
   background: var(--clena-white);
   color: var(--clena-purple);
 }
@@ -449,7 +511,7 @@
 
 .admin-layout .request-table-wrapper {
   margin-top: 1rem;
-  border: 2px solid var(--clena-purple);
+  border: 1px solid var(--admin-divider);
   border-radius: 0.5rem;
 }
 
@@ -459,7 +521,7 @@
 
 .admin-layout .request-table :is(th, td) {
   padding: 0.8rem;
-  border-bottom: 1px solid var(--clena-purple);
+  border-bottom: 1px solid var(--admin-divider);
 }
 
 .admin-layout .request-table th {
@@ -473,7 +535,7 @@
 }
 
 .admin-layout .stats-card {
-  border-top: 8px solid var(--clena-orange);
+  border-top: 3px solid var(--clena-orange);
 }
 
 .admin-layout .stats-card p {
@@ -482,7 +544,7 @@
 
 .admin-layout .stats-list li {
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--clena-purple);
+  border-bottom: 1px solid var(--admin-divider);
 }
 
 @media (max-width: 55rem) {

@@ -72,32 +72,39 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
     selectedFile !== null;
 
   return (
-    <li className="edit-category-item" hidden={hidden}>
-      <div className="input-group">
-        <input
-          type="text"
-          value={draftTitle}
-          aria-label={`Título de ${guide.title}`}
-          onChange={event => {
-            setDraftTitle(event.target.value);
-            setError(null);
-          }}
-          className={error ? 'input-error' : ''}
-          placeholder="Título de la guía"
-        />
-        <select
-          value={draftCategory}
-          aria-label={`Categoría de ${guide.title}`}
-          onChange={event => {
-            setDraftCategory(event.target.value);
-            setError(null);
-          }}
-        >
-          {categories.map(category => (
-            <option key={category.id} value={category.title}>{category.title}</option>
-          ))}
-        </select>
-        <div className="file-input-wrapper">
+    <li className="edit-category-item guide-edit-item" hidden={hidden}>
+      <div className="guide-edit-fields">
+        <label className="guide-edit-field">
+          <span>Título de la guía</span>
+          <input
+            type="text"
+            value={draftTitle}
+            aria-label={`Título de ${guide.title}`}
+            onChange={event => {
+              setDraftTitle(event.target.value);
+              setError(null);
+            }}
+            className={error ? 'input-error' : ''}
+            placeholder="Título de la guía"
+          />
+        </label>
+        <label className="guide-edit-field">
+          <span>Categoría</span>
+          <select
+            value={draftCategory}
+            aria-label={`Categoría de ${guide.title}`}
+            onChange={event => {
+              setDraftCategory(event.target.value);
+              setError(null);
+            }}
+          >
+            {categories.map(category => (
+              <option key={category.id} value={category.title}>{category.title}</option>
+            ))}
+          </select>
+        </label>
+        <label className="guide-edit-field guide-edit-file">
+          <span>Archivo PDF</span>
           <input
             type="file"
             accept=".pdf,application/pdf"
@@ -118,7 +125,7 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
           <span className="file-info">
             {selectedFile ? selectedFile.name : `Actual: ${getGuideFileName(guide.file)}`}
           </span>
-        </div>
+        </label>
         {error && <span className="error-text" role="alert">{error}</span>}
       </div>
       <button type="button" onClick={handleSave} disabled={!isChanged}>Guardar</button>
@@ -141,6 +148,8 @@ export const EditGuidesPanel = ({
   const [newFile, setNewFile] = useState<File | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
+  const selectedGuideMatches = selectedGuide !== null &&
+    filteredGuides.some(guide => guide.id === selectedGuide.guide.id);
 
   const handleCreateGuide = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -243,7 +252,7 @@ export const EditGuidesPanel = ({
         </div>
 
         {viewState === 'guideView' && (
-          <div className={`guide-view-layout ${selectedGuide ? 'has-preview' : ''}`}>
+          <div className={`guide-view-layout ${selectedGuideMatches ? 'has-preview' : ''}`}>
             <div className="guide-list">
               <h3>Listado de Guías</h3>
             {guides.length > 0 ? (
@@ -266,7 +275,7 @@ export const EditGuidesPanel = ({
             {guides.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
             </div>
             {selectedGuide && (
-              <section className="guide-preview" aria-label={`Vista previa de ${selectedGuide.guide.title}`}>
+              <section className="guide-preview" hidden={!selectedGuideMatches} aria-label={`Vista previa de ${selectedGuide.guide.title}`}>
                 <div className="guide-preview-header">
                   <h3>{selectedGuide.guide.title}</h3>
                   <button type="button" onClick={() => setSelectedGuide(null)}>Cerrar PDF</button>
