@@ -1,0 +1,110 @@
+// App.tsx
+import './App.css';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+
+import { Home } from './Home';
+import { MainLayout } from './MainLayout'; // Importas el Layout
+
+// SignIn
+import { SignUp } from './SignIn/SignUp';
+import { Login } from './SignIn/Login';
+
+// StudentsHome
+import { StudentsHome } from './StudentsHome/StudentsHome';
+import { Guides } from './StudentsHome/routes/Guides';
+import { Quiz } from './StudentsHome/routes/Quiz';
+import { Progress } from './StudentsHome/routes/Progress';
+
+// AdminPanel
+import { AdminPanel } from './AdminPanel/AdminPanel';
+import { ControlPanel } from './AdminPanel/routes/ControlPanel';
+import { HelpRequestManager } from './AdminPanel/routes/HelpRequestManager';
+import { StatsDashboard } from './AdminPanel/routes/StatsDashboard';
+
+// ProtectedRoute
+import { ProtectedRoute } from './components/ProtectedRoute';
+
+
+const router = createBrowserRouter([
+  // --- Rutas Públicas ---
+  {
+    path: '/',
+    element: <Home />,
+  },
+  {
+    path: '/signUp',
+    element: <SignUp />,
+  },
+  {
+    path: '/login',
+    element: <Login />,
+  },
+
+  // --- Rutas del Estudiante ---
+  {
+    element: <ProtectedRoute allowedRoles={['student']} />,
+    children: [
+      {
+        path: '/StudentsHome',
+        element: <MainLayout/>,
+        children: [
+          {
+            path: '',
+            element: <StudentsHome />,
+          },
+          {
+            path: 'Guides',
+            element: <Guides />,
+          },
+          {
+            path: 'Quiz',
+            element: <Quiz />,
+          },
+          {
+            path: 'Progress',
+            element: <Progress />,
+          },
+        ],
+      },
+    ],
+  },
+
+  // --- Rutas del Administrador ---
+  {
+    element: <ProtectedRoute allowedRoles={['admin']} />,
+    children: [
+      {
+        path: '/Admin',
+        element: <MainLayout/>,
+        children: [
+          {
+            path: '',
+            element: <AdminPanel />,
+          },
+          {
+            path: 'ControlPanel',
+            element: <ControlPanel/>
+          },
+          {
+            path: 'Requests',
+            element: <HelpRequestManager />,
+          },
+          {
+            path: 'Statistics',
+            element: <StatsDashboard />,
+          },
+        ],
+      },
+    ],
+  },
+
+  // --- Catch-All (Ruta 404 para cualquier URL no coincidente) ---
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}

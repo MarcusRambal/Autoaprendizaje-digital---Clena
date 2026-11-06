@@ -1,0 +1,103 @@
+.edit-quiz-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-quiz-panel .viewButton {
+  flex-wrap: wrap;
+}
+
+.quiz-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-form > label,
+.quiz-question > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quiz-form input,
+.quiz-form select,
+.quiz-form textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 8px;
+}
+
+.quiz-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quiz-question {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quiz-correct-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.quiz-correct-option input {
+  margin: 0;
+}
+
+.quiz-option-row input {
+  flex: 1;
+}
+
+.quiz-form-actions,
+.quiz-management-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quiz-management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.quiz-management-list li {
+  justify-content: space-between;
+}
+
+.quiz-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.quiz-card h3 {
+  margin-top: 0;
+}

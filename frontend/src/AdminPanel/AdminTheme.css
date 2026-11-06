@@ -1,0 +1,580 @@
+.admin-layout {
+  --admin-surface: #f7f3f5;
+  --admin-border: #8a7781;
+  --admin-divider: #e7dfe4;
+  --admin-muted: #705c68;
+  min-height: 100vh;
+  background: #faf8f9;
+  color: var(--clena-purple);
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+.admin-layout *,
+.admin-layout *::before,
+.admin-layout *::after {
+  box-sizing: border-box;
+}
+
+.admin-layout .skip-link {
+  position: absolute;
+  z-index: 10;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.75rem 1rem;
+  transform: translateY(-200%);
+  background: var(--clena-yellow);
+  color: var(--clena-purple);
+  font-weight: 700;
+}
+
+.admin-layout .skip-link:focus {
+  transform: translateY(0);
+}
+
+.admin-layout .navbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  align-items: center;
+  padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
+  border-bottom: 3px solid var(--clena-orange);
+  background: var(--clena-purple);
+  color: var(--clena-white);
+}
+
+.admin-layout .navBar-logo a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  color: var(--clena-white);
+  font-size: 1.7rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-layout .nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.admin-layout .nav-links li a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.6rem;
+  color: var(--clena-white);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-layout .nav-links li a:hover,
+.admin-layout .nav-links li a[aria-current="page"] {
+  background: var(--clena-yellow);
+  color: var(--clena-purple);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.admin-layout .content {
+  width: min(100%, 90rem);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.admin-layout h1,
+.admin-layout h2,
+.admin-layout h3 {
+  color: var(--clena-purple);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.admin-layout h1 {
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  letter-spacing: -0.025em;
+}
+
+.admin-layout h2 {
+  font-size: clamp(1.5rem, 2vw, 1.8rem);
+}
+
+.admin-layout h3 {
+  font-size: 1.2rem;
+}
+
+.admin-layout p {
+  max-width: 70ch;
+}
+
+.admin-layout button,
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea {
+  font: inherit;
+}
+
+.admin-layout button,
+.admin-layout .logout-btn,
+.admin-layout .create-category-form button,
+.admin-layout .delete-category-item button,
+.admin-layout .guide-preview-header button {
+  min-height: 3rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid var(--clena-purple);
+  border-radius: 0.6rem;
+  background: var(--clena-purple);
+  color: var(--clena-white);
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.admin-layout button:hover:not(:disabled),
+.admin-layout .logout-btn:hover,
+.admin-layout .create-category-form button:hover:not(:disabled),
+.admin-layout .delete-category-item button:hover:not(:disabled),
+.admin-layout .guide-preview-header button:hover:not(:disabled) {
+  background: var(--clena-yellow);
+  color: var(--clena-purple);
+  transform: none;
+}
+
+.admin-layout button:disabled,
+.admin-layout .create-category-form button:disabled {
+  border-color: transparent;
+  background: #eae3e7;
+  color: var(--clena-purple);
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.admin-layout :is(a, button, input, select, textarea, iframe, .request-table-wrapper):focus-visible {
+  outline: 3px solid var(--clena-orange);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px var(--clena-purple);
+}
+
+.admin-layout :is(input:not([type="radio"]), select, textarea) {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  padding: 0.65rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.55rem;
+  background: var(--clena-white);
+  color: var(--clena-purple);
+}
+
+.admin-layout input[type="file"] {
+  padding: 0.4rem;
+  font-size: 1rem;
+}
+
+.admin-layout input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-layout input::placeholder,
+.admin-layout .create-category-form input::placeholder,
+.admin-layout textarea::placeholder {
+  color: var(--clena-purple);
+  opacity: 0.8;
+}
+
+.admin-layout input[type="radio"] {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  accent-color: var(--clena-purple);
+}
+
+.admin-layout label {
+  font-weight: 700;
+}
+
+.admin-layout .input-group {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-layout .error-text,
+.admin-layout .request-error {
+  color: var(--clena-purple);
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-left: 5px solid var(--clena-orange);
+  padding-left: 0.6rem;
+}
+
+.admin-layout .input-error {
+  border: 3px solid var(--clena-purple) !important;
+}
+
+.admin-layout .admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-layout .options-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-layout .option {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.85rem;
+  background: var(--clena-white);
+  box-shadow: 0 6px 24px rgba(65, 34, 52, 0.05);
+}
+
+.admin-layout .option a {
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  color: var(--clena-purple);
+  text-decoration: none;
+}
+
+.admin-layout .option a strong {
+  font-size: 1.4rem;
+}
+
+.admin-layout .option a:hover {
+  border-radius: inherit;
+  background: var(--admin-surface);
+}
+
+.admin-layout .option a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.admin-layout .control-panel {
+  gap: 2rem;
+}
+
+.admin-layout .section-content {
+  min-width: 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--admin-divider);
+  border-radius: 1rem;
+  background: var(--clena-white);
+  box-shadow: 0 8px 30px rgba(65, 34, 52, 0.04);
+}
+
+.admin-layout .edit-panel,
+.admin-layout .edit-quiz-panel {
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--clena-white);
+}
+
+.admin-layout .section-tabs,
+.admin-layout .viewButton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.admin-layout .section-tabs .tab-btn,
+.admin-layout .viewButton .buttonGuide {
+  min-height: 3rem;
+  padding: 0.6rem 0.85rem;
+  border: 2px solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: var(--clena-purple);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.admin-layout .section-tabs {
+  padding: 0.3rem;
+  border-radius: 0.8rem;
+  background: #eee8ec;
+}
+
+.admin-layout .viewButton {
+  gap: 0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-layout .viewButton .buttonGuide.active {
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  box-shadow: inset 0 -3px 0 var(--clena-purple);
+}
+
+.admin-layout .section-tabs .tab-btn.active,
+.admin-layout .section-tabs .tab-btn:hover:not(.active),
+.admin-layout .viewButton .buttonGuide:hover:not(.active) {
+  background: var(--clena-purple);
+  color: var(--clena-white);
+}
+
+.admin-layout .section-tabs .tab-btn.active {
+  box-shadow: 0 2px 6px rgba(65, 34, 52, 0.18);
+}
+
+.admin-layout .viewButton .buttonGuide.active::after {
+  content: none;
+}
+
+.admin-layout .viewCreateEditGuides {
+  gap: 1rem;
+  padding: 0;
+  background: transparent;
+}
+
+.admin-layout :is(.create-category-container, .edit-category-container, .delete-category-container) {
+  gap: 1rem;
+  margin: 0;
+}
+
+.admin-layout .create-category-form,
+.admin-layout .request-form,
+.admin-layout .quiz-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  font-size: 1.125rem;
+  box-shadow: none;
+}
+
+.admin-layout .create-category-form button {
+  align-self: flex-start;
+  font-size: 1.125rem;
+}
+
+.admin-layout :is(.category-view-list, .edit-category-list, .delete-category-list, .quiz-management-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0;
+}
+
+.admin-layout :is(.category-view-list li, .edit-category-item, .delete-category-item, .quiz-management-list li) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--admin-surface);
+  color: var(--clena-purple);
+  font-size: 1.125rem;
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-layout :is(.category-view-list li, .edit-category-item, .delete-category-item, .quiz-management-list li):hover {
+  background: var(--admin-surface);
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-layout .edit-panel .category-view-list li {
+  padding: 0.75rem;
+}
+
+.admin-layout .edit-panel .category-view-list li:has(.guide-preview-button) {
+  padding: 0;
+}
+
+.admin-layout .guide-preview-button {
+  width: 100%;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--clena-purple);
+  text-align: left;
+}
+
+.admin-layout .guide-preview-button small {
+  color: var(--admin-muted);
+  font-size: 1rem;
+}
+
+.admin-layout .guide-view-layout.has-preview {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.8fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.admin-layout .guide-list,
+.admin-layout .guide-preview {
+  min-width: 0;
+}
+
+.admin-layout .guide-preview {
+  margin-top: 0;
+}
+
+.admin-layout .guide-preview a {
+  color: var(--clena-purple);
+  font-weight: 700;
+}
+
+.admin-layout .guide-preview-button[aria-pressed="true"] {
+  background: var(--clena-yellow);
+  color: var(--clena-purple);
+}
+
+.admin-layout .guide-preview-button:hover small {
+  color: inherit;
+}
+
+.admin-layout .quiz-question-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-layout :is(.guide-preview, .quiz-question, .quiz-card, .stats-card, .stats-list) {
+  padding: 1rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.75rem;
+  background: var(--clena-white);
+  color: var(--clena-purple);
+}
+
+.admin-layout :is(.guide-preview-header, .quiz-form-actions, .quiz-option-row) {
+  flex-wrap: wrap;
+}
+
+.admin-layout .quiz-option-row input[type="text"] {
+  flex: 1 1 12rem;
+}
+
+.admin-layout :is(.help-request-manager, .stats-dashboard) {
+  gap: 1.5rem;
+}
+
+.admin-layout :is(.help-request-manager header, .stats-dashboard header) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-layout .request-form label {
+  gap: 0.4rem;
+}
+
+.admin-layout .request-form button {
+  align-self: flex-start;
+}
+
+.admin-layout .request-table-wrapper {
+  margin-top: 1rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.5rem;
+}
+
+.admin-layout .request-table {
+  min-width: 48rem;
+}
+
+.admin-layout .request-table :is(th, td) {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+.admin-layout .request-table th {
+  background: var(--clena-purple);
+  color: var(--clena-white);
+}
+
+.admin-layout .stats-summary,
+.admin-layout .stats-lists {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.admin-layout .stats-card {
+  border-top: 3px solid var(--clena-orange);
+}
+
+.admin-layout .stats-card p {
+  font-size: 2.5rem;
+}
+
+.admin-layout .stats-list li {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--admin-divider);
+}
+
+@media (max-width: 55rem) {
+  .admin-layout .guide-view-layout.has-preview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 35rem) {
+  .admin-layout .navbar,
+  .admin-layout .nav-links {
+    align-items: stretch;
+  }
+
+  .admin-layout .nav-links {
+    width: 100%;
+  }
+
+  .admin-layout .nav-links li {
+    flex: 1 1 auto;
+  }
+
+  .admin-layout .nav-links li a {
+    width: 100%;
+  }
+}
+
+@media (forced-colors: active) {
+  .admin-layout :is(a, button, input, select, textarea, iframe, .request-table-wrapper):focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 3px;
+  }
+}
