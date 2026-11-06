@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  PUBLIC_USER
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
+enum PublicationState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ActivityProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model User {
+  id                       String             @id @default(uuid()) @db.Uuid
+  // User_email_canonical_check is enforced in migration SQL; Prisma has no CHECK syntax.
+  email                    String             @unique
+  passwordHash             String
+  role                     UserRole           @default(PUBLIC_USER)
+  status                   UserStatus         @default(ACTIVE)
+  accessibilityPreferences Json               @default("{}")
+  createdAt                DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime           @updatedAt @db.Timestamptz(6)
+  activityProgress         ActivityProgress[]
+  refreshSessions          RefreshSession[]
+
+  @@index([role])
+}
+
+model Category {
+  id         String     @id @default(uuid()) @db.Uuid
+  slug       String     @unique
+  name       String     @unique
+  createdAt  DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime   @updatedAt @db.Timestamptz(6)
+  guides     Guide[]
+  activities Activity[]
+}
+
+model Guide {
+  id               String           @id @default(uuid()) @db.Uuid
+  title            String
+  slug             String           @unique
+  description      String           @db.Text
+  body             String           @db.Text
+  publicationState PublicationState @default(DRAFT)
+  categoryId       String           @db.Uuid
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  steps            GuideStep[]
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
+
+  @@index([title])
+  @@index([categoryId])
+  @@index([publicationState])
+}
+
+model GuideStep {
+  id           String   @id @default(uuid()) @db.Uuid
+  guideId      String   @db.Uuid
+  guide        Guide    @relation(fields: [guideId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderNumber  Int
+  title        String
+  instructions String   @db.Text
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([guideId, orderNumber])
+}
+
+model Activity {
+  id               String             @id @default(uuid()) @db.Uuid
+  title            String
+  slug             String             @unique
+  description      String             @db.Text
+  publicationState PublicationState   @default(DRAFT)
+  categoryId       String?            @db.Uuid
+  category         Category?          @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  questions        ActivityQuestion[]
+  progress         ActivityProgress[]
+  createdAt        DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([title])
+  @@index([categoryId])
+  @@index([publicationState])
+}
+
+model ActivityQuestion {
+  id                String   @id @default(uuid()) @db.Uuid
+  activityId        String   @db.Uuid
+  activity          Activity @relation(fields: [activityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  orderNumber       Int
+  prompt            String   @db.Text
+  choices           String[]
+  expectedAnswer    String
+  immediateFeedback String   @db.Text
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([activityId, orderNumber])
+}
+
+model ActivityProgress {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  userId             String                 @db.Uuid
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  activityId         String                 @db.Uuid
+  activity           Activity               @relation(fields: [activityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attemptNumber      Int
+  status             ActivityProgressStatus @default(IN_PROGRESS)
+  score              Decimal?               @db.Decimal(5, 2)
+  submittedResponses Json?
+  startedAt          DateTime               @default(now()) @db.Timestamptz(6)
+  submittedAt        DateTime?              @db.Timestamptz(6)
+  completedAt        DateTime?              @db.Timestamptz(6)
+  createdAt          DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime               @updatedAt @db.Timestamptz(6)
+
+  @@unique([userId, activityId, attemptNumber])
+  @@index([userId])
+  @@index([activityId])
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(6)
+  revokedAt DateTime? @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@index([userId, familyId])
+  @@index([userId, expiresAt])
+}
