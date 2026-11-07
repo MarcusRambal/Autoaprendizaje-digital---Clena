@@ -4,6 +4,7 @@ import { homePathForRole, passwordError } from '../../services/authApi';
 import { useAuth } from '../../services/authState';
 import './Login.css';
 import './SignUp.css';
+import { ConsentNotice } from '../features/privacy/ConsentNotice';
 
 export const SignUp = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export const SignUp = () => {
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const next = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,6 +30,10 @@ export const SignUp = () => {
 
   const finish = async () => {
     if (pending) return;
+    if (!consent) {
+      setError('Debes aceptar el tratamiento de datos para continuar.');
+      return;
+    }
     setError(null);
     setPending(true);
     try {
@@ -69,7 +75,7 @@ export const SignUp = () => {
               <input id="signup-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <label htmlFor="signup-password">Contraseña</label>
               <input id="signup-password" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} aria-describedby="password-help" />
-              <small id="password-help">Mínimo 8 caracteres y máximo 72 bytes.</small>
+              <small id="password-help">Mínimo 8 caracteres</small>
               <label htmlFor="signup-confirm">Repite tu contraseña</label>
               <input id="signup-confirm" type="password" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} required />
               <button className="auth-primary" type="submit">Continuar</button>
@@ -106,6 +112,12 @@ export const SignUp = () => {
             <h2>Todo listo para comenzar</h2>
             <p>Crearemos tu cuenta con el correo <strong className="signup-email">{email.trim().toLowerCase()}</strong> y entraremos a tu espacio de aprendizaje.</p>
             <p>Recuerda guardar tu contraseña en un lugar seguro. No la compartas con otras personas.</p>
+            <ConsentNotice />
+            <label className="consent-checkbox">
+              <input type="checkbox" checked={consent} onChange={event => { setConsent(event.target.checked); setError(null); }} />
+              Acepto el tratamiento de mis datos para administrar mi cuenta y mi progreso.
+            </label>
+            <p className="auth-note">La aceptación se comprueba en esta pantalla, pero todavía no se registra en el servidor.</p>
             <div className="auth-actions">
               <button className="auth-secondary" type="button" disabled={pending} onClick={() => { setError(null); setStep(2); }}>Atrás</button>
               <button className="auth-primary" type="button" disabled={pending} onClick={finish}>{pending ? 'Creando cuenta…' : 'Crear cuenta e iniciar sesión'}</button>

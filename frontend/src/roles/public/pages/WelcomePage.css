@@ -1,22 +1,20 @@
 .welcome-page {
   position: relative;
   isolation: isolate;
-  display: flex;
-  align-items: flex-start;
-  box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100svh;
+  display: grid;
+  min-height: min(100svh, 58rem);
+  align-items: center;
   overflow: hidden;
-  background: #fff;
-  color: #111;
+  background: #faf8f9;
+  color: #211820;
 }
 
 .welcome-art {
   position: absolute;
   z-index: -1;
-  inset: 0 0 0 57%;
+  inset: 0 0 0 63%;
   overflow: hidden;
-  background: #ffc43b;
+  background: #f1b633;
 }
 
 .welcome-art::before,
@@ -27,20 +25,19 @@
 }
 
 .welcome-art::before {
-  background: #e99a2e;
-  clip-path: polygon(0 0, 40% 0, 33% 100%, 7% 100%);
+  background: #df8329;
+  clip-path: polygon(0 0, 42% 0, 30% 100%, 0 100%);
 }
 
 .welcome-art::after {
-  background: #642e4e;
-  clip-path: polygon(40% 0, 79% 0, 90% 100%, 51% 100%);
+  background: #652e4e;
+  clip-path: polygon(43% 0, 73% 0, 88% 100%, 55% 100%);
 }
 
 .welcome-content {
   box-sizing: border-box;
-  width: 61%;
-  max-width: 860px;
-  padding: clamp(3.5rem, 18.5vh, 9rem) 1.5rem 3rem clamp(2rem, 5.85vw, 5rem);
+  width: min(68%, 58rem);
+  padding: clamp(2.5rem, 11vh, 7rem) clamp(1.5rem, 7vw, 6rem);
 }
 
 .welcome-content .welcome-brand,
@@ -50,133 +47,162 @@
 }
 
 .welcome-content .welcome-brand {
-  margin: 0 0 clamp(1.5rem, 4.4vh, 2.25rem);
-  color: #ffb32f;
-  font-size: clamp(1.45rem, 2.55vw, 2.2rem);
-  font-weight: 400;
-  line-height: 1.2;
+  margin: 0 0 1.5rem;
+  color: #F1B633;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.welcome-content .welcome-brand span {
+  padding: 0 0.3rem;
+  color: #a45b20;
 }
 
 .welcome-content h1 {
-  max-width: 34rem;
-  margin: 0 0 clamp(1.5rem, 3.7vh, 2rem);
-  color: #111;
-  font-size: clamp(1.8rem, 2.65vw, 2.3rem);
-  font-weight: 400;
-  line-height: 1.2;
+  max-width: 40rem;
+  margin: 0 0 1.25rem;
+  color: #211820;
+  font-size: clamp(2.3rem, 5vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
 .welcome-content .welcome-description {
-  max-width: 32rem;
-  margin: 0 0 clamp(1.5rem, 3.55vh, 2rem);
-  font-size: clamp(1.2rem, 1.95vw, 1.75rem);
-  line-height: 1.25;
+  max-width: 34rem;
+  margin: 0 0 2rem;
+  color: #51434c;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  line-height: 1.5;
 }
 
 .welcome-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
-  gap: 0.9rem 1rem;
-  max-width: 35.75rem;
+  display: flex;
+  max-width: 42rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .welcome-actions a {
-  box-sizing: border-box;
-  display: flex;
+  display: inline-flex;
+  min-height: 3.25rem;
   align-items: center;
-  min-height: clamp(4.5rem, 7.2vw, 6.15rem);
-  padding: 0.4rem 0.9rem;
-  border: 1px solid #444;
-  border-radius: 0.45rem;
+  justify-content: center;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid #652e4e;
+  border-radius: 0.55rem;
   background: #fff;
-  color: #111;
-  font-size: clamp(1.35rem, 2.55vw, 2.2rem);
-  font-weight: 400;
-  line-height: 1.2;
+  color: #652e4e;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.welcome-actions a:hover {
+  background: #f3edf1;
   text-decoration: underline;
-  text-underline-offset: 0.12em;
+  text-underline-offset: 0.2em;
 }
 
 .welcome-actions .welcome-primary {
-  grid-column: 1;
-  background: #642e4e;
+  border-color: #652e4e;
+  background: #652e4e;
   color: #fff;
-  text-decoration: none;
 }
 
-.welcome-actions .welcome-signup {
-  white-space: nowrap;
+.welcome-actions .welcome-primary:hover {
+  border-color: #4a1f3a;
+  background: #4a1f3a;
 }
 
 .welcome-content .welcome-note {
-  margin: clamp(1.6rem, 5vh, 2.5rem) 0 0;
-  font-size: clamp(1.2rem, 2.15vw, 1.85rem);
-  line-height: 1.3;
+  margin: 1.5rem 0 0;
+  color: #51434c;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
+.welcome-skip {
+  position: fixed;
+  z-index: 20;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-160%);
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: #652e4e;
+  color: white;
+  font-weight: 700;
+}
+
+.welcome-skip:focus {
+  transform: translateY(0);
+}
+
+.welcome-skip:focus-visible,
 .welcome-actions a:focus-visible {
   outline: 3px solid #a34a00;
   outline-offset: 4px;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 @media (max-width: 760px) {
-  .welcome-content {
-    width: 68%;
-    padding-left: clamp(1.5rem, 5vw, 2.5rem);
-  }
-
-  .welcome-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .welcome-actions .welcome-primary {
-    grid-column: 1;
-  }
-}
-
-@media (max-width: 520px) {
   .welcome-page {
     min-height: 100svh;
-    padding-bottom: 8rem;
+    align-content: start;
+    padding-bottom: 6rem;
   }
 
   .welcome-art {
     inset: auto 0 0;
-    height: 7rem;
+    height: 4rem;
   }
 
   .welcome-art::before {
-    clip-path: polygon(0 0, 43% 0, 33% 100%, 0 100%);
+    clip-path: polygon(0 0, 40% 0, 30% 100%, 0 100%);
   }
 
   .welcome-art::after {
-    clip-path: polygon(43% 0, 76% 0, 88% 100%, 56% 100%);
+    clip-path: polygon(42% 0, 72% 0, 86% 100%, 54% 100%);
   }
 
   .welcome-content {
     width: 100%;
-    padding: 3rem 1.5rem 2rem;
-  }
-
-  .welcome-content .welcome-brand {
-    margin-bottom: 1.75rem;
-  }
-
-  .welcome-content h1 {
-    font-size: clamp(1.8rem, 8vw, 2.3rem);
-  }
-
-  .welcome-content .welcome-description,
-  .welcome-content .welcome-note {
-    font-size: 1.2rem;
+    padding: clamp(2rem, 8vh, 4rem) clamp(1.25rem, 6vw, 2.5rem) 2rem;
   }
 
   .welcome-actions {
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+}
+
+@media (max-width: 28rem) {
+  .welcome-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-actions a {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .welcome-actions a,
+  .welcome-skip {
+    border: 1px solid ButtonText;
   }
 
-  .welcome-actions a {
-    min-height: 4rem;
-    font-size: 1.4rem;
+  .welcome-skip:focus-visible,
+  .welcome-actions a:focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
   }
 }

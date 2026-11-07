@@ -1,0 +1,63 @@
+.admin-page {
+  display: grid;
+  gap: 1.5rem;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.admin-page header {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.admin-page header :is(h1, p) { margin: 0; }
+.admin-page-eyebrow { color: #705c68; font-size: 0.95rem; font-weight: 700; text-transform: uppercase; }
+.admin-form, .privacy-section {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 48rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid #e4d9df;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+.privacy-section h2, .privacy-section p, .admin-form p { margin: 0; }
+.admin-form label { font-weight: 700; }
+.admin-form input:not([type="checkbox"]), .admin-form select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.65rem;
+  border: 1px solid #8a7781;
+  border-radius: 0.55rem;
+  background: white;
+  color: #211820;
+  font: inherit;
+}
+.admin-form button {
+  justify-self: start;
+  min-height: 3rem;
+  padding: 0.65rem 1rem;
+  border: 2px solid #652e4e;
+  border-radius: 0.6rem;
+  background: #652e4e;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-form button:disabled { opacity: 0.65; cursor: not-allowed; }
+.privacy-confirm { display: flex; align-items: flex-start; gap: 0.6rem; }
+.admin-layout .privacy-confirm input[type="checkbox"], .privacy-confirm input[type="checkbox"] {
+  flex: none;
+  width: 1.25rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  min-height: 1.25rem;
+  margin-top: 0.25rem;
+  accent-color: #652e4e;
+}
+.admin-form-error { color: #a32121; }
+.admin-form-success { color: #28643e; }
+.admin-demo-users { display: grid; gap: 0.5rem; padding-left: 1.5rem; overflow-wrap: anywhere; }
+.privacy-page .consent-notice { padding: 1rem; border: 1px solid #cbb8c2; border-radius: 0.5rem; background: #faf8f9; }
+.privacy-page .consent-notice p + p { margin-top: 0.75rem; }

@@ -14,7 +14,8 @@ src/
   shared/styles/                Estilos compartidos por los paneles operativos.
 ```
 
-`services/` contiene el cliente y el contexto de autenticación; `config/`
+`services/` contiene los clientes de autenticación y aprendizaje público y sus
+contratos; `config/`
 define la navegación por rol y `types/` los contratos del frontend. Las URL
 existentes se mantienen para no romper enlaces. El editor compartido se usa en
 modo categorías para `ADMIN` y en modo contenido para `STAFF`.
@@ -35,19 +36,21 @@ El registro tiene tres pasos: datos, guía visual para iniciar sesión y
 creación de la cuenta. El backend actual no envía correos de verificación.
 El registro devuelve una sesión y el usuario entra automáticamente. El backend
 asigna `PUBLIC_USER` a los registros públicos. Los roles `PUBLIC_USER`, `STAFF`
-y `ADMIN` llevan a sus respectivos paneles. `STAFF` accede a guías y quizzes,
+y `ADMIN` llevan a sus respectivos paneles. `STAFF` accede a guías y lecciones,
 y `ADMIN` a categorías y funciones administrativas. Los visitantes pueden
 consultar ejemplos de guías y un cuestionario sin iniciar sesión; el progreso
 requiere una cuenta de usuario público. Los temas de seguridad digital se
 incluyen en las guías.
 
-El catálogo y cuestionario públicos son ejemplos locales, no contenido del
-servidor, y no guardan progreso. El botón de ayuda dirige a una página que
-explica que la solicitud digital todavía no envía ningún aviso. En el panel
+El catálogo público de guías y lecciones, el progreso y la solicitud de ayuda
+usan datos de demostración en `services/publicLearning.ts`, tras una interfaz
+tipada que se puede implementar con el cliente HTTP cuando estén disponibles
+los endpoints. No guardan progreso ni envían solicitudes. El aviso de
+demostración aparece en cada vista para dejarlo claro. En el panel
 del personal, las solicitudes, estadísticas, edición y publicación también
-son demostraciones en memoria. Las pantallas de administración de usuarios,
-auditoría, privacidad y respaldos indican que aún no están disponibles. No hay
-todavía registro de consentimiento ni gestión real de solicitudes de datos.
+son demostraciones en memoria. La administración de usuarios y las acciones
+de privacidad son demostraciones de frontend y no modifican cuentas ni
+persisten consentimiento. Auditoría y respaldos siguen sin implementarse.
 
 Las restricciones del frontend no sustituyen la autorización del backend:
 los futuros endpoints deben aplicar sus propios controles de roles.

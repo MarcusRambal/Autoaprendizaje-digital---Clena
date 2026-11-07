@@ -23,6 +23,8 @@ import { HelpRequestManager } from './roles/staff/pages/HelpRequestManager';
 import { StatsDashboard } from './roles/staff/pages/StatsDashboard';
 import { StaffDashboard } from './roles/staff/pages/StaffDashboard';
 import { AdminFeature } from './roles/admin/pages/AdminFeature';
+import { AdminUsers } from './roles/admin/pages/AdminUsers';
+import { PrivacyPage } from './features/privacy/PrivacyPage';
 
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -56,6 +58,7 @@ const router = createBrowserRouter([
         element: <ProtectedRoute allowedRoles={['student']} />,
         children: [
           { path: 'Progress', element: <Progress /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
         ],
       },
     ],
@@ -77,9 +80,9 @@ const router = createBrowserRouter([
             path: 'ControlPanel',
             element: <ControlPanel mode="categories"/>
           },
-          { path: 'Users', element: <AdminFeature feature="users" /> },
+          { path: 'Users', element: <AdminUsers /> },
           { path: 'Audit', element: <AdminFeature feature="audit" /> },
-          { path: 'Privacy', element: <AdminFeature feature="privacy" /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
           { path: 'Backups', element: <AdminFeature feature="backups" /> },
         ],
       },
@@ -98,6 +101,7 @@ const router = createBrowserRouter([
           { path: 'Content', element: <ControlPanel mode="content" /> },
           { path: 'Requests', element: <HelpRequestManager /> },
           { path: 'Statistics', element: <StatsDashboard /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
         ],
       },
     ],

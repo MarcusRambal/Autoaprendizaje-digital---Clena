@@ -8,3 +8,7 @@
 .signup-example-button { margin-top: 0.4rem; padding: 0.7rem; background: #652e4e; color: white; text-align: center; border-radius: 0.35rem; font-weight: 700; }
 .signup-instructions { margin: 1rem 0 1rem 1.5rem; }
 .signup-instructions li { list-style-type: decimal; line-height: 1.6; }
+.consent-checkbox { display: flex; align-items: flex-start; gap: 0.6rem; margin: 1rem 0; }
+.consent-checkbox input { width: 1.25rem; height: 1.25rem; flex: none; margin-top: 0.2rem; }
+.consent-notice { padding: 1rem; border: 1px solid #cbb8c2; border-radius: 0.5rem; background: #faf8f9; }
+.consent-notice p + p { margin-top: 0.75rem; }

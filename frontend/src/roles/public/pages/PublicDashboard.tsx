@@ -8,10 +8,14 @@ export const PublicDashboard = () => {
 
   return (
     <section className="public-page public-dashboard" aria-labelledby="dashboard-title">
-      <h1 id="dashboard-title">Aprende a tu ritmo</h1>
+      <header className="public-dashboard__intro">
+        <p className="public-eyebrow">CLENA · Aprendizaje digital</p>
+        <h1 id="dashboard-title">Aprende a tu ritmo</h1>
+        <p>Explora recursos claros para sentir más confianza al usar internet.</p>
+      </header>
       <div className="public-dashboard__heading">
         <h2>¿Qué quieres hacer hoy?</h2>
-        <Link to="/StudentsHome/Help">¿Necesitas ayuda?</Link>
+        <Link className="public-text-link" to="/StudentsHome/Help">¿Necesitas ayuda?</Link>
       </div>
 
       <nav className="public-dashboard__cards" aria-label="Opciones de aprendizaje">
@@ -43,7 +47,8 @@ export const PublicDashboard = () => {
 
         <Link className="dashboard-card dashboard-card--progress" to="/StudentsHome/Progress">
           <strong>Mi progreso</strong>
-          {!isStudent && <span className="dashboard-card__description">Inicia sesión para consultar esta sección.</span>}
+          <span className="dashboard-card__description">{isStudent ? 'Revisa cuánto has avanzado.' : 'Inicia sesión para consultar tu avance.'}</span>
+          <span className="dashboard-card__action">Ver progreso <span aria-hidden="true">→</span></span>
         </Link>
       </nav>
     </section>

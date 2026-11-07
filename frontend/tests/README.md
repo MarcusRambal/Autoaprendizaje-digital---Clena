@@ -13,3 +13,11 @@ Los cambios del editor se aplican al confirmar y se descartan al cancelar.
 
 Ejecuta `npm test` desde `frontend` para comprobar los datos y las reglas de búsqueda. Se requiere
 Node.js 22.6 o posterior para ejecutar TypeScript con `--experimental-strip-types`.
+
+## Administración y privacidad
+
+Las categorías y la creación de usuarios del panel son demostraciones locales; las contraseñas
+del formulario de usuarios no se almacenan y no se crean cuentas reales. El registro comprueba
+la aceptación en el navegador, pero todavía no conserva evidencia de consentimiento en el servidor.
+La eliminación de la cuenta propia permanece deshabilitada hasta que exista una integración real.
+Estos elementos no constituyen por sí solos cumplimiento de la Ley 1581 de 2012.

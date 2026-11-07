@@ -1,38 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { matchesSearch } from '../../../features/content-management/searchContent';
+import { mockPublicLearningService, usePublicRequest, type PublicGuide } from '../../../../services/publicLearning';
 import './Guides.css';
-
-interface PublicGuide {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  file: string;
-}
-
-const guides: PublicGuide[] = [
-  {
-    id: 1,
-    title: 'Navegación segura en internet',
-    description: 'Aquí aprenderás cómo navegar de forma segura en internet.',
-    category: 'Seguridad digital',
-    file: 'guia1.pdf',
-  },
-  {
-    id: 2,
-    title: 'Potencia tu búsqueda con Google Scholar',
-    description: 'Aprende a usar Google Scholar para encontrar información de investigación científica.',
-    category: 'Búsqueda en internet',
-    file: 'guia2.pdf',
-  },
-  {
-    id: 3,
-    title: 'Cómo reconocer un mensaje sospechoso',
-    description: 'Identifica mensajes inesperados y aprende a verificar quién los envió.',
-    category: 'Seguridad digital',
-    file: 'guia3.pdf',
-  },
-];
 
 const getSelectedGuideId = (state: unknown): number | undefined => {
   if (!state || typeof state !== 'object' || !('selectedGuideId' in state)) return undefined;
@@ -43,19 +13,16 @@ const getSelectedGuideId = (state: unknown): number | undefined => {
 export const Guides = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: guides, isLoading, error } = usePublicRequest(mockPublicLearningService.getGuides);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const selectedGuideId = getSelectedGuideId(location.state);
-  const selectedGuide = guides.find(guide => guide.id === selectedGuideId);
-  const categories = [...new Set(guides.map(guide => guide.category))];
-  const filteredGuides = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase();
-    return guides.filter(guide =>
+  const selectedGuide = guides?.find(guide => guide.id === selectedGuideId);
+  const categories = [...new Set((guides ?? []).map(guide => guide.category))];
+  const filteredGuides = useMemo(() => (guides ?? []).filter(guide =>
       (!category || guide.category === category)
-      && (!normalizedQuery
-        || `${guide.title} ${guide.description}`.toLocaleLowerCase().includes(normalizedQuery))
-    );
-  }, [category, query]);
+      && matchesSearch(query, guide.title, guide.description, guide.category)
+    ), [category, guides, query]);
 
   const openGuide = (guide: PublicGuide) => {
     navigate(location.pathname, { state: { selectedGuideId: guide.id } });
@@ -66,9 +33,23 @@ export const Guides = () => {
     return (
       <section className="public-page guides-page" aria-labelledby="selected-guide-title">
         <header className="guide-detail-header">
-          <h1 id="selected-guide-title">{selectedGuide.title}</h1>
-          <a className="guide-download" href={pdfUrl} download={selectedGuide.file}>Descargar PDF</a>
+          <div>
+            <p className="public-eyebrow">{selectedGuide.category}</p>
+            <h1 id="selected-guide-title">{selectedGuide.title}</h1>
+          </div>
+          <div className="guide-detail-actions">
+              <button
+                type="button"
+                className="public-button public-button--secondary"
+                onClick={() => navigate(location.pathname, { replace: true, state: null })}
+              >
+                Volver a las guías
+              </button>
+              <a className="public-button" href={pdfUrl} download={selectedGuide.file}>Descargar PDF</a>
+              <a className="guide-open-link" href={pdfUrl} target="_blank" rel="noopener noreferrer">Abrir PDF en otra pestaña</a>
+          </div>
         </header>
+        <p className="guide-description">{selectedGuide.description}</p>
         <iframe
           className="guide-pdf-viewer"
           src={pdfUrl}
@@ -102,9 +83,12 @@ export const Guides = () => {
           </select>
         </div>
       </header>
-      <p className="guides-note">Guías de demostración; el catálogo conectado al servidor aún está pendiente.</p>
+      <p className="public-demo-note" role="note">Contenido de demostración.</p>
 
-      {filteredGuides.length > 0 ? (
+      {isLoading && <p role="status">Cargando guías…</p>}
+      {error && <p className="public-error" role="alert">{error}</p>}
+
+      {!isLoading && !error && filteredGuides.length > 0 ? (
         <div className="guides-catalog" aria-label="Catálogo de guías">
           {filteredGuides.map(guide => (
             <button
@@ -118,9 +102,9 @@ export const Guides = () => {
             </button>
           ))}
         </div>
-      ) : (
+      ) : !isLoading && !error ? (
         <p className="guides-empty" role="status">No se encontraron guías con esos filtros.</p>
-      )}
+      ) : null}
     </section>
   );
 };
