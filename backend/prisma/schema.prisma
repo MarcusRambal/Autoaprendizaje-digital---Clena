@@ -25,6 +25,12 @@ enum PublicationState {
   ARCHIVED
 }
 
+enum HelpRequestStatus {
+  PENDING
+  ATTENDED
+  CANCELLED
+}
+
 enum ActivityProgressStatus {
   IN_PROGRESS
   COMPLETED
@@ -39,10 +45,16 @@ model User {
   role                     UserRole           @default(PUBLIC_USER)
   status                   UserStatus         @default(ACTIVE)
   accessibilityPreferences Json               @default("{}")
+  // Ley 1581 de 2012: consentimiento explicito al registrarse. Nullable solo para
+  // cuentas creadas antes de esta migracion; el registro nuevo debe llenarlos.
+  privacyAcceptedAt        DateTime?          @db.Timestamptz(6)
+  privacyNoticeVersion     String?
   createdAt                DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                DateTime           @updatedAt @db.Timestamptz(6)
   activityProgress         ActivityProgress[]
   refreshSessions          RefreshSession[]
+  helpRequests             HelpRequest[]      @relation("HelpRequestRequester")
+  attendedHelpRequests     HelpRequest[]      @relation("HelpRequestAttendant")
 
   @@index([role])
 }
@@ -67,9 +79,12 @@ model Guide {
   categoryId       String           @db.Uuid
   category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   steps            GuideStep[]
+  helpRequests     HelpRequest[]
   createdAt        DateTime         @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
 
+  // Guide_search_fts_idx (GIN, to_tsvector('spanish', title || description)) vive en la
+  // migracion SQL; Prisma no tiene sintaxis para indices de expresion.
   @@index([title])
   @@index([categoryId])
   @@index([publicationState])
@@ -82,6 +97,8 @@ model GuideStep {
   orderNumber  Int
   title        String
   instructions String   @db.Text
+  imageUrl     String?
+  imageAlt     String?
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @db.Timestamptz(6)
 
@@ -124,7 +141,7 @@ model ActivityQuestion {
 model ActivityProgress {
   id                 String                 @id @default(uuid()) @db.Uuid
   userId             String                 @db.Uuid
-  user               User                   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   activityId         String                 @db.Uuid
   activity           Activity               @relation(fields: [activityId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   attemptNumber      Int
@@ -140,6 +157,28 @@ model ActivityProgress {
   @@unique([userId, activityId, attemptNumber])
   @@index([userId])
   @@index([activityId])
+}
+
+model HelpRequest {
+  id           String            @id @default(uuid()) @db.Uuid
+  // requesterId queda nulo si la persona no tiene cuenta o si la elimina (Ley 1581).
+  requesterId  String?           @db.Uuid
+  requester    User?             @relation("HelpRequestRequester", fields: [requesterId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  guideId      String?           @db.Uuid
+  guide        Guide?            @relation(fields: [guideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  description  String            @db.Text
+  status       HelpRequestStatus @default(PENDING)
+  attendedById String?           @db.Uuid
+  attendedBy   User?             @relation("HelpRequestAttendant", fields: [attendedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  // HelpRequest_attended_check (status ATTENDED exige attendedAt) esta en la migracion SQL.
+  attendedAt   DateTime?         @db.Timestamptz(6)
+  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime          @updatedAt @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@index([requesterId])
+  @@index([guideId])
+  @@index([attendedById])
 }
 
 model RefreshSession {
