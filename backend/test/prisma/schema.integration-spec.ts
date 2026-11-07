@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const expectedEnums: Record<string, string[]> = {
   ActivityProgressStatus: ['IN_PROGRESS', 'COMPLETED', 'ABANDONED'],
+  HelpRequestStatus: ['PENDING', 'ATTENDED', 'CANCELLED'],
   PublicationState: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
   UserRole: ['ADMIN', 'STAFF', 'PUBLIC_USER'],
   UserStatus: ['ACTIVE', 'DISABLED', 'ARCHIVED'],
@@ -30,6 +31,7 @@ describe('PostgreSQL schema and demo seed', () => {
         'Category',
         'Guide',
         'GuideStep',
+        'HelpRequest',
         'RefreshSession',
         'User',
       ]),
@@ -83,6 +85,8 @@ describe('PostgreSQL schema and demo seed', () => {
       'Guide_categoryId_idx',
       'Activity_publicationState_idx',
       'RefreshSession_userId_familyId_idx',
+      'Guide_search_fts_idx',
+      'HelpRequest_status_createdAt_idx',
     ]) {
       expect(indexesByName.has(name)).toBe(true);
     }
@@ -108,34 +112,58 @@ describe('PostgreSQL schema and demo seed', () => {
       'GuideStep_guideId_fkey',
       'Activity_categoryId_fkey',
       'ActivityQuestion_activityId_fkey',
-      'ActivityProgress_userId_fkey',
       'ActivityProgress_activityId_fkey',
     ]) {
       expect(foreignKeysByName.get(name)).toBe('r');
     }
-    expect(foreignKeysByName.get('RefreshSession_userId_fkey')).toBe('c');
+    for (const name of [
+      'RefreshSession_userId_fkey',
+      'ActivityProgress_userId_fkey',
+    ]) {
+      expect(foreignKeysByName.get(name)).toBe('c');
+    }
+    for (const name of [
+      'HelpRequest_requesterId_fkey',
+      'HelpRequest_guideId_fkey',
+      'HelpRequest_attendedById_fkey',
+    ]) {
+      expect(foreignKeysByName.get(name)).toBe('n');
+    }
   });
 
-  it('contains the five demo categories, guide steps, and activity questions', async () => {
-    expect(await prisma.category.count()).toBe(5);
+  it('contains the four demo categories, guides with steps, help requests, and activity questions', async () => {
+    expect(await prisma.category.count()).toBe(4);
+    expect(await prisma.guide.count()).toBe(5);
     expect(
-      await prisma.guide.count({ where: { slug: 'ciclo-del-agua' } }),
+      await prisma.guide.count({ where: { slug: 'crear-cuenta-de-correo' } }),
     ).toBe(1);
     expect(
       await prisma.guideStep.count({
-        where: { guide: { slug: 'ciclo-del-agua' } },
+        where: { guide: { slug: 'crear-cuenta-de-correo' } },
       }),
-    ).toBe(3);
+    ).toBe(4);
+    expect(await prisma.helpRequest.count()).toBe(3);
     expect(
       await prisma.activity.count({
-        where: { slug: 'repaso-del-ciclo-del-agua' },
+        where: { slug: 'repaso-correo-electronico' },
       }),
     ).toBe(1);
     expect(
       await prisma.activityQuestion.count({
-        where: { activity: { slug: 'repaso-del-ciclo-del-agua' } },
+        where: { activity: { slug: 'repaso-correo-electronico' } },
       }),
     ).toBe(2);
+  });
+
+  it('finds guides by keyword with the full-text search expression', async () => {
+    const results = await prisma.$queryRaw<{ slug: string }[]>`
+      SELECT slug FROM "Guide"
+      WHERE to_tsvector('spanish', title || ' ' || description)
+            @@ plainto_tsquery('spanish', 'buscando información')
+    `;
+    expect(results.map(({ slug }) => slug)).toEqual([
+      'buscar-informacion-en-internet',
+    ]);
   });
 
   it('creates an admin only when optional seed credentials are supplied', async () => {
