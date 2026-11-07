@@ -43,7 +43,7 @@ export const SignUp = () => {
   };
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--signup">
       <section className="auth-card" aria-labelledby="signup-title">
         <Link className="auth-back" to="/">← Volver al inicio</Link>
         <p className="auth-eyebrow">Tu cuenta en CLENA</p>

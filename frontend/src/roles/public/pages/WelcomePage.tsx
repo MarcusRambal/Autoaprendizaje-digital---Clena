@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom';
 
 export const WelcomePage = () => (
   <main className="welcome-page">
-    <section className="welcome-content">
-      <p className="welcome-brand">CLENA · Aprende a tu ritmo</p>
-      <h1>Aprende a usar internet con confianza</h1>
-      <p>Encuentra guías sencillas y actividades para practicar, sin necesidad de crear una cuenta.</p>
+    <div className="welcome-art" aria-hidden="true" />
+    <section className="welcome-content" aria-labelledby="welcome-title">
+      <p className="welcome-brand">Clena - Aprende a tu ritmo</p>
+      <h1 id="welcome-title">Aprende a usar internet con confianza y más!</h1>
+      <p className="welcome-description">Encuentra guías sencillas y actividades de práctica.</p>
       <div className="welcome-actions">
-        <Link className="welcome-primary" to="/StudentsHome">Entrar como visitante</Link>
         <Link to="/login">Iniciar sesión</Link>
-        <Link to="/signUp">Crear una cuenta</Link>
+        <Link className="welcome-signup" to="/signUp">Crear una cuenta</Link>
+        <Link className="welcome-primary" to="/StudentsHome">Entra como invitado</Link>
       </div>
-      <p>Si deseas guardar tu progreso, necesitarás una cuenta cuando esta función esté disponible.</p>
+      <p className="welcome-note">Si deseas guardar tu progreso, necesitarás una cuenta.</p>
     </section>
   </main>
 );

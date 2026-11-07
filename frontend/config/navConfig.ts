@@ -23,8 +23,7 @@ export const NAV_LINKS: Record<AppRole, NavLinkItem[]> = {
   student: [
     { label: 'Inicio', path: '/StudentsHome' },
     { label: 'Guías', path: '/StudentsHome/Guides' },
-    { label: 'Cuestionarios', path: '/StudentsHome/Quiz' },
-    { label: 'Ayuda', path: '/StudentsHome/Help' },
+    { label: 'Lecciones', path: '/StudentsHome/Quiz' },
     { label: 'Progreso', path: '/StudentsHome/Progress' },    
   ],
 };
@@ -32,6 +31,6 @@ export const NAV_LINKS: Record<AppRole, NavLinkItem[]> = {
 export const GUEST_LINKS: NavLinkItem[] = [
   { label: 'Inicio', path: '/StudentsHome' },
   { label: 'Guías', path: '/StudentsHome/Guides' },
-  { label: 'Cuestionarios', path: '/StudentsHome/Quiz' },
+  { label: 'Lecciones', path: '/StudentsHome/Quiz' },
   { label: 'Ayuda', path: '/StudentsHome/Help' },
 ];

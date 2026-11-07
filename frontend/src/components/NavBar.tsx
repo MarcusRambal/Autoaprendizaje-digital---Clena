@@ -31,7 +31,13 @@ export const NavBar = () => {
       </ul>
 
       {user ? (
-        <button type="button" className="logout-btn" onClick={handleLogout}>Cerrar sesión</button>
+        <button type="button" className="logout-btn" onClick={handleLogout}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4.5 21v-2a7.5 7.5 0 0 1 15 0v2" />
+          </svg>
+          Cerrar sesión
+        </button>
       ) : <Link className="login-link" to="/login">Iniciar sesión</Link>}
     </nav>
   );

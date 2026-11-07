@@ -4,9 +4,25 @@
   box-sizing: border-box;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   background: #f7f3f5;
   color: #281b23;
+}
+
+.auth-page--login,
+.auth-page--signup {
+  background: linear-gradient(
+    94deg,
+    #e9912e 0%,
+    #e9912e 5%,
+    #652e4e 19%,
+    #652e4e 25%,
+    #f7f3f5 39%,
+    #f7f3f5 62%,
+    #ffc233 78%,
+    #ffc233 84%,
+    #652e4e 100%
+  );
 }
 
 .auth-card {
@@ -19,11 +35,12 @@
   box-shadow: 0 0.5rem 2rem #652e4e18;
 }
 
+.auth-page--login .auth-card { width: min(100%, 44rem); }
 .auth-card h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); margin: 0.3rem 0 0.75rem; }
 .auth-card h2 { font-size: 1.4rem; margin: 1.5rem 0 0.5rem; }
 .auth-card p { line-height: 1.55; margin: 0.75rem 0; }
 .auth-card a { color: #652e4e; font-weight: 700; }
-.auth-back { display: inline-block; margin-bottom: 1.25rem; }
+.auth-back { display: inline-flex; min-height: 2.75rem; align-items: center; margin-bottom: 1.25rem; padding: 0.25rem 0.4rem; }
 .auth-eyebrow { color: #652e4e; font-weight: 700; }
 .auth-form { display: grid; gap: 0.5rem; margin: 1.5rem 0; }
 .auth-form label { font-weight: 700; margin-top: 0.5rem; }
@@ -50,7 +67,28 @@
 .auth-secondary { background: white; color: #652e4e; }
 .auth-form .auth-primary { margin-top: 1rem; }
 .auth-primary:disabled, .auth-secondary:disabled { opacity: 0.6; cursor: wait; }
-.auth-card :focus-visible { outline: 3px solid #d1721b; outline-offset: 3px; }
+.auth-card :focus-visible { outline: 3px solid #8a4600; outline-offset: 3px; box-shadow: 0 0 0 2px white; }
+.auth-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem; }
+.auth-footer p { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; margin: 0; }
+.auth-footer a { display: inline-flex; min-height: 2.75rem; align-items: center; text-underline-offset: 0.15em; }
 .auth-error { padding: 0.8rem; border-left: 4px solid #a12020; background: #fff0ef; color: #781515; }
 .auth-tip, .auth-note { padding: 1rem; background: #f7f1e4; border-radius: 0.5rem; }
 .auth-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0; }
+
+@media (max-width: 40rem) {
+  .auth-page--login,
+  .auth-page--signup {
+    background: linear-gradient(
+      94deg,
+      #e9912e 0%,
+      #e9912e 3%,
+      #652e4e 13%,
+      #652e4e 17%,
+      #f7f3f5 29%,
+      #f7f3f5 71%,
+      #ffc233 83%,
+      #ffc233 87%,
+      #652e4e 97%
+    );
+  }
+}

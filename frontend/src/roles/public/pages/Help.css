@@ -1,0 +1,85 @@
+.help-page { width: min(100%, 73rem); }
+
+.help-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-header h1 { margin: 0; }
+
+.help-submit {
+  min-height: 3.4rem;
+  padding: 0.45rem 1.25rem;
+  border: 1px solid #7d4615;
+  border-radius: 0.45rem;
+  background: #e9912e;
+  color: #17120f;
+  font: inherit;
+  font-size: clamp(1.25rem, 2.2vw, 1.9rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-form {
+  display: grid;
+  gap: 1.15rem;
+  padding: clamp(1.25rem, 2.7vw, 2.25rem);
+  border: 2px solid #211820;
+  border-radius: 0.4rem;
+  background: white;
+}
+
+.help-form input,
+.help-form textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0.7rem 1rem;
+  border: 2px solid #211820;
+  border-radius: 0.4rem;
+  background: white;
+  color: #211820;
+  font: inherit;
+  font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+}
+
+.help-form input:first-of-type { width: min(100%, 45rem); }
+.help-form input:nth-of-type(2) { width: min(100%, 58rem); }
+
+.help-form textarea {
+  min-height: clamp(13rem, 21vw, 18rem);
+  resize: vertical;
+}
+
+.help-form :focus-visible,
+.help-submit:focus-visible {
+  outline: 3px solid #4a1f3a;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 2px white;
+}
+
+.help-form input::placeholder,
+.help-form textarea::placeholder { color: #51474d; opacity: 1; }
+.help-disclaimer, .help-status, .help-emergency { margin: 0; color: #5d5159; font-size: 0.98rem; }
+.help-status { padding: 0.8rem 1rem; border-left: 4px solid #8a4600; background: #fff3dc; color: #281b23; }
+.help-emergency { margin-top: 1rem; }
+
+.help-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 42rem) {
+  .help-header { align-items: stretch; }
+  .help-submit { width: 100%; }
+  .help-form input:first-of-type,
+  .help-form input:nth-of-type(2) { width: 100%; }
+}

@@ -1,0 +1,77 @@
+.progress-page {
+  width: min(100%, 73rem);
+}
+
+.progress-page h1,
+.help-page h1 {
+  margin: 0 0 1.5rem;
+  color: #211820;
+  font-size: clamp(2rem, 2.8vw, 2.5rem);
+  font-weight: 400;
+}
+
+.progress-sections {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.progress-card {
+  display: grid;
+  min-height: 15rem;
+  gap: 1.4rem;
+  align-content: center;
+  padding: clamp(1.25rem, 3.2vw, 2.75rem);
+  border: 2px solid #211820;
+  border-radius: 0.4rem;
+  background: white;
+  color: #111;
+}
+
+.progress-card h2 {
+  color: inherit;
+  font-size: clamp(1.7rem, 2.6vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.progress-card progress {
+  display: block;
+  width: 100%;
+  height: 0.9rem;
+  overflow: hidden;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #bcbcbc;
+}
+
+.progress-card progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #bcbcbc;
+}
+
+.progress-card--guides progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #ee982c;
+}
+
+.progress-card--lessons progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #f1b633;
+}
+
+.progress-card--guides progress::-moz-progress-bar { border-radius: 999px; background: #ee982c; }
+.progress-card--lessons progress::-moz-progress-bar { border-radius: 999px; background: #f1b633; }
+
+.progress-card p {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(1.35rem, 2.35vw, 2rem);
+  line-height: 1.35;
+}
+
+.progress-note { margin: 1rem 0 0; color: #5d5159; font-size: 0.95rem; }
+
+@media (max-width: 42rem) {
+  .progress-card { min-height: 12rem; gap: 1rem; }
+}

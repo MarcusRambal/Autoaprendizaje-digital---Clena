@@ -30,7 +30,7 @@ export const Login = () => {
   };
 
   return (
-    <main className="auth-page">
+    <main className="auth-page auth-page--login">
       <section className="auth-card" aria-labelledby="login-title">
         <Link className="auth-back" to="/">← Volver al inicio</Link>
         <p className="auth-eyebrow">Bienvenido a CLENA</p>
@@ -45,7 +45,10 @@ export const Login = () => {
           <input id="login-password" type="password" name="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           <button className="auth-primary" type="submit" disabled={pending}>{pending ? 'Ingresando…' : 'Iniciar sesión'}</button>
         </form>
-        <p>¿Aún no tienes cuenta? <Link to="/signUp">Crear una cuenta</Link></p>
+        <div className="auth-footer">
+          <p>¿Aún no tienes cuenta? <Link to="/signUp">Crear una cuenta</Link></p>
+          <Link to="/StudentsHome/Help">¿Olvidaste tu contraseña?</Link>
+        </div>
       </section>
     </main>
   );
