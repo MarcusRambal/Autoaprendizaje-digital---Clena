@@ -6,6 +6,8 @@ import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
 import { togglePublished } from './publication';
 import { matchesSearch } from './searchContent';
+import { Pagination } from './Pagination';
+import { usePagination } from './usePagination';
 
 const initialCategories: Category[] = [
   { id: 1, title: 'Categoria 1' },
@@ -57,6 +59,10 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
   const [searchQuery, setSearchQuery] = useState('');
   const [publishedGuides, setPublishedGuides] = useState<number[]>([]);
   const [publishedQuizzes, setPublishedQuizzes] = useState<number[]>([]);
+  const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
+  const filteredQuizzes = quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category));
+  const guidePublicationPages = usePagination(filteredGuides, searchQuery);
+  const quizPublicationPages = usePagination(filteredQuizzes, searchQuery);
 
   const handleCreateCategory = (title: string) => {
     setCategories(current => [...current, { id: nextId(current), title }]);
@@ -87,7 +93,7 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
       quizzes.some(quiz => quiz.category === category.title);
 
     if (isInUse) {
-      return 'No se puede eliminar esta categoría porque tiene guías o quizzes asociados.';
+      return 'No se puede eliminar esta categoría porque tiene guías o lecciones asociadas.';
     }
 
     setCategories(current => current.filter(item => item.id !== categoryId));
@@ -127,8 +133,8 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
   return (
     <div className="control-panel">
       <header className="control-panel-header">
-        <h1>{mode === 'categories' ? 'Categorías' : mode === 'content' ? 'Guías y quizzes' : 'Panel de control'}</h1>
-        <p>{mode === 'categories' ? 'Organiza las categorías de la plataforma.' : mode === 'content' ? 'Organiza las guías y quizzes de la plataforma.' : 'Organiza las categorías, guías y quizzes de la plataforma.'}</p>
+        <h1>{mode === 'categories' ? 'Categorías' : mode === 'content' ? 'Guías y lecciones' : 'Panel de control'}</h1>
+        <p>{mode === 'categories' ? 'Organiza las categorías de la plataforma.' : mode === 'content' ? 'Organiza las guías y lecciones de la plataforma.' : 'Organiza las categorías, guías y lecciones de la plataforma.'}</p>
         <p role="status"><strong>Demostración:</strong> los datos son de prueba y los cambios no se guardan en el servidor.</p>
       </header>
       <div className="control-panel-toolbar">
@@ -155,7 +161,7 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
             aria-pressed={activeSection === 'quizzes'}
             onClick={() => setActiveSection('quizzes')}
           >
-            Quizzes
+            Lecciones
           </button>}
         </div>
         <div className="control-panel-search">
@@ -195,19 +201,35 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
             onDelete={handleDeleteGuide}
           />
           {mode === 'content' && (
-            <section aria-labelledby="guide-publication-title">
-              <h2 id="guide-publication-title">Publicación de guías (demostración)</h2>
+            <section className="guide-publication-panel" aria-labelledby="guide-publication-title">
+              <h2 id="guide-publication-title">Estado de publicación de guías</h2>
               <p>Estos cambios son locales y no publican contenido en el catálogo.</p>
-              <ul>
-                {guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category)).map(guide => (
+              {filteredGuides.length > 0 ? (
+                <ul className="guide-publication-list">
+                {guidePublicationPages.items.map(guide => {
+                  const isPublished = publishedGuides.includes(guide.id);
+                  return (
                   <li key={guide.id}>
-                    {guide.title} — {publishedGuides.includes(guide.id) ? 'Publicada (ejemplo)' : 'Borrador'}
-                    {' '}<button type="button" onClick={() => setPublishedGuides(current => togglePublished(current, guide.id))}>
-                      {publishedGuides.includes(guide.id) ? 'Despublicar' : 'Publicar'} {guide.title}
+                    <span className="guide-publication-info">
+                      <strong>{guide.title}</strong>
+                      <span className={`guide-publication-status ${isPublished ? 'is-published' : 'is-draft'}`}>
+                        {isPublished ? 'Publicada · demostración' : 'Borrador · demostración'}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      aria-pressed={isPublished}
+                      aria-label={`${isPublished ? 'Despublicar' : 'Publicar'} ${guide.title}`}
+                      onClick={() => setPublishedGuides(current => togglePublished(current, guide.id))}
+                    >
+                      {isPublished ? 'Despublicar' : 'Publicar'}
                     </button>
                   </li>
-                ))}
-              </ul>
+                  );
+                })}
+                </ul>
+              ) : <p role="status">No hay guías que coincidan con esta búsqueda.</p>}
+              <Pagination {...guidePublicationPages} label="Páginas de publicación de guías" />
             </section>
           )}
         </div>}
@@ -221,20 +243,22 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
             onDelete={handleDeleteQuiz}
           />
           {mode === 'content' && (
-            <section aria-labelledby="quiz-publication-title">
-              <h2 id="quiz-publication-title">Publicación de cuestionarios (demostración)</h2>
+            <section className="guide-publication-panel" aria-labelledby="quiz-publication-title">
+              <h2 id="quiz-publication-title">Estado de publicación de lecciones</h2>
               <p>Estos cambios son locales y no publican contenido en el catálogo.</p>
-              {quizzes.length === 0 && <p>Crea un cuestionario de ejemplo para probar esta función.</p>}
-              <ul>
-                {quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category)).map(quiz => (
+              {quizzes.length === 0 && <p>Crea una lección de ejemplo para probar esta función.</p>}
+              {quizzes.length > 0 && filteredQuizzes.length === 0 && <p role="status">No hay lecciones que coincidan con esta búsqueda.</p>}
+              <ul className="guide-publication-list">
+                {quizPublicationPages.items.map(quiz => (
                   <li key={quiz.id}>
-                    {quiz.name} — {publishedQuizzes.includes(quiz.id) ? 'Publicado (ejemplo)' : 'Borrador'}
-                    {' '}<button type="button" onClick={() => setPublishedQuizzes(current => togglePublished(current, quiz.id))}>
+                    <span>{quiz.name} — {publishedQuizzes.includes(quiz.id) ? 'Publicada (ejemplo)' : 'Borrador'}</span>
+                    <button type="button" aria-pressed={publishedQuizzes.includes(quiz.id)} onClick={() => setPublishedQuizzes(current => togglePublished(current, quiz.id))}>
                       {publishedQuizzes.includes(quiz.id) ? 'Despublicar' : 'Publicar'} {quiz.name}
                     </button>
                   </li>
                 ))}
               </ul>
+              <Pagination {...quizPublicationPages} label="Páginas de publicación de lecciones" />
             </section>
           )}
         </div>}

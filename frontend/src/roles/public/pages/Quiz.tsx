@@ -155,7 +155,7 @@ export const Quiz = () => {
 
   if (selectedLesson) {
     return (
-      <section className="public-page lesson-player" aria-label={`Cuestionario: ${selectedLesson.title}`}>
+      <section className="public-page lesson-player" aria-label={`Lección: ${selectedLesson.title}`}>
         <p className="lesson-progress">Pregunta {questionIndex + 1} de {questions.length}</p>
         <h1 className="lesson-question-title" id="lesson-question-title">{currentQuestion.prompt}</h1>
 

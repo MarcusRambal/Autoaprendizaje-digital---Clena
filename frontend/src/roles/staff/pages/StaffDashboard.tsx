@@ -1,29 +1,38 @@
 import { Link } from 'react-router-dom';
 import '../../../shared/styles/OperationsDashboard.css';
-import { initialRequests, initialStats } from '../demoData';
+import './StaffDashboard.css';
 
 export const StaffDashboard = () => (
-  <div className="admin-panel">
-    <h1>Panel del personal</h1>
-    <p>Gestiona contenido y acompaña a las personas que usan CLENA.</p>
-    <p role="status"><strong>Demostración:</strong> los datos del panel son ejemplos y no representan solicitudes ni estadísticas reales.</p>
-    <section aria-labelledby="staff-requests-title">
-      <h2 id="staff-requests-title">Solicitudes pendientes de ejemplo</h2>
-      {initialRequests.filter(request => request.status === 'Pendiente').map(request => (
-        <p key={request.id}>{request.requesterName}: {request.topic}</p>
-      ))}
-      <Link to="/Staff/Requests">Ver solicitudes de ejemplo</Link>
-    </section>
-    <section aria-labelledby="staff-topics-title">
-      <h2 id="staff-topics-title">Temas más consultados de ejemplo</h2>
-      {initialStats.topCategories.map(category => <p key={category.label}>{category.label}: {category.value}</p>)}
-      <Link to="/Staff/Statistics">Ver estadísticas de ejemplo</Link>
-    </section>
-    <div className="options-container">
-      <div className="option"><Link to="/Staff/Content"><strong>Guías y quizzes</strong><span>Organiza el contenido de aprendizaje.</span></Link></div>
-      <div className="option"><Link to="/Staff/Requests"><strong>Solicitudes de ayuda</strong><span>Revisa ejemplos de atención presencial.</span></Link></div>
-      <div className="option"><Link to="/Staff/Statistics"><strong>Estadísticas</strong><span>Consulta ejemplos de actividad.</span></Link></div>
-    </div>
-    <p>La publicación de contenido y el envío de solicitudes reales están pendientes de conexión con el servidor.</p>
-  </div>
+  <section className="staff-dashboard" aria-labelledby="staff-dashboard-title">
+    <header className="staff-dashboard-header">
+      <p className="staff-dashboard-eyebrow">CLENA · Espacio de personal</p>
+      <h1 id="staff-dashboard-title">Panel de gestión</h1>
+      <p>Elige una tarea para continuar.</p>
+    </header>
+
+    <nav className="staff-dashboard-grid" aria-label="Herramientas del personal">
+      <Link className="staff-dashboard-card staff-dashboard-card--guides" to="/Staff/Content">
+        <span className="staff-dashboard-card__eyebrow">Contenido</span>
+        <strong>Guías y lecciones</strong>
+        <span>Consulta, crea, actualiza o elimina contenido de aprendizaje.</span>
+        <span className="staff-dashboard-card__action">Administrar contenido <span aria-hidden="true">→</span></span>
+      </Link>
+      <Link className="staff-dashboard-card staff-dashboard-card--requests" to="/Staff/Requests">
+        <span className="staff-dashboard-card__eyebrow">Acompañamiento</span>
+        <strong>Solicitudes</strong>
+        <span>Revisa las solicitudes de ayuda de la comunidad.</span>
+        <span className="staff-dashboard-card__action">Ver solicitudes <span aria-hidden="true">→</span></span>
+      </Link>
+      <Link className="staff-dashboard-card staff-dashboard-card--statistics" to="/Staff/Statistics">
+        <span className="staff-dashboard-card__eyebrow">Actividad</span>
+        <strong>Estadísticas</strong>
+        <span>Consulta un resumen de la actividad de aprendizaje.</span>
+        <span className="staff-dashboard-card__action">Ver estadísticas <span aria-hidden="true">→</span></span>
+      </Link>
+    </nav>
+
+    <p className="staff-dashboard-note" role="status">
+      Las solicitudes y estadísticas aún muestran datos de demostración.
+    </p>
+  </section>
 );

@@ -2,8 +2,11 @@ import './EditQuizPanel.css';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Category, Quiz, QuizQuestion } from '../../../types/contracts';
 import { matchesSearch } from './searchContent';
+import { Pagination } from './Pagination';
+import { usePagination } from './usePagination';
+import { isValidQuestion, MAX_QUESTIONS, OPTION_COUNT } from './lessonValidation';
 
-type ViewState = 'quizView' | 'createView' | 'editView' | 'deleteView';
+type ViewState = 'quizView' | 'createView' | 'editView' | 'editingView' | 'deleteView';
 type QuizDraft = Omit<Quiz, 'id'>;
 
 interface EditQuizPanelProps {
@@ -60,7 +63,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      setError('El nombre del quiz no puede estar vacío.');
+      setError('El nombre de la lección no puede estar vacío.');
       return;
     }
 
@@ -69,8 +72,8 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       return;
     }
 
-    if (questions.length === 0) {
-      setError('Agrega al menos una pregunta.');
+    if (questions.length === 0 || questions.length > MAX_QUESTIONS) {
+      setError(`La lección debe tener entre 1 y ${MAX_QUESTIONS} preguntas.`);
       return;
     }
 
@@ -80,19 +83,11 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       correctOptionIndex: question.correctOptionIndex
     }));
 
-    const invalidQuestionIndex = cleanedQuestions.findIndex(
-      question =>
-        !question.description ||
-        question.options.length < 2 ||
-        question.options.some(option => !option) ||
-        !Number.isInteger(question.correctOptionIndex) ||
-        question.correctOptionIndex < 0 ||
-        question.correctOptionIndex >= question.options.length
-    );
+    const invalidQuestionIndex = cleanedQuestions.findIndex(question => !isValidQuestion(question));
 
     if (invalidQuestionIndex !== -1) {
       setQuestionIndex(invalidQuestionIndex);
-      setError(`Revisa la pregunta ${invalidQuestionIndex + 1}: debe tener descripción, dos opciones completas y una respuesta correcta.`);
+      setError(`Revisa la pregunta ${invalidQuestionIndex + 1}: debe tener descripción, cuatro opciones completas y una respuesta correcta.`);
       return;
     }
 
@@ -101,7 +96,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
     );
 
     if (duplicate) {
-      setError(`Ya existe un quiz llamado "${trimmedName}".`);
+      setError(`Ya existe una lección llamada "${trimmedName}".`);
       return;
     }
 
@@ -111,7 +106,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
   return (
     <form className="quiz-form" onSubmit={handleSubmit}>
       <label>
-        Nombre del quiz
+        Nombre de la lección
         <input
           type="text"
           value={name}
@@ -119,7 +114,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
             setName(event.target.value);
             setError(null);
           }}
-          placeholder="Nombre del quiz"
+          placeholder="Nombre de la lección"
         />
       </label>
 
@@ -139,6 +134,22 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
 
       <div className="quiz-questions">
         <h3>Preguntas</h3>
+        <p>Selecciona una pregunta para modificarla. Máximo {MAX_QUESTIONS} preguntas.</p>
+        <div className="quiz-question-selector" role="group" aria-label="Seleccionar pregunta">
+          {questions.map((item, index) => (
+            <button
+              type="button"
+              key={index}
+              aria-pressed={questionIndex === index}
+              onClick={() => {
+                setQuestionIndex(index);
+                setError(null);
+              }}
+            >
+              Pregunta {index + 1}{item.description.trim() ? `: ${item.description}` : ''}
+            </button>
+          ))}
+        </div>
         <p aria-live="polite">Pregunta {questionIndex + 1} de {questions.length}</p>
         {question && (
           <fieldset className="quiz-question">
@@ -157,7 +168,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
               />
             </label>
             <div className="quiz-options">
-              <span>Opciones (cuatro por defecto; puedes agregar o quitar opciones). Marca la respuesta correcta.</span>
+              <span>Cuatro opciones. Marca una única respuesta correcta.</span>
               {question.options.map((option, optionIndex) => (
                 <div className="quiz-option-row" key={optionIndex}>
                   <label className="quiz-correct-option">
@@ -191,7 +202,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
                     }}
                     placeholder={`Opción ${optionIndex + 1}`}
                   />
-                  <button
+                  {question.options.length > OPTION_COUNT && <button
                     type="button"
                     onClick={() => updateQuestion(questionIndex, current => {
                       const correctOptionIndex = current.correctOptionIndex === optionIndex
@@ -205,14 +216,13 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
                         correctOptionIndex
                       };
                     })}
-                    disabled={question.options.length <= 2}
                     aria-label={`Eliminar opción ${optionIndex + 1}`}
                   >
                     Quitar
-                  </button>
+                  </button>}
                 </div>
               ))}
-              <button
+              {question.options.length < OPTION_COUNT && <button
                 type="button"
                 onClick={() => updateQuestion(questionIndex, current => ({
                   ...current,
@@ -220,7 +230,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
                 }))}
               >
                 Agregar opción
-              </button>
+              </button>}
             </div>
             <button
               type="button"
@@ -254,7 +264,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
               Siguiente pregunta
             </button>
           ) : (
-            <button type="button" onClick={() => {
+            <button type="button" disabled={questions.length >= MAX_QUESTIONS} onClick={() => {
               setQuestions(current => [...current, emptyQuestion()]);
               setQuestionIndex(questions.length);
               setError(null);
@@ -267,7 +277,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
 
       {error && <p className="error-text" role="alert">{error}</p>}
       <div className="quiz-form-actions">
-        <button type="submit">{quiz ? 'Guardar cambios' : 'Crear quiz'}</button>
+        <button type="submit">{quiz ? 'Confirmar edición' : 'Crear lección'}</button>
         <button type="button" onClick={onCancel}>Cancelar</button>
       </div>
     </form>
@@ -290,11 +300,12 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
 
   const editingQuiz = quizzes.find(quiz => quiz.id === editingQuizId);
   const filteredQuizzes = quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category));
+  const pagination = usePagination(filteredQuizzes, `${viewState}:${searchQuery}`);
 
   return (
     <div className="edit-quiz-panel">
-      <h2>Administración de Quizzes</h2>
-      <div className="viewButton" role="group" aria-label="Acciones de quizzes">
+      <h2>Gestión de lecciones</h2>
+      <div className="viewButton" role="group" aria-label="Acciones de lecciones">
         <button
           type="button"
           className={`buttonGuide ${viewState === 'quizView' ? 'active' : ''}`}
@@ -304,7 +315,7 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
             setViewState('quizView');
           }}
         >
-          Ver Quizzes
+          Ver lecciones
         </button>
         <button
           type="button"
@@ -315,18 +326,18 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
             setViewState('createView');
           }}
         >
-          Crear Quiz
+          Crear lección
         </button>
         <button
           type="button"
-          className={`buttonGuide ${viewState === 'editView' ? 'active' : ''}`}
-          aria-pressed={viewState === 'editView'}
+          className={`buttonGuide ${viewState === 'editView' || viewState === 'editingView' ? 'active' : ''}`}
+          aria-pressed={viewState === 'editView' || viewState === 'editingView'}
           onClick={() => {
             setEditingQuizId(null);
             setViewState('editView');
           }}
         >
-          Editar Quiz
+          Editar lecciones
         </button>
         <button
           type="button"
@@ -337,14 +348,14 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
             setViewState('deleteView');
           }}
         >
-          Eliminar Quiz
+          Eliminar lecciones
         </button>
       </div>
 
       {viewState === 'quizView' && (
         <section>
-          <h2>Listado de Quizzes</h2>
-          {quizzes.length > 0 ? filteredQuizzes.map(quiz => (
+          <h3>Todas las lecciones</h3>
+          {quizzes.length > 0 ? pagination.items.map(quiz => (
             <article className="quiz-card" key={quiz.id}>
               <h3>{quiz.name}</h3>
               <p>Categoría: {quiz.category}</p>
@@ -362,14 +373,15 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
                 ))}
               </ol>
             </article>
-          )) : <p>No hay quizzes creados.</p>}
-          {quizzes.length > 0 && filteredQuizzes.length === 0 && <p role="status">No se encontraron quizzes para esta búsqueda.</p>}
+          )) : <p>No hay lecciones creadas.</p>}
+          {quizzes.length > 0 && filteredQuizzes.length === 0 && <p role="status">No se encontraron lecciones para esta búsqueda.</p>}
+          <Pagination {...pagination} label="Páginas de lecciones" />
         </section>
       )}
 
       {viewState === 'createView' && (
         <section>
-          <h2>Crear Quiz</h2>
+          <h3>Crear lección</h3>
           {categories.length > 0 ? (
             <QuizForm
               key="new-quiz"
@@ -378,58 +390,75 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
               onSave={handleSave}
               onCancel={() => setViewState('quizView')}
             />
-          ) : <p>Crea una categoría antes de agregar quizzes.</p>}
+          ) : <p>Crea una categoría antes de agregar lecciones.</p>}
         </section>
       )}
 
       {viewState === 'editView' && (
         <section>
-          <h2>Editar Quizzes</h2>
+          <h3>Editar lecciones</h3>
           {quizzes.length > 0 ? (
             <>
               <ul className="quiz-management-list">
-                {filteredQuizzes.map(quiz => (
+                {pagination.items.map(quiz => (
                   <li key={quiz.id}>
                     <span>{quiz.name} ({quiz.category})</span>
                     <button
                       type="button"
-                      onClick={() => setEditingQuizId(quiz.id)}
+                      aria-label={`Editar lección ${quiz.name}`}
+                      onClick={() => {
+                        setEditingQuizId(quiz.id);
+                        setViewState('editingView');
+                      }}
                     >
                       Editar
                     </button>
                   </li>
                 ))}
               </ul>
-              {filteredQuizzes.length === 0 && <p role="status">No se encontraron quizzes para esta búsqueda.</p>}
-              {editingQuiz && categories.length > 0 && (
-                <QuizForm
-                  key={editingQuiz.id}
-                  quiz={editingQuiz}
-                  quizzes={quizzes}
-                  categories={categories}
-                  onSave={handleSave}
-                  onCancel={() => setEditingQuizId(null)}
-                />
-              )}
+              {filteredQuizzes.length === 0 && <p role="status">No se encontraron lecciones para esta búsqueda.</p>}
+              <Pagination {...pagination} label="Páginas de lecciones para editar" />
             </>
-          ) : <p>No hay quizzes para editar.</p>}
+          ) : <p>No hay lecciones para editar.</p>}
+        </section>
+      )}
+
+      {viewState === 'editingView' && (
+        <section className="lesson-editor" aria-label="Editor de lección">
+          {editingQuiz && categories.length > 0 ? (
+            <>
+              <h3>Editar lección: {editingQuiz.name}</h3>
+              <QuizForm
+                key={editingQuiz.id}
+                quiz={editingQuiz}
+                quizzes={quizzes}
+                categories={categories}
+                onSave={handleSave}
+                onCancel={() => {
+                  setEditingQuizId(null);
+                  setViewState('editView');
+                }}
+              />
+            </>
+          ) : <p role="status">No se puede editar esta lección. Comprueba que exista y tenga categorías disponibles.</p>}
         </section>
       )}
 
       {viewState === 'deleteView' && (
         <section>
-          <h2>Eliminar Quizzes</h2>
+          <h3>Eliminar lecciones</h3>
           {quizzes.length > 0 ? (
             <ul className="quiz-management-list">
-              {filteredQuizzes.map(quiz => (
+              {pagination.items.map(quiz => (
                 <li key={quiz.id}>
                   <span>{quiz.name} ({quiz.category})</span>
-                  <button type="button" aria-label={`Eliminar quiz ${quiz.name}`} onClick={() => onDelete(quiz.id)}>Eliminar</button>
+                  <button type="button" aria-label={`Eliminar lección ${quiz.name}`} onClick={() => onDelete(quiz.id)}>Eliminar</button>
                 </li>
               ))}
             </ul>
-          ) : <p>No hay quizzes para eliminar.</p>}
-          {quizzes.length > 0 && filteredQuizzes.length === 0 && <p role="status">No se encontraron quizzes para esta búsqueda.</p>}
+          ) : <p>No hay lecciones para eliminar.</p>}
+          {quizzes.length > 0 && filteredQuizzes.length === 0 && <p role="status">No se encontraron lecciones para esta búsqueda.</p>}
+          <Pagination {...pagination} label="Páginas de lecciones para eliminar" />
         </section>
       )}
     </div>

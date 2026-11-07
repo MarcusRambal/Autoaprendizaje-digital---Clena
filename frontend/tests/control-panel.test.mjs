@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { categories, guides, quizzes } from './fixtures/controlPanelData.ts';
 import { matchesSearch } from '../src/features/content-management/searchContent.ts';
+import { getPage, PAGE_SIZE } from '../src/features/content-management/pagination.ts';
+import { isValidQuestion, MAX_QUESTIONS, OPTION_COUNT } from '../src/features/content-management/lessonValidation.ts';
 
 test('los datos simulados son abundantes y mantienen sus relaciones', () => {
   assert.equal(categories.length, 26);
@@ -34,4 +36,28 @@ test('distingue la ñ de la n y admite texto Unicode descompuesto', () => {
   assert.equal(matchesSearch('ninos', 'Tecnología para niños'), false);
   assert.equal(matchesSearch('NIN\u0303OS', 'Tecnología para niños'), true);
   assert.equal(matchesSearch('navegacion', 'Navegacio\u0301n web'), true);
+});
+
+test('pagina los resultados filtrados en grupos de seis y ajusta páginas fuera de rango', () => {
+  assert.equal(PAGE_SIZE, 6);
+  const filtered = guides.filter(guide => matchesSearch('navegacion web', guide.title, guide.category));
+  assert.equal(getPage(filtered, 1).items.length, 6);
+  assert.equal(getPage(filtered, 2).items.length, 2);
+  assert.equal(getPage(filtered, 10).page, 2);
+  assert.equal(getPage([], 3).page, 1);
+  assert.equal(getPage([], 3).items.length, 0);
+  assert.deepEqual(getPage(quizzes, 1).items, quizzes.slice(0, 6));
+});
+
+test('cada pregunta requiere exactamente cuatro opciones y una respuesta válida', () => {
+  assert.equal(MAX_QUESTIONS, 8);
+  assert.equal(OPTION_COUNT, 4);
+  const question = { description: 'Pregunta', options: ['A', 'B', 'C', 'D'], correctOptionIndex: 2 };
+  assert.equal(isValidQuestion(question), true);
+  assert.equal(isValidQuestion({ ...question, description: ' ' }), false);
+  assert.equal(isValidQuestion({ ...question, options: ['A', 'B', 'C'] }), false);
+  assert.equal(isValidQuestion({ ...question, options: ['A', 'B', 'C', 'D', 'E'] }), false);
+  assert.equal(isValidQuestion({ ...question, options: ['A', 'B', ' ', 'D'] }), false);
+  assert.equal(isValidQuestion({ ...question, correctOptionIndex: 4 }), false);
+  assert.equal(isValidQuestion({ ...question, correctOptionIndex: 1.5 }), false);
 });

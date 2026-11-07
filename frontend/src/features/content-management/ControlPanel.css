@@ -54,6 +54,19 @@
   display: none !important;
 }
 
+.content-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.content-pagination span {
+  color: #51434c;
+  font-weight: 600;
+}
+
 .control-panel-grid {
   display: grid;
   grid-template-columns: 1fr 2fr; 
@@ -110,4 +123,68 @@
 
 .section-content {
   width: 100%;
+}
+
+.admin-layout .guide-publication-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--admin-divider);
+}
+
+.guide-publication-panel h2,
+.guide-publication-panel p {
+  margin: 0;
+}
+
+.guide-publication-panel > p {
+  color: #51434c;
+}
+
+.admin-layout .guide-publication-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-layout .guide-publication-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 0.65rem;
+  background: #fbf9fa;
+}
+
+.guide-publication-info {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
+}
+
+.guide-publication-status {
+  color: #51434c;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.guide-publication-status.is-published {
+  color: #28643e;
+}
+
+.guide-publication-status.is-draft {
+  color: #674915;
+}
+
+@media (max-width: 40rem) {
+  .admin-layout .guide-publication-list li > button {
+    width: 100%;
+  }
 }

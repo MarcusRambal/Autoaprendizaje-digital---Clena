@@ -2,6 +2,8 @@ import './EditGuidesPanel.css';
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Category, Guide } from '../../../types/contracts';
 import { matchesSearch } from './searchContent';
+import { Pagination } from './Pagination';
+import { usePagination } from './usePagination';
 
 type ViewState = 'guideView' | 'createView' | 'editView' | 'deleteView';
 
@@ -148,6 +150,8 @@ export const EditGuidesPanel = ({
   const [newFile, setNewFile] = useState<File | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
+  const pagination = usePagination(filteredGuides, `${viewState}:${searchQuery}`);
+  const visibleGuideIds = new Set(pagination.items.map(guide => guide.id));
   const selectedGuideMatches = selectedGuide !== null &&
     filteredGuides.some(guide => guide.id === selectedGuide.guide.id);
 
@@ -206,8 +210,8 @@ export const EditGuidesPanel = ({
   };
 
   return (
-    <div className="edit-panel">
-      <h2>Edición de Guías</h2>
+    <section className="edit-panel guide-management" aria-labelledby="guides-management-title">
+      <h2 id="guides-management-title">Gestión de guías</h2>
 
       <div className="viewCreateEditGuides">
         <div className="viewButton" role="group" aria-label="Acciones de guías">
@@ -215,14 +219,16 @@ export const EditGuidesPanel = ({
             type="button"
             className={`buttonGuide ${viewState === 'guideView' ? 'active' : ''}`}
             aria-pressed={viewState === 'guideView'}
+            aria-controls="guide-management-panel"
             onClick={() => setViewState('guideView')}
           >
-            Ver Guías
+            Ver guías
           </button>
           <button
             type="button"
             className={`buttonGuide ${viewState === 'createView' ? 'active' : ''}`}
             aria-pressed={viewState === 'createView'}
+            aria-controls="guide-management-panel"
             onClick={() => {
               setNewTitle('');
               setNewCategory('');
@@ -231,33 +237,36 @@ export const EditGuidesPanel = ({
               setViewState('createView');
             }}
           >
-            Crear Guía
+            Crear guía
           </button>
           <button
             type="button"
             className={`buttonGuide ${viewState === 'editView' ? 'active' : ''}`}
             aria-pressed={viewState === 'editView'}
+            aria-controls="guide-management-panel"
             onClick={() => setViewState('editView')}
           >
-            Editar Guía
+            Editar guías
           </button>
           <button
             type="button"
             className={`buttonGuide ${viewState === 'deleteView' ? 'active' : ''}`}
             aria-pressed={viewState === 'deleteView'}
+            aria-controls="guide-management-panel"
             onClick={() => setViewState('deleteView')}
           >
-            Eliminar Guía
+            Eliminar guías
           </button>
         </div>
 
+        <div id="guide-management-panel" className="guide-management-panel">
         {viewState === 'guideView' && (
           <div className={`guide-view-layout ${selectedGuideMatches ? 'has-preview' : ''}`}>
             <div className="guide-list">
-              <h3>Listado de Guías</h3>
+              <h3>Todas las guías</h3>
             {guides.length > 0 ? (
               <ul className="category-view-list">
-                {filteredGuides.map(guide => (
+                {pagination.items.map(guide => (
                   <li key={guide.id}>
                     <button
                       className="guide-preview-button"
@@ -265,14 +274,16 @@ export const EditGuidesPanel = ({
                       aria-pressed={selectedGuide?.guide.id === guide.id}
                       onClick={() => handleOpenGuide(guide)}
                     >
-                      <strong>{guide.title}</strong> — {guide.category}
-                      <small>📄 {getGuideFileName(guide.file)} · Ver PDF</small>
+                      <strong>{guide.title}</strong>
+                      <span className="guide-preview-category">{guide.category}</span>
+                      <small>{getGuideFileName(guide.file)} · Abrir vista previa</small>
                     </button>
                   </li>
                 ))}
               </ul>
-            ) : <p>No hay guías creadas.</p>}
+            ) : <p role="status">No hay guías creadas.</p>}
             {guides.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
+            <Pagination {...pagination} label="Páginas de guías" />
             </div>
             {selectedGuide && (
               <section className="guide-preview" hidden={!selectedGuideMatches} aria-label={`Vista previa de ${selectedGuide.guide.title}`}>
@@ -293,15 +304,16 @@ export const EditGuidesPanel = ({
 
         {viewState === 'createView' && (
           <div>
-            <h3>Crear Nueva Guía</h3>
+            <h3>Crear una guía</h3>
             {categories.length > 0 ? (
-              <form className="create-category-form" onSubmit={handleCreateGuide}>
+              <form className="create-category-form guide-create-form" onSubmit={handleCreateGuide}>
                 <div className="input-group">
                   <label htmlFor="new-guide-title">Título de la guía</label>
                   <input
                     id="new-guide-title"
                     type="text"
                     placeholder="Título de la guía"
+                    required
                     value={newTitle}
                     onChange={event => {
                       setNewTitle(event.target.value);
@@ -313,6 +325,7 @@ export const EditGuidesPanel = ({
                   <select
                     id="new-guide-category"
                     value={newCategory}
+                    required
                     onChange={event => {
                       setNewCategory(event.target.value);
                       setCreateError(null);
@@ -329,6 +342,7 @@ export const EditGuidesPanel = ({
                     id="new-guide-file"
                     type="file"
                     accept=".pdf,application/pdf"
+                    required
                     onChange={event => {
                       const file = event.target.files?.[0];
                       if (!file) return;
@@ -343,18 +357,18 @@ export const EditGuidesPanel = ({
                     }}
                     className={createError && !newFile ? 'input-error' : ''}
                   />
-                  {newFile && <span>{newFile.name}</span>}
+                  {newFile && <span className="file-info">{newFile.name}</span>}
                   {createError && <span className="error-text" role="alert">{createError}</span>}
                 </div>
-                <button type="submit">Crear Guía</button>
+                <button type="submit">Crear guía</button>
               </form>
-            ) : <p>Crea una categoría antes de agregar guías.</p>}
+            ) : <p role="status">Crea una categoría antes de agregar guías.</p>}
           </div>
         )}
 
         {viewState === 'editView' && (
           <div>
-            <h3>Editar Guías</h3>
+            <h3>Editar guías</h3>
             {guides.length > 0 && categories.length > 0 ? (
               <ul className="edit-category-list">
                 {guides.map(guide => (
@@ -363,7 +377,7 @@ export const EditGuidesPanel = ({
                     guide={guide}
                     guides={guides}
                     categories={categories}
-                    hidden={!matchesSearch(searchQuery, guide.title, guide.category)}
+                    hidden={!visibleGuideIds.has(guide.id)}
                     onSave={updatedGuide => {
                       setSelectedGuide(null);
                       onSave(updatedGuide);
@@ -373,26 +387,32 @@ export const EditGuidesPanel = ({
               </ul>
             ) : <p>{guides.length === 0 ? 'No hay guías para editar.' : 'Crea una categoría para editar las guías.'}</p>}
             {guides.length > 0 && categories.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
+            <Pagination {...pagination} label="Páginas de guías para editar" />
           </div>
         )}
 
         {viewState === 'deleteView' && (
           <div>
-            <h3>Eliminar Guías</h3>
+            <h3>Eliminar guías</h3>
             {guides.length > 0 ? (
               <ul className="category-view-list">
-                {filteredGuides.map(guide => (
+                {pagination.items.map(guide => (
                   <li key={guide.id}>
-                    <span>{guide.title} ({guide.category})</span>
+                    <span className="guide-delete-details">
+                      <strong>{guide.title}</strong>
+                      <small>{guide.category}</small>
+                    </span>
                     <button type="button" aria-label={`Eliminar guía ${guide.title}`} onClick={() => handleDeleteGuide(guide.id)}>Eliminar</button>
                   </li>
                 ))}
               </ul>
-            ) : <p>No hay guías para eliminar.</p>}
+            ) : <p role="status">No hay guías para eliminar.</p>}
             {guides.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
+            <Pagination {...pagination} label="Páginas de guías para eliminar" />
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 };

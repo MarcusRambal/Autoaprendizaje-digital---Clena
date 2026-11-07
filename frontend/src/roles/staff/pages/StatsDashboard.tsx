@@ -76,7 +76,7 @@ export const StatsDashboard = () => {
         </section>
       </div>
 
-      <p>El número de participantes y los fallos por cuestionario estarán disponibles cuando se implemente el módulo de métricas.</p>
+      <p>El número de participantes y los fallos por lección estarán disponibles cuando se implemente el módulo de métricas.</p>
       <button type="button" onClick={handleSimulateActivity}>Simular Nueva Actividad</button>
     </section>
   );
