@@ -1,0 +1,205 @@
+.public-layout {
+  --public-page: #faf8f9;
+  --public-surface: #fff;
+  --public-text: #211820;
+  --public-muted: #51434c;
+  --public-border: #e4d9df;
+  min-height: 100vh;
+  background: var(--public-page);
+  color: var(--public-text);
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+
+.public-layout .content {
+  width: min(100%, 82rem);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.public-layout--dashboard .content { width: min(100%, 86rem); }
+.public-layout--guides .content,
+.public-layout--lessons .content { width: min(100%, 86rem); }
+.public-layout--progress .content,
+.public-layout--help .content,
+.public-layout--privacy .content { width: min(100%, 78rem); }
+
+.public-layout .skip-link {
+  position: fixed;
+  z-index: 20;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-160%);
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: #652e4e;
+  color: #fff;
+  font-weight: 700;
+}
+
+.public-layout .skip-link:focus { transform: translateY(0); }
+.public-layout .content h1 { scroll-margin-top: 1.5rem; }
+.public-layout :is(a, button, input, select, textarea, summary, iframe):focus-visible {
+  outline: 3px solid #a34a00;
+  outline-offset: 3px;
+}
+
+.public-layout .navbar {
+  position: relative;
+  display: flex;
+  min-height: 4.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem 1.5rem;
+  padding: 0.45rem clamp(1.25rem, 5vw, 4rem);
+  border-bottom: 1px solid #e4d9df;
+  background: #fff;
+  color: #652e4e;
+  font-size: 1rem;
+}
+
+.public-layout .navBar-logo a {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  color: #652e4e;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.public-layout .nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+}
+
+.public-layout .nav-links a,
+.public-layout .login-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.45rem;
+  color: #51434c;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.public-layout .nav-links a:hover,
+.public-layout .login-link:hover {
+  background: #f3edf1;
+  color: #4a1f3a;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.public-layout .nav-links a[aria-current="page"] {
+  background: #f3edf1;
+  color: #4a1f3a;
+}
+
+.public-layout .logout-btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #652e4e;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: #652e4e;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.public-layout .logout-btn:hover {
+  background: #f3edf1;
+}
+
+.public-layout .logout-btn svg { width: 1.2rem; height: 1.2rem; }
+.public-layout .logout-btn:focus-visible,
+.public-layout .navbar :is(a, button):focus-visible { outline: 3px solid #a34a00; outline-offset: 3px; }
+
+.public-page { color: #211820; }
+.public-page h1 { line-height: 1.2; }
+.public-page p { max-width: 70ch; }
+.public-eyebrow { color: #705c68 !important; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.public-demo-note { margin: 0; color: #51434c; font-size: 0.9rem; }
+.public-error { padding: 0.85rem 1rem; border-left: 4px solid #9a4141; background: #fff1f0; color: #712d2d; }
+
+.public-layout .public-button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  border: 1px solid #652e4e;
+  border-radius: 0.55rem;
+  background: #652e4e;
+  color: #fff !important;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.public-layout .public-button:hover:not(:disabled) { border-color: #4a1f3a; background: #4a1f3a; }
+.public-layout .public-button--secondary { background: #fff; color: #652e4e !important; }
+.public-layout .public-button--secondary:hover:not(:disabled) { background: #f3edf1; color: #4a1f3a !important; }
+.public-layout .public-button:disabled { opacity: 0.65; cursor: not-allowed; }
+.public-layout :is(.public-button, .public-button--secondary):focus-visible { outline: 3px solid #a34a00; outline-offset: 3px; }
+
+.public-layout .content > * { min-width: 0; }
+.public-layout .content :is(input, select, textarea) { font: inherit; }
+
+@media (max-width: 48rem) {
+  .public-layout .navbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .public-layout .navBar-logo { grid-column: 1; grid-row: 1; }
+  .public-layout .navbar > .logout-btn,
+  .public-layout .navbar > .login-link { grid-column: 2; grid-row: 1; }
+  .public-layout .nav-links {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+    gap: 0.1rem;
+    margin: 0 -0.25rem;
+  }
+  .public-layout .nav-links a { min-height: 2.5rem; padding: 0.35rem 0.55rem; }
+}
+
+@media (max-width: 24rem) {
+  .public-layout .nav-links { gap: 0; }
+  .public-layout .nav-links a { padding-inline: 0.4rem; font-size: 0.92rem; }
+  .public-layout .logout-btn { padding-inline: 0.5rem; font-size: 0.85rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-layout *,
+  .public-layout *::before,
+  .public-layout *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
+
+@media (forced-colors: active) {
+  .public-layout :is(a, button, input, select, textarea, summary, iframe):focus-visible,
+  .public-layout .skip-link:focus-visible { outline: 3px solid Highlight; }
+}

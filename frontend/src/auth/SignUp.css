@@ -1,0 +1,14 @@
+.signup-progress { font-weight: 700; color: #652e4e; }
+.signup-steps { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.signup-steps li { padding: 0.45rem 0.65rem; background: #f2edf0; border-radius: 0.4rem; }
+.signup-steps li[aria-current="step"] { background: #652e4e; color: white; font-weight: 700; }
+.signup-example { display: grid; gap: 0.45rem; padding: 1rem; margin: 1rem 0; border: 1px solid #cbb8c2; border-radius: 0.5rem; background: #faf8f9; }
+.signup-example strong { padding: 0.65rem; border: 1px solid #99828d; border-radius: 0.35rem; background: white; }
+.signup-email { overflow-wrap: anywhere; }
+.signup-example-button { margin-top: 0.4rem; padding: 0.7rem; background: #652e4e; color: white; text-align: center; border-radius: 0.35rem; font-weight: 700; }
+.signup-instructions { margin: 1rem 0 1rem 1.5rem; }
+.signup-instructions li { list-style-type: decimal; line-height: 1.6; }
+.consent-checkbox { display: flex; align-items: flex-start; gap: 0.6rem; margin: 1rem 0; }
+.consent-checkbox input { width: 1.25rem; height: 1.25rem; flex: none; margin-top: 0.2rem; }
+.consent-notice { padding: 1rem; border: 1px solid #cbb8c2; border-radius: 0.5rem; background: #faf8f9; }
+.consent-notice p + p { margin-top: 0.75rem; }

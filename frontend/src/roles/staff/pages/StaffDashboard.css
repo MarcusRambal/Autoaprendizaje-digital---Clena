@@ -1,0 +1,131 @@
+.admin-layout .staff-dashboard {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+.staff-dashboard-header {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.staff-dashboard-header h1,
+.staff-dashboard-header p {
+  margin: 0;
+}
+
+.staff-dashboard-header .staff-dashboard-eyebrow {
+  color: #705c68;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.staff-dashboard-header > p:last-child {
+  color: #51434c;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+}
+
+.staff-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.staff-dashboard-card {
+  --card-accent: #d97820;
+  --card-surface: #fff8f1;
+  display: grid;
+  min-height: 14rem;
+  align-content: start;
+  gap: 0.8rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid #e4d9df;
+  border-top: 0.35rem solid var(--card-accent);
+  border-radius: 0.85rem;
+  background: var(--card-surface);
+  color: #211820;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.staff-dashboard-card--requests {
+  --card-accent: #b48108;
+  --card-surface: #fffaf0;
+}
+
+.staff-dashboard-card--statistics {
+  --card-accent: #348453;
+  --card-surface: #f2faf4;
+}
+
+.staff-dashboard-card__eyebrow {
+  color: #5d4d56;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.staff-dashboard-card strong {
+  color: #211820;
+  font-size: clamp(1.4rem, 2.4vw, 1.8rem);
+  line-height: 1.2;
+}
+
+.staff-dashboard-card > span:not(.staff-dashboard-card__eyebrow, .staff-dashboard-card__action) {
+  max-width: 42ch;
+}
+
+.staff-dashboard-card__action {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  color: #652e4e;
+  font-weight: 700;
+}
+
+.staff-dashboard-card:hover {
+  border-color: var(--card-accent);
+  box-shadow: 0 0.6rem 1.5rem rgb(65 34 52 / 10%);
+  transform: translateY(-2px);
+}
+
+.staff-dashboard-card:hover .staff-dashboard-card__action {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.admin-layout .staff-dashboard-card:focus-visible {
+  outline: 3px solid #d97820;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 2px #652e4e;
+}
+
+.staff-dashboard-note {
+  margin: 0;
+  color: #51434c;
+  font-size: 1rem;
+}
+
+@media (max-width: 45rem) {
+  .staff-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .staff-dashboard-card {
+    min-height: 12rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-dashboard-card {
+    transition: none;
+  }
+
+  .staff-dashboard-card:hover {
+    transform: none;
+  }
+}

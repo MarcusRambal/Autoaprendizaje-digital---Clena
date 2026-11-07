@@ -5,6 +5,7 @@
   --clena-orange: #DF8329;
   --clena-yellow: #F1B633;
   --clena-purple: #652E4E;
+  --clena-green: #76de8d;
 }
 
 * {
@@ -13,3 +14,33 @@
   padding: 0;
   list-style-type: none;
 }
+
+.public-layout { min-height: 100vh; background: #faf8f9; color: #211820; font-size: 1.2rem; line-height: 1.6; }
+.public-layout *, .public-layout *::before, .public-layout *::after { box-sizing: border-box; }
+.public-layout .content { width: min(100%, 70rem); margin: 0 auto; padding: clamp(1.25rem, 4vw, 3rem); }
+.public-layout--dashboard .content { width: min(100%, 86rem); padding: 2rem clamp(1.25rem, 5.8vw, 5rem); }
+.public-layout--guides .content { width: min(100%, 86rem); padding: 1.25rem clamp(1.25rem, 3.8vw, 3rem) 2rem; }
+.public-layout--lessons .content { width: min(100%, 86rem); padding: 1.25rem clamp(1.25rem, 3vw, 2.5rem) 2rem; }
+.public-layout--progress .content, .public-layout--help .content { width: min(100%, 86rem); padding: 2rem clamp(1.25rem, 4.4vw, 3.75rem); }
+.public-layout .skip-link { position: absolute; top: 0.5rem; left: 0.5rem; z-index: 10; transform: translateY(-200%); padding: 0.75rem; background: #f1b633; color: #281b23; }
+.public-layout .skip-link:focus { transform: translateY(0); }
+.public-page h1 { color: #4a1f3a; font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.2; margin-bottom: 1rem; }
+.public-page h2 { color: #4a1f3a; font-size: 1.5rem; line-height: 1.3; }
+.public-page p { margin: 1rem 0; max-width: 70ch; }
+.public-page a { color: #4a1f3a; font-weight: 700; text-underline-offset: 0.2em; }
+.public-page :focus-visible { outline: 3px solid #a34a00; outline-offset: 3px; }
+.public-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.public-cards a, .public-card { display: block; padding: 1.25rem; background: white; border: 2px solid #b9a2ad; border-radius: 0.6rem; }
+.public-cards a { min-height: 7rem; }
+.public-cards strong, .public-cards span { display: block; }
+.public-help { display: inline-block; padding: 0.8rem 1rem; border: 2px solid #652e4e; border-radius: 0.5rem; background: #652e4e; color: white !important; }
+.public-steps, .public-tips { margin: 1rem 0 1rem 1.5rem; }
+.public-steps li { list-style-type: decimal; margin: 0.7rem 0; }
+.public-tips li { list-style-type: disc; margin: 0.7rem 0; }
+.public-quiz { margin: 1rem 0; }
+.public-quiz fieldset { border: 0; }
+.public-quiz legend { font-weight: 700; margin-bottom: 0.8rem; }
+.public-quiz label { display: flex; align-items: flex-start; gap: 0.75rem; margin: 1rem 0; cursor: pointer; }
+.public-quiz input { width: 1.4rem; height: 1.4rem; flex-shrink: 0; margin-top: 0.3rem; }
+.public-quiz button { min-height: 3rem; padding: 0.6rem 1rem; border: 2px solid #652e4e; border-radius: 0.4rem; background: #652e4e; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.public-notice { padding: 1rem; border-left: 5px solid #8a4600; background: #fff3dc; }

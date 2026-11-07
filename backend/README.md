@@ -70,6 +70,22 @@ credentials.
 - Structured JSON logs redact password, authorization, access-token,
   refresh-token, and token fields.
 
+## Application roles
+
+The public registration endpoint creates `PUBLIC_USER` accounts only. The
+intended responsibilities are:
+
+| Role | Responsibilities |
+| --- | --- |
+| `PUBLIC_USER` | View guides as a guest; use an account to save personal progress. |
+| `STAFF` | Manage and publish guides and quizzes, attend help requests, and review basic learning metrics. |
+| `ADMIN` | Manage staff accounts and roles, user deactivation and erasure/anonymization requests, categories, privacy notices and consent terms; review audit records and backup/database status. |
+
+These are intended permissions, not a claim that the corresponding APIs are
+implemented. Future endpoints must enforce authorization on the server. An
+application event audit trail is distinct from the existing operational logs;
+user erasure and backup retention also require a defined data-retention policy.
+
 ## Quality commands
 
 Run these commands from `backend/`:

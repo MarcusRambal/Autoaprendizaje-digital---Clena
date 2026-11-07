@@ -1,17 +1,15 @@
 // NavBar.tsx
 import './NavBar.css';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { NAV_LINKS } from '../../config/navConfig';
-import { useAuth } from '../../services/authContext';
+import { GUEST_LINKS, NAV_LINKS } from '../../config/navConfig';
+import { useAuth } from '../../services/authState';
 
 export const NavBar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Si por alguna razón no hay usuario activo, no renderiza links o usa arreglo vacío
   const userRole = user?.userRole;
-  console.log(userRole);
-  const currentLinks = userRole ? NAV_LINKS[userRole] || [] : [];
+  const currentLinks = userRole ? NAV_LINKS[userRole] : GUEST_LINKS;
 
   const handleLogout = () => {
     logout();
@@ -32,9 +30,15 @@ export const NavBar = () => {
         ))}
       </ul>
 
-      <button className="logout-btn" onClick={handleLogout}>
-        Cerrar Sesión
-      </button>
+      {user ? (
+        <button type="button" className="logout-btn" onClick={handleLogout}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4.5 21v-2a7.5 7.5 0 0 1 15 0v2" />
+          </svg>
+          Cerrar sesión
+        </button>
+      ) : <Link className="login-link" to="/login">Iniciar sesión</Link>}
     </nav>
   );
 };

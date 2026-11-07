@@ -1,83 +1,101 @@
-// services/authContext.tsx
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { accessTokenExpiresAt, appRole, authRequest, AuthError, type AuthSession, type Credentials } from './authApi';
+import { AuthContext, type AuthContextType } from './authState';
 
-import { createContext, useContext, useMemo, useState, useEffect, type ReactNode } from 'react';
+const storageKey = 'clena_refresh_token';
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+let pendingRefresh: { token: string; promise: Promise<AuthSession> } | null = null;
 
-export interface AuthUser {
-  email: string;
-  userRole: 'admin' | 'student';
-  [key: string]: unknown;
+function refreshOnce(token: string): Promise<AuthSession> {
+  if (pendingRefresh?.token === token) return pendingRefresh.promise;
+  const promise = authRequest('refresh', { refreshToken: token }, apiBaseUrl);
+  pendingRefresh = { token, promise };
+  const clearPending = () => {
+    if (pendingRefresh?.promise === promise) pendingRefresh = null;
+  };
+  void promise.then(clearPending, clearPending);
+  return promise;
 }
-
-export interface AuthSession {
-  user: AuthUser;
-  token?: string;
-}
-
-interface AuthContextType {
-  user: AuthUser | null;
-  token: string | null;
-  login: (session: AuthSession) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [isLoading, setIsLoading] = useState(() => sessionStorage.getItem(storageKey) !== null);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const generation = useRef(0);
 
-  // Recupera la sesión guardada al montar el componente (Mock/Persistencia temporal)
+  const saveSession = useCallback((next: AuthSession) => {
+    accessTokenExpiresAt(next.accessToken);
+    appRole(next.user.role);
+    sessionStorage.setItem(storageKey, next.refreshToken);
+    setSession(next);
+    setSessionError(null);
+  }, []);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('mock_user');
-    const savedToken = localStorage.getItem('mock_token');
-
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-        setToken(savedToken ?? null);
-      } catch (e) {
-        console.error('Error al parsear el usuario guardado', e);
+    let active = true;
+    const currentGeneration = generation.current;
+    const token = sessionStorage.getItem(storageKey);
+    if (!token) return;
+    refreshOnce(token).then((next) => {
+      if (active && generation.current === currentGeneration) saveSession(next);
+    }).catch((error: unknown) => {
+      if (active && generation.current === currentGeneration) {
+        sessionStorage.removeItem(storageKey);
+        setSessionError(error instanceof Error ? error.message : 'No se pudo recuperar la sesión.');
       }
-    }
+    }).finally(() => {
+      if (active && generation.current === currentGeneration) setIsLoading(false);
+    });
+    return () => { active = false; };
+  }, [saveSession]);
+
+  useEffect(() => {
+    if (!session) return;
+    let active = true;
+    const currentGeneration = generation.current;
+    const remaining = accessTokenExpiresAt(session.accessToken) - Date.now();
+    const delay = Math.max(1_000, remaining - Math.min(30_000, remaining * 0.1));
+    const timer = window.setTimeout(() => {
+      refreshOnce(session.refreshToken).then((next) => {
+        if (active && generation.current === currentGeneration) saveSession(next);
+      }).catch((error: unknown) => {
+        if (active && generation.current === currentGeneration) {
+          sessionStorage.removeItem(storageKey);
+          setSession(null);
+          setSessionError(error instanceof Error ? error.message : 'No se pudo renovar la sesión.');
+        }
+      });
+    }, delay);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [session, saveSession]);
+
+  const authenticate = useCallback(async (action: 'login' | 'register', credentials: Credentials) => {
+    const currentGeneration = ++generation.current;
+    const next = await authRequest(action, credentials, apiBaseUrl);
+    if (generation.current !== currentGeneration) throw new AuthError('La solicitud de sesión fue cancelada.');
+    saveSession(next);
+    setIsLoading(false);
+    return appRole(next.user.role);
+  }, [saveSession]);
+
+  const logout = useCallback(() => {
+    generation.current += 1;
+    sessionStorage.removeItem(storageKey);
+    setSession(null);
+    setSessionError(null);
     setIsLoading(false);
   }, []);
 
-  const login = ({ user, token }: AuthSession) => {
-    setUser(user);
-    setToken(token ?? null);
-    localStorage.setItem('mock_user', JSON.stringify(user));
-    if (token) localStorage.setItem('mock_token', token);
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('mock_user');
-    localStorage.removeItem('mock_token');
-  };
-
-  const value = useMemo<AuthContextType>(
-    () => ({
-      user,
-      token,
-      login,
-      logout,
-      isAuthenticated: !!user,
-      isLoading,
-    }),
-    [user, token, isLoading],
-  );
+  const value = useMemo<AuthContextType>(() => ({
+    user: session ? { id: session.user.id, email: session.user.email, userRole: appRole(session.user.role) } : null,
+    token: session?.accessToken ?? null,
+    login: (credentials) => authenticate('login', credentials),
+    register: (credentials) => authenticate('register', credentials),
+    logout,
+    isAuthenticated: session !== null,
+    isLoading,
+    sessionError,
+  }), [session, authenticate, logout, isLoading, sessionError]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser utilizado dentro de un AuthProvider');
-  }
-  return context;
 };

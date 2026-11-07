@@ -2,26 +2,30 @@
 import './App.css';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
-import { Home } from './Home';
-import { MainLayout } from './MainLayout'; // Importas el Layout
+import { WelcomePage } from './roles/public/pages/WelcomePage';
+import { MainLayout } from './MainLayout';
 
-// SignIn
-import { SignUp } from './SignIn/SignUp';
-import { Login } from './SignIn/Login';
+// Autenticación
+import { SignUp } from './auth/SignUp';
+import { Login } from './auth/Login';
 
-// StudentsHome
-import { StudentsHome } from './StudentsHome/StudentsHome';
-import { Guides } from './StudentsHome/routes/Guides';
-import { Quiz } from './StudentsHome/routes/Quiz';
-import { Progress } from './StudentsHome/routes/Progress';
+// Usuario público y visitantes
+import { PublicDashboard } from './roles/public/pages/PublicDashboard';
+import { Guides } from './roles/public/pages/Guides';
+import { Quiz } from './roles/public/pages/Quiz';
+import { Progress } from './roles/public/pages/Progress';
+import { Help } from './roles/public/pages/Help';
 
-// AdminPanel
-import { AdminPanel } from './AdminPanel/AdminPanel';
-import { ControlPanel } from './AdminPanel/routes/ControlPanel';
-import { HelpRequestManager } from './AdminPanel/routes/HelpRequestManager';
-import { StatsDashboard } from './AdminPanel/routes/StatsDashboard';
+// Administración y personal
+import { AdminDashboard } from './roles/admin/pages/AdminDashboard';
+import { ControlPanel } from './features/content-management/ControlPanel';
+import { HelpRequestManager } from './roles/staff/pages/HelpRequestManager';
+import { StatsDashboard } from './roles/staff/pages/StatsDashboard';
+import { StaffDashboard } from './roles/staff/pages/StaffDashboard';
+import { AdminFeature } from './roles/admin/pages/AdminFeature';
+import { AdminUsers } from './roles/admin/pages/AdminUsers';
+import { PrivacyPage } from './features/privacy/PrivacyPage';
 
-// ProtectedRoute
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 
@@ -29,7 +33,7 @@ const router = createBrowserRouter([
   // --- Rutas Públicas ---
   {
     path: '/',
-    element: <Home />,
+    element: <WelcomePage />,
   },
   {
     path: '/signUp',
@@ -40,30 +44,21 @@ const router = createBrowserRouter([
     element: <Login />,
   },
 
-  // --- Rutas del Estudiante ---
+  // --- Aprendizaje público ---
   {
-    element: <ProtectedRoute allowedRoles={['student']} />,
+    path: '/StudentsHome',
+    element: <MainLayout />,
     children: [
+      { index: true, element: <PublicDashboard /> },
+      { path: 'Guides', element: <Guides /> },
+      { path: 'Quiz', element: <Quiz /> },
+      { path: 'Security', element: <Navigate to="/StudentsHome/Guides" replace /> },
+      { path: 'Help', element: <Help /> },
       {
-        path: '/StudentsHome',
-        element: <MainLayout/>,
+        element: <ProtectedRoute allowedRoles={['student']} />,
         children: [
-          {
-            path: '',
-            element: <StudentsHome />,
-          },
-          {
-            path: 'Guides',
-            element: <Guides />,
-          },
-          {
-            path: 'Quiz',
-            element: <Quiz />,
-          },
-          {
-            path: 'Progress',
-            element: <Progress />,
-          },
+          { path: 'Progress', element: <Progress /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
         ],
       },
     ],
@@ -79,25 +74,41 @@ const router = createBrowserRouter([
         children: [
           {
             path: '',
-            element: <AdminPanel />,
+            element: <AdminDashboard />,
           },
           {
             path: 'ControlPanel',
-            element: <ControlPanel/>
+            element: <ControlPanel mode="categories"/>
           },
-          {
-            path: 'Requests',
-            element: <HelpRequestManager />,
-          },
-          {
-            path: 'Statistics',
-            element: <StatsDashboard />,
-          },
+          { path: 'Users', element: <AdminUsers /> },
+          { path: 'Audit', element: <AdminFeature feature="audit" /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
+          { path: 'Backups', element: <AdminFeature feature="backups" /> },
         ],
       },
     ],
   },
 
+  // --- Rutas del personal de contenido ---
+  {
+    element: <ProtectedRoute allowedRoles={['staff']} />,
+    children: [
+      {
+        path: '/Staff',
+        element: <MainLayout />,
+        children: [
+          { index: true, element: <StaffDashboard /> },
+          { path: 'Content', element: <ControlPanel mode="content" /> },
+          { path: 'Requests', element: <HelpRequestManager /> },
+          { path: 'Statistics', element: <StatsDashboard /> },
+          { path: 'Privacy', element: <PrivacyPage /> },
+        ],
+      },
+    ],
+  },
+
+  { path: '/Admin/Requests', element: <Navigate to="/Staff/Requests" replace /> },
+  { path: '/Admin/Statistics', element: <Navigate to="/Staff/Statistics" replace /> },
   // --- Catch-All (Ruta 404 para cualquier URL no coincidente) ---
   {
     path: '*',

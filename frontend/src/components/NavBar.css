@@ -1,45 +1,16 @@
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 20px;
-    background-color: white;
-    color: black;
-}
+.navbar { display: flex; min-height: 4.4rem; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; padding: 0.35rem clamp(1.25rem, 5.8vw, 5rem); background: #652e4e; color: white; font-size: clamp(1rem, 1.8vw, 1.6rem); }
+.navBar-logo a { display: inline-flex; min-height: 3rem; align-items: center; color: white; font-size: inherit; font-weight: 400; text-decoration: none; }
+.nav-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.nav-links a, .login-link { display: inline-flex; min-height: 3rem; align-items: center; color: white; font-weight: 400; text-decoration: none; }
+.nav-links a[aria-current="page"], .nav-links a:hover { color: #f1b633; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.25em; }
+.logout-btn { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.55rem; padding: 0.3rem 0.8rem; border: 1px solid white; border-radius: 0.4rem; background: transparent; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.logout-btn svg { width: 1.35em; height: 1.35em; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.navbar a:focus-visible, .navbar button:focus-visible { outline: 3px solid #f1b633; outline-offset: 3px; }
 
-.navBar-logo {
-    font-size: 1.5em;
-    font-weight: bold;
-}
-
-.navBar-logo a {
-    color: #FFC336;
-    text-decoration: none;
-}
-
-.nav-links {
-    list-style: none;
-    display: flex;
-    gap: 25px;
-}
-
-.nav-links li a {
-    color: black;
-    text-decoration: none;
-}
-
-.nav-links li a:hover {
-    text-decoration: underline;
-}
-
-.logout-btn {
-    background-color: #555;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    cursor: pointer;
-}
-
-.logout-btn:hover {
-    background-color: #777;
+@media (max-width: 45rem) {
+  .navbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.35rem 0.75rem; }
+  .navBar-logo { grid-column: 1; grid-row: 1; }
+  .navbar > .logout-btn, .navbar > .login-link { grid-column: 2; grid-row: 1; }
+  .nav-links { grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: 0.25rem 0.75rem; }
+  .nav-links a { min-height: 2.75rem; }
 }

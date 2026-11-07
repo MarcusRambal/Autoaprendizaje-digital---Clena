@@ -1,0 +1,208 @@
+.welcome-page {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: min(100svh, 58rem);
+  align-items: center;
+  overflow: hidden;
+  background: #faf8f9;
+  color: #211820;
+}
+
+.welcome-art {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 63%;
+  overflow: hidden;
+  background: #f1b633;
+}
+
+.welcome-art::before,
+.welcome-art::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.welcome-art::before {
+  background: #df8329;
+  clip-path: polygon(0 0, 42% 0, 30% 100%, 0 100%);
+}
+
+.welcome-art::after {
+  background: #652e4e;
+  clip-path: polygon(43% 0, 73% 0, 88% 100%, 55% 100%);
+}
+
+.welcome-content {
+  box-sizing: border-box;
+  width: min(68%, 58rem);
+  padding: clamp(2.5rem, 11vh, 7rem) clamp(1.5rem, 7vw, 6rem);
+}
+
+.welcome-content .welcome-brand,
+.welcome-content .welcome-description,
+.welcome-content .welcome-note {
+  max-width: 46rem;
+}
+
+.welcome-content .welcome-brand {
+  margin: 0 0 1.5rem;
+  color: #F1B633;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.welcome-content .welcome-brand span {
+  padding: 0 0.3rem;
+  color: #a45b20;
+}
+
+.welcome-content h1 {
+  max-width: 40rem;
+  margin: 0 0 1.25rem;
+  color: #211820;
+  font-size: clamp(2.3rem, 5vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.welcome-content .welcome-description {
+  max-width: 34rem;
+  margin: 0 0 2rem;
+  color: #51434c;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  line-height: 1.5;
+}
+
+.welcome-actions {
+  display: flex;
+  max-width: 42rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.welcome-actions a {
+  display: inline-flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid #652e4e;
+  border-radius: 0.55rem;
+  background: #fff;
+  color: #652e4e;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.welcome-actions a:hover {
+  background: #f3edf1;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.welcome-actions .welcome-primary {
+  border-color: #652e4e;
+  background: #652e4e;
+  color: #fff;
+}
+
+.welcome-actions .welcome-primary:hover {
+  border-color: #4a1f3a;
+  background: #4a1f3a;
+}
+
+.welcome-content .welcome-note {
+  margin: 1.5rem 0 0;
+  color: #51434c;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.welcome-skip {
+  position: fixed;
+  z-index: 20;
+  top: 0.5rem;
+  left: 0.5rem;
+  transform: translateY(-160%);
+  padding: 0.75rem 1rem;
+  border-radius: 0.4rem;
+  background: #652e4e;
+  color: white;
+  font-weight: 700;
+}
+
+.welcome-skip:focus {
+  transform: translateY(0);
+}
+
+.welcome-skip:focus-visible,
+.welcome-actions a:focus-visible {
+  outline: 3px solid #a34a00;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+@media (max-width: 760px) {
+  .welcome-page {
+    min-height: 100svh;
+    align-content: start;
+    padding-bottom: 6rem;
+  }
+
+  .welcome-art {
+    inset: auto 0 0;
+    height: 4rem;
+  }
+
+  .welcome-art::before {
+    clip-path: polygon(0 0, 40% 0, 30% 100%, 0 100%);
+  }
+
+  .welcome-art::after {
+    clip-path: polygon(42% 0, 72% 0, 86% 100%, 54% 100%);
+  }
+
+  .welcome-content {
+    width: 100%;
+    padding: clamp(2rem, 8vh, 4rem) clamp(1.25rem, 6vw, 2.5rem) 2rem;
+  }
+
+  .welcome-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+}
+
+@media (max-width: 28rem) {
+  .welcome-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-actions a {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .welcome-actions a,
+  .welcome-skip {
+    border: 1px solid ButtonText;
+  }
+
+  .welcome-skip:focus-visible,
+  .welcome-actions a:focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+}
