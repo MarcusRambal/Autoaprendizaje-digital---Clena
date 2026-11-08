@@ -139,23 +139,64 @@ const guides = [
 const helpRequests = [
   {
     id: '00000000-0000-4000-8000-000000000001',
-    guideSlug: 'crear-cuenta-de-correo',
-    description: 'No logro elegir una contraseña que el sistema acepte.',
+    requesterName: 'María López',
+    topic: 'Correo electrónico',
     status: HelpRequestStatus.PENDING,
   },
   {
     id: '00000000-0000-4000-8000-000000000002',
-    guideSlug: 'escribir-un-documento',
-    description: 'No encuentro dónde quedó guardado mi documento.',
-    status: HelpRequestStatus.PENDING,
+    requesterName: 'José Ramírez',
+    topic: 'Navegación web',
+    status: HelpRequestStatus.IN_PROGRESS,
   },
   {
     id: '00000000-0000-4000-8000-000000000003',
-    guideSlug: null,
-    description: 'Necesito ayuda para imprimir una hoja.',
-    status: HelpRequestStatus.CANCELLED,
+    requesterName: 'Elena Torres',
+    topic: 'Redes sociales',
+    status: HelpRequestStatus.ATTENDED,
   },
 ] as const;
+
+/** Builds a minimal one-page PDF so the demo guides have a file to open. */
+function buildSamplePdf(
+  title: string,
+  lines: string[],
+): Uint8Array<ArrayBuffer> {
+  const escape = (text: string) => text.replace(/[\\()]/g, '\\$&');
+  const wrap = (text: string) =>
+    text.match(/.{1,80}(\s|$)/g)?.map((line) => line.trim()) ?? [text];
+  const textLines = lines.flatMap((line) => wrap(line));
+  const content = [
+    'BT',
+    '/F1 18 Tf',
+    '72 740 Td',
+    `(${escape(title)}) Tj`,
+    '/F1 12 Tf',
+    ...textLines.flatMap((line) => ['0 -26 Td', `(${escape(line)}) Tj`]),
+    'ET',
+  ].join('\n');
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${Buffer.byteLength(content, 'latin1')} >>\nstream\n${content}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf, 'latin1'));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, 'latin1');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets
+    .map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`)
+    .join('');
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, 'latin1');
+}
 
 async function main(): Promise<void> {
   if (process.env.NODE_ENV === 'production') {
@@ -182,8 +223,6 @@ async function main(): Promise<void> {
     categoriesBySlug.set(category.slug, savedCategory);
   }
 
-  const guidesBySlug = new Map<string, { id: string }>();
-
   for (const { steps, categorySlug, ...guideData } of guides) {
     const category = categoriesBySlug.get(categorySlug);
     if (!category) {
@@ -201,7 +240,6 @@ async function main(): Promise<void> {
       create: data,
       select: { id: true },
     });
-    guidesBySlug.set(guideData.slug, guide);
 
     for (const [index, [title, instructions]] of steps.entries()) {
       const orderNumber = index + 1;
@@ -211,6 +249,25 @@ async function main(): Promise<void> {
         create: { guideId: guide.id, orderNumber, title, instructions },
       });
     }
+
+    // Sample PDF so the demo guides can be opened from the catalog.
+    const pdf = buildSamplePdf(
+      guideData.title,
+      steps.map(([stepTitle, instructions], index) => {
+        return `${index + 1}. ${stepTitle}: ${instructions}`;
+      }),
+    );
+    const file = {
+      originalName: `${guideData.slug}.pdf`,
+      contentType: 'application/pdf',
+      sizeBytes: pdf.length,
+      content: pdf,
+    };
+    await prisma.guideFile.upsert({
+      where: { guideId: guide.id },
+      update: file,
+      create: { guideId: guide.id, ...file },
+    });
   }
 
   const emailCategory = categoriesBySlug.get('correo-electronico');
@@ -282,13 +339,12 @@ async function main(): Promise<void> {
 
   // IDs fijos para que el seed sea repetible sin duplicar solicitudes.
   for (const request of helpRequests) {
-    const guideId = request.guideSlug
-      ? guidesBySlug.get(request.guideSlug)?.id
-      : undefined;
+    const attended = request.status === HelpRequestStatus.ATTENDED;
     const data = {
-      description: request.description,
+      requesterName: request.requesterName,
+      topic: request.topic,
       status: request.status,
-      guideId: guideId ?? null,
+      attendedAt: attended ? new Date('2026-11-02T15:00:00.000Z') : null,
     };
     await prisma.helpRequest.upsert({
       where: { id: request.id },
