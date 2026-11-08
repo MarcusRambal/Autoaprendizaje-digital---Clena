@@ -11,14 +11,13 @@ import {
   VerifiedRefreshToken,
 } from '../domain/token-issuer.port';
 
-// Debe coincidir con positiveTtlPattern de env.schema.ts
 const TTL_PATTERN = /^(?=.*[1-9])\d+(ms|s|m|h|d)$/;
 
 @Injectable()
 export class JwtTokenIssuer implements TokenIssuer {
   constructor(
     private readonly config: ConfigService,
-    private readonly jwt: JwtService,   // ← inyectado, sin default
+    private readonly jwt: JwtService, 
   ) {}
 
   async issueAccessToken(user: Pick<AuthUser, 'id' | 'email' | 'role'>): Promise<string> {
