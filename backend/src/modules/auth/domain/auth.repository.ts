@@ -1,6 +1,8 @@
+//Interfaz de conexion con el repositorio de autenticacion
 import { NewAuthSession } from './auth-session';
 import { AuthUser } from './auth-user';
 
+//Errores esperados al crear un usuario de autenticacion
 export type CreateAuthUserResult =
   { kind: 'created'; user: AuthUser } | { kind: 'duplicate' };
 

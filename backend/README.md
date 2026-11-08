@@ -63,6 +63,10 @@ credentials.
 
 - `GET /health` returns `{ "status": "ok" }`.
 - Authentication endpoints are under `/api/v1/auth`.
+- `POST /api/v1/auth/logout` requires `{ "refreshToken": "..." }`, returns
+  `204` idempotently, and revokes the token family for that device when its
+  signature is valid. Invalid, expired, or already-revoked tokens also receive
+  `204`.
 - Swagger documentation is available at `/docs`.
 - Request validation rejects unknown fields and transforms validated inputs.
 - Errors use `{ statusCode, code, message, timestamp, path }`; unexpected

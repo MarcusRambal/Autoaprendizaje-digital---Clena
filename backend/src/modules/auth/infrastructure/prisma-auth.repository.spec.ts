@@ -21,6 +21,7 @@ describe('PrismaAuthRepository', () => {
       refreshSession: {
         create: jest.Mock;
         findUnique: jest.Mock;
+        findFirst: jest.Mock;
         updateMany: jest.Mock;
       };
       $transaction: jest.Mock;
@@ -32,6 +33,7 @@ describe('PrismaAuthRepository', () => {
       refreshSession: {
         create: jest.fn(),
         findUnique: jest.fn().mockResolvedValue({ userId: 'user-1' }),
+        findFirst: jest.fn().mockResolvedValue({ userId: 'user-1' }),
         updateMany: jest.fn(),
       },
       $transaction: jest.fn(
@@ -353,12 +355,10 @@ describe('PrismaAuthRepository', () => {
   });
 
   it('revokes a family when serializable isolation reports a concurrent consume', async () => {
-    const { repository, prismaMock } = setup();
+    const { repository, prismaMock, tx } = setup();
     const revokedAt = new Date('2029-01-01T00:00:00.000Z');
-    prismaMock.$transaction.mockRejectedValue({ code: 'P2034' });
-    prismaMock.refreshSession.updateMany.mockResolvedValue({
-      count: 2,
-    });
+    prismaMock.$transaction.mockRejectedValueOnce({ code: 'P2034' });
+    tx.refreshSession.updateMany.mockResolvedValue({ count: 2 });
 
     await expect(
       repository.rotateRefreshSession({
@@ -376,20 +376,20 @@ describe('PrismaAuthRepository', () => {
         },
       }),
     ).resolves.toEqual({ kind: 'replayed' });
-    expect(prismaMock.refreshSession.updateMany).toHaveBeenCalledWith({
-      where: { familyId: 'family-1', revokedAt: null },
+    expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', familyId: 'family-1', revokedAt: null },
       data: { revokedAt },
     });
   });
 
   it('treats a raw-query serialization failure as a replay', async () => {
-    const { repository, prismaMock, tx } = setup();
+    const { repository, tx } = setup();
     const revokedAt = new Date('2029-01-01T00:00:00.000Z');
-    tx.$queryRaw.mockRejectedValue({
+    tx.$queryRaw.mockRejectedValueOnce({
       code: 'P2010',
       meta: { code: '40001' },
     });
-    prismaMock.refreshSession.updateMany.mockResolvedValue({ count: 2 });
+    tx.refreshSession.updateMany.mockResolvedValue({ count: 2 });
 
     await expect(
       repository.rotateRefreshSession({
@@ -407,9 +407,44 @@ describe('PrismaAuthRepository', () => {
         },
       }),
     ).resolves.toEqual({ kind: 'replayed' });
-    expect(prismaMock.refreshSession.updateMany).toHaveBeenCalledWith({
-      where: { familyId: 'family-1', revokedAt: null },
+    expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', familyId: 'family-1', revokedAt: null },
       data: { revokedAt },
     });
+  });
+
+  it('revokes a family idempotently while holding the user lock used by refresh', async () => {
+    const { repository, prismaMock, tx } = setup();
+    const revokedAt = new Date('2029-01-01T00:00:00.000Z');
+    tx.$queryRaw.mockResolvedValueOnce([{ id: 'user-1' }]);
+
+    await expect(
+      repository.revokeRefreshSessionFamily('family-device-1', revokedAt),
+    ).resolves.toBeUndefined();
+
+    expect(prismaMock.refreshSession.findFirst).toHaveBeenCalledWith({
+      where: { familyId: 'family-device-1' },
+      select: { userId: true },
+    });
+    expect(tx.$queryRaw.mock.calls[0][0].join(' ')).toContain('FROM "User"');
+    expect(tx.$queryRaw.mock.calls[0][0].join(' ')).toContain('FOR UPDATE');
+    expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', familyId: 'family-device-1', revokedAt: null },
+      data: { revokedAt },
+    });
+    expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it('does nothing when the family has no persisted sessions', async () => {
+    const { repository, prismaMock } = setup();
+    prismaMock.refreshSession.findFirst.mockResolvedValue(null);
+
+    await expect(
+      repository.revokeRefreshSessionFamily(
+        'unknown-family',
+        new Date('2029-01-01T00:00:00.000Z'),
+      ),
+    ).resolves.toBeUndefined();
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 });

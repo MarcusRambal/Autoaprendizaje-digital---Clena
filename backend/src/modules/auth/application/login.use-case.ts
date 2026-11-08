@@ -2,19 +2,22 @@ import { AuthApplicationError } from './auth-application.error';
 import { AuthRepository } from '../domain/auth.repository';
 import { CredentialHasher } from '../domain/credential-hasher.port';
 import { NewAuthSession } from '../domain/auth-session';
-import { PublicAuthUser, toPublicAuthUser } from '../domain/auth-user';
+import { toPublicAuthUser } from '../domain/auth-user';
 import { TokenIssuer } from '../domain/token-issuer.port';
+import { Email, InvalidEmailError } from '../domain/email.vo';
+import { AuthTokensOutput } from './auth-tokens.output';
 
 export interface LoginInput {
   email: string;
   password: string;
 }
 
-export interface AuthTokensOutput {
-  accessToken: string;
-  refreshToken: string;
-  user: PublicAuthUser;
-}
+const INVALID = () =>
+  new AuthApplicationError(
+    401,
+    'INVALID_CREDENTIALS',
+    'Invalid email or password',
+  );
 
 export class LoginUseCase {
   constructor(
@@ -24,22 +27,43 @@ export class LoginUseCase {
   ) {}
 
   async execute(input: LoginInput): Promise<AuthTokensOutput> {
-    const email = input.email.trim().toLowerCase();
-    const user = email ? await this.repository.findUserByEmail(email) : null;
+    if (
+      !input ||
+      typeof input.email !== 'string' ||
+      typeof input.password !== 'string'
+    ) {
+      throw INVALID();
+    }
+
+    let email: string;
+    try {
+      email = Email.create(input.email).toString();
+    } catch (error) {
+      if (error instanceof InvalidEmailError) {
+        throw INVALID();
+      }
+      throw error;
+    }
+
+    const user = await this.repository.findUserByEmail(email);
+
     const validPassword = user
       ? await this.credentialHasher.verify(input.password, user.passwordHash)
       : false;
 
     if (!user || user.status !== 'ACTIVE' || !validPassword) {
-      throw new AuthApplicationError(
-        401,
-        'INVALID_CREDENTIALS',
-        'Invalid email or password',
-      );
+      throw INVALID();
     }
 
     const refresh = await this.tokenIssuer.issueRefreshToken(user.id);
     const tokenHash = await this.tokenIssuer.hashRefreshToken(refresh.token);
+
+    const accessToken = await this.tokenIssuer.issueAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
     const session: NewAuthSession = {
       id: refresh.id,
       userId: user.id,
@@ -47,14 +71,9 @@ export class LoginUseCase {
       tokenHash,
       expiresAt: refresh.expiresAt,
     };
-    const accessToken = await this.tokenIssuer.issueAccessToken(user);
     const sessionCreated = await this.repository.createRefreshSession(session);
     if (!sessionCreated) {
-      throw new AuthApplicationError(
-        401,
-        'INVALID_CREDENTIALS',
-        'Invalid email or password',
-      );
+      throw INVALID();
     }
 
     return {

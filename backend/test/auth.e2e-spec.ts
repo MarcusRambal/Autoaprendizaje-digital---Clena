@@ -7,6 +7,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { RegisterUseCase } from '../src/modules/auth/application/register.use-case';
 import { LoginUseCase } from '../src/modules/auth/application/login.use-case';
+import { LogoutUseCase } from '../src/modules/auth/application/logout.use-case';
 import { RefreshUseCase } from '../src/modules/auth/application/refresh.use-case';
 import { AuthApplicationError } from '../src/modules/auth/application/auth-application.error';
 import { PrismaService } from '../src/shared/database/prisma.service';
@@ -119,6 +120,15 @@ function createAuthFakes(state: TestAuthState) {
         return Promise.resolve(issueTokens(session.user, session.family));
       }),
     },
+    logout: {
+      execute: jest.fn(({ refreshToken }: { refreshToken: string }) => {
+        const session = state.refreshTokens.get(refreshToken);
+        if (session) {
+          state.revokedFamilies.add(session.family);
+        }
+        return Promise.resolve();
+      }),
+    },
   };
 }
 
@@ -169,6 +179,8 @@ async function createApp(
     .useValue(authFakes.login)
     .overrideProvider(RefreshUseCase)
     .useValue(authFakes.refresh)
+    .overrideProvider(LogoutUseCase)
+    .useValue(authFakes.logout)
     .overrideProvider(PrismaService)
     .useValue({ $connect: jest.fn(), $disconnect: jest.fn() })
     .overrideProvider(ConfigService)
@@ -283,6 +295,10 @@ describe('Auth endpoints (e2e)', () => {
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: '' })
       .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({})
+      .expect(400);
   });
 
   it('accepts passwords up to 72 UTF-8 bytes and rejects longer passwords', async () => {
@@ -394,6 +410,54 @@ describe('Auth endpoints (e2e)', () => {
     expect(state.revokedFamilies.size).toBe(1);
   });
 
+  it('logs out only the presented device family and remains idempotent', async () => {
+    const registration = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .send({ email: 'logout@example.com', password: 'strong-password' })
+      .expect(201);
+    const firstDeviceToken = authResponseBody(registration).refreshToken;
+    const secondLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: 'logout@example.com', password: 'strong-password' })
+      .expect(200);
+    const secondDeviceToken = authResponseBody(secondLogin).refreshToken;
+    const revokedFamiliesBeforeLogout = state.revokedFamilies.size;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: firstDeviceToken })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: firstDeviceToken })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: 'invalid-token' })
+      .expect(204);
+    expect(state.revokedFamilies.size).toBe(revokedFamiliesBeforeLogout + 1);
+
+    const secondDeviceRefresh = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: secondDeviceToken })
+      .expect(200);
+    const activeSecondDeviceToken =
+      authResponseBody(secondDeviceRefresh).refreshToken;
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: activeSecondDeviceToken })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({ refreshToken: activeSecondDeviceToken })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .send({ refreshToken: activeSecondDeviceToken })
+      .expect(401);
+  });
+
   it('returns 429 after the configured auth endpoint limit is reached', async () => {
     const payload = {
       email: 'throttle@example.com',
@@ -445,9 +509,11 @@ describe('Auth endpoints (e2e)', () => {
     expect(document.paths).toHaveProperty('/api/v1/auth/register');
     expect(document.paths).toHaveProperty('/api/v1/auth/login');
     expect(document.paths).toHaveProperty('/api/v1/auth/refresh');
+    expect(document.paths).toHaveProperty('/api/v1/auth/logout');
     expect(document.components?.schemas).toHaveProperty('RegisterDto');
     expect(document.components?.schemas).toHaveProperty('LoginDto');
     expect(document.components?.schemas).toHaveProperty('RefreshDto');
+    expect(document.components?.schemas).toHaveProperty('LogoutDto');
     expect(document.components?.schemas?.RegisterDto).toHaveProperty(
       'properties.email',
     );
@@ -467,6 +533,7 @@ describe('Auth endpoints (e2e)', () => {
         expect(document.paths).toHaveProperty('/api/v1/auth/register');
         expect(document.paths).toHaveProperty('/api/v1/auth/login');
         expect(document.paths).toHaveProperty('/api/v1/auth/refresh');
+        expect(document.paths).toHaveProperty('/api/v1/auth/logout');
       });
   });
 });

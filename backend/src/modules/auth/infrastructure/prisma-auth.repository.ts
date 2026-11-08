@@ -193,9 +193,29 @@ export class PrismaAuthRepository implements AuthRepository {
     familyId: string,
     revokedAt: Date,
   ): Promise<void> {
-    await this.prisma.refreshSession.updateMany({
-      where: { familyId, revokedAt: null },
-      data: { revokedAt },
+    const session = await this.prisma.refreshSession.findFirst({
+      where: { familyId },
+      select: { userId: true },
+    });
+    if (!session) {
+      return;
+    }
+
+    await this.prisma.$transaction(async (transaction) => {
+      const users = await transaction.$queryRaw<{ id: string }[]>`
+        SELECT "id"
+        FROM "User"
+        WHERE "id" = ${session.userId}::uuid
+        FOR UPDATE
+      `;
+      if (!users[0]) {
+        return;
+      }
+
+      await transaction.refreshSession.updateMany({
+        where: { userId: session.userId, familyId, revokedAt: null },
+        data: { revokedAt },
+      });
     });
   }
 

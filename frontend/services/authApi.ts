@@ -95,6 +95,28 @@ export async function authRequest(
   return data;
 }
 
+export async function logoutRequest(
+  refreshToken: string,
+  baseUrl = '/api/v1',
+): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl.replace(/\/$/, '')}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+  } catch {
+    throw new AuthError('No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.');
+  }
+
+  if (!response.ok) {
+    const data: unknown = await response.json().catch(() => null);
+    const code = data && typeof data === 'object' && 'code' in data ? data.code : undefined;
+    throw new AuthError(errorMessage(response.status, code), response.status);
+  }
+}
+
 export function accessTokenExpiresAt(token: string): number {
   try {
     const payload: unknown = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));

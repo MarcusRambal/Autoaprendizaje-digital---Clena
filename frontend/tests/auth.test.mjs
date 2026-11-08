@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { accessTokenExpiresAt, appRole, authRequest, homePathForRole, passwordError } from '../services/authApi.ts';
+import { accessTokenExpiresAt, appRole, authRequest, homePathForRole, logoutRequest, passwordError } from '../services/authApi.ts';
 
 test('valida la contraseña según el límite de caracteres y bytes del backend', () => {
   assert.ok(passwordError('corta'));
@@ -54,4 +54,14 @@ test('envía el refresh token y rechaza una sesión vencida', async (t) => {
     return new Response('{}', { status: 401 });
   });
   await assert.rejects(authRequest('refresh', { refreshToken: 'old-token' }), /sesión incorrectos/);
+});
+
+test('envía el refresh token en el body para cerrar sesión', async (t) => {
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    assert.equal(url, '/api/v1/auth/logout');
+    assert.equal(options.method, 'POST');
+    assert.deepEqual(JSON.parse(options.body), { refreshToken: 'device-token' });
+    return new Response(null, { status: 204 });
+  });
+  await assert.doesNotReject(logoutRequest('device-token'));
 });
