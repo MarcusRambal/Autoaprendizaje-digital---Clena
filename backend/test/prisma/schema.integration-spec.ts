@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const expectedEnums: Record<string, string[]> = {
   ActivityProgressStatus: ['IN_PROGRESS', 'COMPLETED', 'ABANDONED'],
-  HelpRequestStatus: ['PENDING', 'ATTENDED', 'CANCELLED'],
+  HelpRequestStatus: ['PENDING', 'IN_PROGRESS', 'ATTENDED', 'CANCELLED'],
   PublicationState: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
   UserRole: ['ADMIN', 'STAFF', 'PUBLIC_USER'],
   UserStatus: ['ACTIVE', 'DISABLED', 'ARCHIVED'],
@@ -30,6 +30,7 @@ describe('PostgreSQL schema and demo seed', () => {
         'ActivityQuestion',
         'Category',
         'Guide',
+        'GuideFile',
         'GuideStep',
         'HelpRequest',
         'RefreshSession',
@@ -119,6 +120,7 @@ describe('PostgreSQL schema and demo seed', () => {
     for (const name of [
       'RefreshSession_userId_fkey',
       'ActivityProgress_userId_fkey',
+      'GuideFile_guideId_fkey',
     ]) {
       expect(foreignKeysByName.get(name)).toBe('c');
     }
@@ -143,6 +145,19 @@ describe('PostgreSQL schema and demo seed', () => {
       }),
     ).toBe(4);
     expect(await prisma.helpRequest.count()).toBe(3);
+    expect(
+      (
+        await prisma.helpRequest.findMany({
+          orderBy: { createdAt: 'asc' },
+          select: { status: true, requesterName: true },
+        })
+      ).map(({ status }) => status),
+    ).toEqual(expect.arrayContaining(['PENDING', 'IN_PROGRESS', 'ATTENDED']));
+    expect(await prisma.guideFile.count()).toBe(5);
+    const sampleFile = await prisma.guideFile.findFirstOrThrow();
+    expect(Buffer.from(sampleFile.content).subarray(0, 5).toString()).toBe(
+      '%PDF-',
+    );
     expect(
       await prisma.activity.count({
         where: { slug: 'repaso-correo-electronico' },

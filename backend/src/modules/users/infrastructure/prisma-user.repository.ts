@@ -2,13 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { User, UserRepository, UserStatus } from '../domain/user.repository';
 import {
+  DeleteAccountResult,
+  UserAccountRepository,
+} from '../domain/user-account.repository';
+import {
   UserStatusChangeResult,
   UserStatusRepository,
 } from '../domain/user-status.repository';
 
 @Injectable()
 export class PrismaUserRepository
-  implements UserRepository, UserStatusRepository
+  implements UserRepository, UserStatusRepository, UserAccountRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -40,6 +44,23 @@ export class PrismaUserRepository
       });
 
       return { kind: 'updated', user: this.toUser(user) };
+    } catch (error) {
+      if (this.isPrismaError(error, 'P2025')) {
+        return { kind: 'not-found' };
+      }
+      throw error;
+    }
+  }
+
+  async deleteAccount(userId: string): Promise<DeleteAccountResult> {
+    try {
+      await this.prisma.$transaction([
+        // Requests made by the user are personal data: erase them too.
+        // Sessions and learning progress are removed by ON DELETE CASCADE.
+        this.prisma.helpRequest.deleteMany({ where: { requesterId: userId } }),
+        this.prisma.user.delete({ where: { id: userId } }),
+      ]);
+      return { kind: 'deleted' };
     } catch (error) {
       if (this.isPrismaError(error, 'P2025')) {
         return { kind: 'not-found' };
