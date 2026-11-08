@@ -22,10 +22,7 @@ export const TOKEN_ISSUER = Symbol('TOKEN_ISSUER');
     {
       provide: BcryptCredentialHasher,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new BcryptCredentialHasher(
-          config.getOrThrow<number>('BCRYPT_SALT_ROUNDS'),
-        ),
+      useFactory: (config: ConfigService) => new BcryptCredentialHasher(config),
     },
     {
       provide: JwtTokenIssuer,

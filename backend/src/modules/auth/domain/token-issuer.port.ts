@@ -1,4 +1,4 @@
-import { AuthUser } from './auth-user';
+import { AuthUser, AuthUserRole } from './auth-user';
 
 export interface IssuedRefreshToken {
   id: string;
@@ -13,6 +13,12 @@ export interface VerifiedRefreshToken {
   familyId: string;
 }
 
+export interface VerifiedAccessToken {
+  userId: string;
+  email: string;
+  role: AuthUserRole;
+}
+
 export interface TokenIssuer {
   issueAccessToken(
     user: Pick<AuthUser, 'id' | 'email' | 'role'>,
@@ -22,5 +28,6 @@ export interface TokenIssuer {
     familyId?: string,
   ): Promise<IssuedRefreshToken>;
   verifyRefreshToken(token: string): Promise<VerifiedRefreshToken | null>;
+  verifyAccessToken(token: string): Promise<VerifiedAccessToken | null>;
   hashRefreshToken(token: string): Promise<string>;
 }
