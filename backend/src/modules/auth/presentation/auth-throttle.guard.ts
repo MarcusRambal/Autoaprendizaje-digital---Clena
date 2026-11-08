@@ -28,6 +28,9 @@ export class AuthThrottleGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const key = request.ip ?? request.socket.remoteAddress ?? 'unknown';
     const now = Date.now();
+    // Esto puede llevar a problemas de rendimiento si hay muchos buckets expirados,
+    // ya que iteramos sobre todos ellos en cada solicitud. En un entorno de producción,
+    // no se como manejar esto por ahora
     for (const [bucketKey, bucket] of this.buckets) {
       if (bucket.expiresAt <= now) {
         this.buckets.delete(bucketKey);

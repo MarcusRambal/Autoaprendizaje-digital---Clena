@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { BcryptCredentialHasher } from './bcrypt-credential-hasher';
@@ -11,7 +11,7 @@ export const CREDENTIAL_HASHER = Symbol('CREDENTIAL_HASHER');
 export const TOKEN_ISSUER = Symbol('TOKEN_ISSUER');
 
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [JwtModule.register({}), ConfigModule],
   providers: [
     PrismaService,
     PrismaAuthRepository,
