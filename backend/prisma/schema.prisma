@@ -27,6 +27,7 @@ enum PublicationState {
 
 enum HelpRequestStatus {
   PENDING
+  IN_PROGRESS
   ATTENDED
   CANCELLED
 }
@@ -73,12 +74,13 @@ model Guide {
   id               String           @id @default(uuid()) @db.Uuid
   title            String
   slug             String           @unique
-  description      String           @db.Text
-  body             String           @db.Text
+  description      String           @default("") @db.Text
+  body             String           @default("") @db.Text
   publicationState PublicationState @default(DRAFT)
   categoryId       String           @db.Uuid
   category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   steps            GuideStep[]
+  file             GuideFile?
   helpRequests     HelpRequest[]
   createdAt        DateTime         @default(now()) @db.Timestamptz(6)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
@@ -88,6 +90,20 @@ model Guide {
   @@index([title])
   @@index([categoryId])
   @@index([publicationState])
+}
+
+// PDF de una guia. Vive en su propia tabla para que listar guias nunca cargue
+// el contenido binario, y dentro de PostgreSQL para que el respaldo de la base
+// de datos incluya los archivos.
+model GuideFile {
+  guideId      String   @id @db.Uuid
+  guide        Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  originalName String
+  contentType  String   @default("application/pdf")
+  sizeBytes    Int
+  content      Bytes
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
 }
 
 model GuideStep {
@@ -160,20 +176,22 @@ model ActivityProgress {
 }
 
 model HelpRequest {
-  id           String            @id @default(uuid()) @db.Uuid
-  // requesterId queda nulo si la persona no tiene cuenta o si la elimina (Ley 1581).
-  requesterId  String?           @db.Uuid
-  requester    User?             @relation("HelpRequestRequester", fields: [requesterId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  guideId      String?           @db.Uuid
-  guide        Guide?            @relation(fields: [guideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  description  String            @db.Text
-  status       HelpRequestStatus @default(PENDING)
-  attendedById String?           @db.Uuid
-  attendedBy   User?             @relation("HelpRequestAttendant", fields: [attendedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  id            String            @id @default(uuid()) @db.Uuid
+  // Persona con cuenta que hizo la solicitud (nulo si no tiene cuenta o si la elimina).
+  requesterId   String?           @db.Uuid
+  requester     User?             @relation("HelpRequestRequester", fields: [requesterId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  guideId       String?           @db.Uuid
+  guide         Guide?            @relation(fields: [guideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  // Nombre de la persona atendida, escrito por el personal en el mostrador.
+  requesterName String?           @db.VarChar(100)
+  topic         String            @db.Text
+  status        HelpRequestStatus @default(PENDING)
+  attendedById  String?           @db.Uuid
+  attendedBy    User?             @relation("HelpRequestAttendant", fields: [attendedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
   // HelpRequest_attended_check (status ATTENDED exige attendedAt) esta en la migracion SQL.
-  attendedAt   DateTime?         @db.Timestamptz(6)
-  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime          @updatedAt @db.Timestamptz(6)
+  attendedAt    DateTime?         @db.Timestamptz(6)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(6)
 
   @@index([status, createdAt])
   @@index([requesterId])
