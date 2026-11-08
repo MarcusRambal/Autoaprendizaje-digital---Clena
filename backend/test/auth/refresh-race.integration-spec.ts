@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
 import type { Express } from 'express';
+import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
@@ -10,8 +11,23 @@ import { JwtTokenIssuer } from '../../src/modules/auth/infrastructure/jwt-token-
 import { PrismaService } from '../../src/shared/database/prisma.service';
 import { GlobalExceptionFilter } from '../../src/shared/errors/global-exception.filter';
 
-interface AuthResponse {
-  refreshToken: string;
+function refreshCookie(response: { headers: Record<string, unknown> }): string {
+  const setCookie = response.headers['set-cookie'];
+  if (!Array.isArray(setCookie)) {
+    throw new Error('Authentication response did not set a refresh cookie');
+  }
+  const cookie = (setCookie as unknown[]).find(
+    (value): value is string =>
+      typeof value === 'string' && value.startsWith('refresh_token='),
+  );
+  if (typeof cookie !== 'string') {
+    throw new Error('Authentication response did not set a refresh cookie');
+  }
+  return cookie.split(';', 1)[0];
+}
+
+function refreshToken(cookie: string): string {
+  return cookie.slice('refresh_token='.length);
 }
 
 describe('refresh token rotation race against PostgreSQL', () => {
@@ -33,6 +49,7 @@ describe('refresh token rotation race against PostgreSQL', () => {
     >(AppModule, { logger: false });
     const expressApp = app.getHttpAdapter().getInstance() as Express;
     expressApp.set('trust proxy', true);
+    app.use(cookieParser());
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(
       new ValidationPipe({
@@ -58,7 +75,8 @@ describe('refresh token rotation race against PostgreSQL', () => {
       const registration = await authPost('register')
         .send({ email, password })
         .expect(201);
-      const rawRefreshToken = (registration.body as AuthResponse).refreshToken;
+      const registrationCookie = refreshCookie(registration);
+      const rawRefreshToken = refreshToken(registrationCookie);
       const verifiedToken =
         await tokenIssuer.verifyRefreshToken(rawRefreshToken);
       expect(verifiedToken).not.toBeNull();
@@ -67,8 +85,8 @@ describe('refresh token rotation race against PostgreSQL', () => {
       }
 
       const responses = await Promise.all([
-        authPost('refresh').send({ refreshToken: rawRefreshToken }),
-        authPost('refresh').send({ refreshToken: rawRefreshToken }),
+        authPost('refresh').set('Cookie', registrationCookie),
+        authPost('refresh').set('Cookie', registrationCookie),
       ]);
 
       const successes = responses.filter(({ status }) => status === 200);
@@ -95,29 +113,26 @@ describe('refresh token rotation race against PostgreSQL', () => {
     const email = `auth-flow-${randomUUID()}@example.com`;
     const password = 'integration-test-password';
     try {
-      await authPost('register').send({ email, password }).expect(201);
+      const registration = await authPost('register')
+        .send({ email, password })
+        .expect(201);
+      expect(refreshCookie(registration)).toContain('refresh_token=');
 
       const login = await authPost('login')
         .send({ email: email.toUpperCase(), password })
         .expect(200);
-      const refreshToken = (login.body as AuthResponse).refreshToken;
+      const loginCookie = refreshCookie(login);
 
       const refresh = await authPost('refresh')
-        .send({ refreshToken })
+        .set('Cookie', loginCookie)
         .expect(200);
-      const rotatedRefreshToken = (refresh.body as AuthResponse).refreshToken;
+      const rotatedCookie = refreshCookie(refresh);
 
+      await authPost('logout').set('Cookie', rotatedCookie).expect(204);
+      await authPost('logout').set('Cookie', rotatedCookie).expect(204);
+      await authPost('refresh').set('Cookie', rotatedCookie).expect(401);
       await authPost('logout')
-        .send({ refreshToken: rotatedRefreshToken })
-        .expect(204);
-      await authPost('logout')
-        .send({ refreshToken: rotatedRefreshToken })
-        .expect(204);
-      await authPost('refresh')
-        .send({ refreshToken: rotatedRefreshToken })
-        .expect(401);
-      await authPost('logout')
-        .send({ refreshToken: 'invalid-token' })
+        .set('Cookie', 'refresh_token=invalid-token')
         .expect(204);
     } finally {
       await prisma.user.deleteMany({ where: { email } });

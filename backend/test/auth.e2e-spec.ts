@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { RegisterUseCase } from '../src/modules/auth/application/register.use-case';
@@ -30,12 +31,26 @@ interface TestAuthState {
 
 interface AuthResponsePayload {
   accessToken: string;
-  refreshToken: string;
   user: { id: string; email: string; role: string };
 }
 
 function authResponseBody(response: { body: unknown }): AuthResponsePayload {
   return response.body as AuthResponsePayload;
+}
+
+function refreshCookie(response: { headers: Record<string, unknown> }): string {
+  const setCookie = response.headers['set-cookie'];
+  if (!Array.isArray(setCookie)) {
+    throw new Error('Authentication response did not set a refresh cookie');
+  }
+  const cookie = (setCookie as unknown[]).find(
+    (value): value is string =>
+      typeof value === 'string' && value.startsWith('refresh_token='),
+  );
+  if (typeof cookie !== 'string') {
+    throw new Error('Authentication response did not set a refresh cookie');
+  }
+  return cookie.split(';', 1)[0];
 }
 
 function createAuthFakes(state: TestAuthState) {
@@ -155,12 +170,14 @@ async function createApp(
   process.env.AUTH_THROTTLE_LIMIT = String(limit);
   process.env.AUTH_THROTTLE_TTL = '60000';
   process.env.NODE_ENV = 'test';
+  process.env.FRONTEND_URL = 'http://localhost';
 
   const { AppModule } =
     jest.requireActual<typeof import('../src/app.module')>('../src/app.module');
   const authFakes = createAuthFakes(state);
   const configValues: Record<string, unknown> = {
     DATABASE_URL: 'postgresql://localhost:5432/test',
+    FRONTEND_URL: 'http://localhost',
     JWT_ACCESS_SECRET: 'test-access-secret-that-is-at-least-32-characters',
     JWT_REFRESH_SECRET: 'test-refresh-secret-that-is-at-least-32-characters',
     JWT_ACCESS_TTL: '15m',
@@ -199,6 +216,7 @@ async function createApp(
     INestApplication<App> & NestExpressApplication
   >();
   app.set('trust proxy', trustedProxyIps);
+  app.use(cookieParser());
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
@@ -243,7 +261,7 @@ describe('Auth endpoints (e2e)', () => {
     await untrustedProxyApp?.close();
   });
 
-  it('registers a public user and returns access and refresh tokens without hashes', async () => {
+  it('registers a public user and stores the refresh token in an HTTP-only cookie', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({ email: ' New.User@Example.com ', password: 'strong-password' })
@@ -251,7 +269,12 @@ describe('Auth endpoints (e2e)', () => {
       .expect((response) => {
         const body = authResponseBody(response);
         expect(typeof body.accessToken).toBe('string');
-        expect(typeof body.refreshToken).toBe('string');
+        expect(body).not.toHaveProperty('refreshToken');
+        expect(refreshCookie(response)).toContain('refresh_token=');
+        expect(String(response.headers['set-cookie'])).toContain('HttpOnly');
+        expect(String(response.headers['set-cookie'])).toContain(
+          'SameSite=Lax',
+        );
         expect(body.user).toEqual({
           id: 'user-1',
           email: 'new.user@example.com',
@@ -282,7 +305,7 @@ describe('Auth endpoints (e2e)', () => {
       .expect(400);
   });
 
-  it('rejects malformed or incomplete registration, login, and refresh bodies', async () => {
+  it('rejects malformed registration and login and requires a refresh cookie', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({ email: 'not-an-email', password: 'short' })
@@ -291,14 +314,11 @@ describe('Auth endpoints (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({ email: 'not-an-email', password: '' })
       .expect(400);
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/refresh')
-      .send({ refreshToken: '' })
-      .expect(400);
+    await request(app.getHttpServer()).post('/api/v1/auth/refresh').expect(401);
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
       .send({})
-      .expect(400);
+      .expect(204);
   });
 
   it('accepts passwords up to 72 UTF-8 bytes and rejects longer passwords', async () => {
@@ -358,7 +378,7 @@ describe('Auth endpoints (e2e)', () => {
       .expect(409);
   });
 
-  it('returns tokens for valid login and a generic 401 for invalid credentials', async () => {
+  it('returns an access token and cookie for valid login and a generic 401 for invalid credentials', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .send({ email: 'login@example.com', password: 'strong-password' })
@@ -371,7 +391,8 @@ describe('Auth endpoints (e2e)', () => {
       .expect((response) => {
         const body = authResponseBody(response);
         expect(typeof body.accessToken).toBe('string');
-        expect(typeof body.refreshToken).toBe('string');
+        expect(body).not.toHaveProperty('refreshToken');
+        expect(refreshCookie(response)).toContain('refresh_token=');
         expect(body.user.email).toBe('login@example.com');
       });
 
@@ -391,21 +412,21 @@ describe('Auth endpoints (e2e)', () => {
       .post('/api/v1/auth/register')
       .send({ email: 'refresh@example.com', password: 'strong-password' })
       .expect(201);
-    const oldToken = authResponseBody(registration).refreshToken;
+    const oldCookie = refreshCookie(registration);
     const rotated = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: oldToken })
+      .set('Cookie', oldCookie)
       .expect(200);
-    const newToken = authResponseBody(rotated).refreshToken;
-    expect(newToken).not.toBe(oldToken);
+    const newCookie = refreshCookie(rotated);
+    expect(newCookie).not.toBe(oldCookie);
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: oldToken })
+      .set('Cookie', oldCookie)
       .expect(401);
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: newToken })
+      .set('Cookie', newCookie)
       .expect(401);
     expect(state.revokedFamilies.size).toBe(1);
   });
@@ -415,46 +436,45 @@ describe('Auth endpoints (e2e)', () => {
       .post('/api/v1/auth/register')
       .send({ email: 'logout@example.com', password: 'strong-password' })
       .expect(201);
-    const firstDeviceToken = authResponseBody(registration).refreshToken;
+    const firstDeviceCookie = refreshCookie(registration);
     const secondLogin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .send({ email: 'logout@example.com', password: 'strong-password' })
       .expect(200);
-    const secondDeviceToken = authResponseBody(secondLogin).refreshToken;
+    const secondDeviceCookie = refreshCookie(secondLogin);
     const revokedFamiliesBeforeLogout = state.revokedFamilies.size;
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .send({ refreshToken: firstDeviceToken })
+      .set('Cookie', firstDeviceCookie)
       .expect(204);
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .send({ refreshToken: firstDeviceToken })
+      .set('Cookie', firstDeviceCookie)
       .expect(204);
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .send({ refreshToken: 'invalid-token' })
+      .set('Cookie', 'refresh_token=invalid-token')
       .expect(204);
     expect(state.revokedFamilies.size).toBe(revokedFamiliesBeforeLogout + 1);
 
     const secondDeviceRefresh = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: secondDeviceToken })
+      .set('Cookie', secondDeviceCookie)
       .expect(200);
-    const activeSecondDeviceToken =
-      authResponseBody(secondDeviceRefresh).refreshToken;
+    const activeSecondDeviceCookie = refreshCookie(secondDeviceRefresh);
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .send({ refreshToken: activeSecondDeviceToken })
+      .set('Cookie', activeSecondDeviceCookie)
       .expect(204);
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
-      .send({ refreshToken: activeSecondDeviceToken })
+      .set('Cookie', activeSecondDeviceCookie)
       .expect(204);
     await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
-      .send({ refreshToken: activeSecondDeviceToken })
+      .set('Cookie', activeSecondDeviceCookie)
       .expect(401);
   });
 
@@ -512,13 +532,17 @@ describe('Auth endpoints (e2e)', () => {
     expect(document.paths).toHaveProperty('/api/v1/auth/logout');
     expect(document.components?.schemas).toHaveProperty('RegisterDto');
     expect(document.components?.schemas).toHaveProperty('LoginDto');
-    expect(document.components?.schemas).toHaveProperty('RefreshDto');
-    expect(document.components?.schemas).toHaveProperty('LogoutDto');
     expect(document.components?.schemas?.RegisterDto).toHaveProperty(
       'properties.email',
     );
     expect(document.components?.schemas?.RegisterDto).not.toHaveProperty(
       'properties.role',
+    );
+    expect(document.paths['/api/v1/auth/refresh']?.post).not.toHaveProperty(
+      'requestBody',
+    );
+    expect(document.paths['/api/v1/auth/logout']?.post).not.toHaveProperty(
+      'requestBody',
     );
   });
 
