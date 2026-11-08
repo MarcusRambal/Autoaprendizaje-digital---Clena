@@ -2,6 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { randomUUID } from 'node:crypto';
+import type { Express } from 'express';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../src/app.module';
@@ -17,11 +18,21 @@ describe('refresh token rotation race against PostgreSQL', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let tokenIssuer: JwtTokenIssuer;
+  let requestIp = 1;
+
+  function authPost(path: string) {
+    const ip = `192.0.2.${requestIp++}`;
+    return request(app.getHttpServer())
+      .post(`/api/v1/auth/${path}`)
+      .set('x-forwarded-for', ip);
+  }
 
   beforeAll(async () => {
     app = await NestFactory.create<
       INestApplication<App> & NestExpressApplication
     >(AppModule, { logger: false });
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
+    expressApp.set('trust proxy', true);
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(
       new ValidationPipe({
@@ -44,8 +55,7 @@ describe('refresh token rotation race against PostgreSQL', () => {
     const email = `refresh-race-${randomUUID()}@example.com`;
     const password = 'integration-test-password';
     try {
-      const registration = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
+      const registration = await authPost('register')
         .send({ email, password })
         .expect(201);
       const rawRefreshToken = (registration.body as AuthResponse).refreshToken;
@@ -57,12 +67,8 @@ describe('refresh token rotation race against PostgreSQL', () => {
       }
 
       const responses = await Promise.all([
-        request(app.getHttpServer())
-          .post('/api/v1/auth/refresh')
-          .send({ refreshToken: rawRefreshToken }),
-        request(app.getHttpServer())
-          .post('/api/v1/auth/refresh')
-          .send({ refreshToken: rawRefreshToken }),
+        authPost('refresh').send({ refreshToken: rawRefreshToken }),
+        authPost('refresh').send({ refreshToken: rawRefreshToken }),
       ]);
 
       const successes = responses.filter(({ status }) => status === 200);
@@ -80,6 +86,39 @@ describe('refresh token rotation race against PostgreSQL', () => {
       expect(familySessions.every(({ revokedAt }) => revokedAt !== null)).toBe(
         true,
       );
+    } finally {
+      await prisma.user.deleteMany({ where: { email } });
+    }
+  });
+
+  it('runs register, login, refresh, and idempotent logout against PostgreSQL', async () => {
+    const email = `auth-flow-${randomUUID()}@example.com`;
+    const password = 'integration-test-password';
+    try {
+      await authPost('register').send({ email, password }).expect(201);
+
+      const login = await authPost('login')
+        .send({ email: email.toUpperCase(), password })
+        .expect(200);
+      const refreshToken = (login.body as AuthResponse).refreshToken;
+
+      const refresh = await authPost('refresh')
+        .send({ refreshToken })
+        .expect(200);
+      const rotatedRefreshToken = (refresh.body as AuthResponse).refreshToken;
+
+      await authPost('logout')
+        .send({ refreshToken: rotatedRefreshToken })
+        .expect(204);
+      await authPost('logout')
+        .send({ refreshToken: rotatedRefreshToken })
+        .expect(204);
+      await authPost('refresh')
+        .send({ refreshToken: rotatedRefreshToken })
+        .expect(401);
+      await authPost('logout')
+        .send({ refreshToken: 'invalid-token' })
+        .expect(204);
     } finally {
       await prisma.user.deleteMany({ where: { email } });
     }

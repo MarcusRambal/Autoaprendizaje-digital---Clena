@@ -48,6 +48,7 @@ function setup(
       }),
     hashRefreshToken: (token) => Promise.resolve(`hashed:${token}`),
     verifyRefreshToken: () => Promise.resolve(null),
+    verifyAccessToken: () => Promise.resolve(null),
   };
   return {
     useCase: new LoginUseCase(repository, hasher, tokens),
@@ -56,6 +57,15 @@ function setup(
 }
 
 describe('LoginUseCase', () => {
+  it('rejects a missing input with the generic unauthorized response', async () => {
+    const { useCase } = setup(null, false);
+
+    await expect(useCase.execute(undefined as never)).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'INVALID_CREDENTIALS',
+    });
+  });
+
   const invalidCredentials: Array<[string, AuthUser | null, boolean]> = [
     ['unknown email', null, false],
     ['wrong password', existingUser, false],
@@ -114,6 +124,7 @@ describe('LoginUseCase', () => {
         }),
       hashRefreshToken: (token) => Promise.resolve(`hashed:${token}`),
       verifyRefreshToken: () => Promise.resolve(null),
+      verifyAccessToken: () => Promise.resolve(null),
     };
     const useCase = new LoginUseCase(repository, hasher, tokens);
 
@@ -149,7 +160,7 @@ describe('LoginUseCase', () => {
     expect(JSON.stringify(result)).not.toContain('tokenHash');
   });
 
-  it('rejects login when the transactional session creation finds an inactive user', async () => {
+  it('rejects login when the transactional session finds an inactive user', async () => {
     const { useCase, createdSessions } = setup(existingUser, true, false);
 
     await expect(

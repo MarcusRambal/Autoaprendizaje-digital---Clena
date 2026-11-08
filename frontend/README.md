@@ -59,10 +59,12 @@ El token de acceso se mantiene en memoria y el refresh token en `sessionStorage`
 para recuperar la sesión al recargar la misma pestaña. La renovación rota el
 token; evita duplicar una pestaña con sesión activa porque puede copiar el
 token y provocar una detección de reutilización. Cerrar sesión elimina los
-datos locales, pero **no revoca la sesión en el servidor**, pues el backend
-no ofrece todavía un endpoint de cierre de sesión. El almacenamiento accesible
-desde JavaScript también es vulnerable a XSS; antes de producción se recomienda
-implementar cookies HttpOnly y revocación en el backend.
+datos locales y envía el refresh token al backend para revocar la familia de
+sesiones del dispositivo; si ya estaba revocado, igualmente se cierra la sesión
+local. Los access tokens ya emitidos son stateless y pueden seguir utilizándose
+hasta vencer (15 minutos por defecto). El almacenamiento accesible desde
+JavaScript también es vulnerable a XSS; antes de producción se recomienda
+evaluar cookies HttpOnly y protección CSRF.
 
 Para comprobar los cambios: `npm test` y `npm run build`.
 

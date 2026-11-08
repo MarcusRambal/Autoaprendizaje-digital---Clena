@@ -8,15 +8,18 @@ import {
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { LoginUseCase } from '../application/login.use-case';
+import { LogoutUseCase } from '../application/logout.use-case';
 import { RefreshUseCase } from '../application/refresh.use-case';
 import { RegisterUseCase } from '../application/register.use-case';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { RegisterDto } from './dto/register.dto';
 import { AuthThrottleGuard } from './auth-throttle.guard';
@@ -29,6 +32,7 @@ export class AuthController {
     private readonly registerUseCase: RegisterUseCase,
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshUseCase: RefreshUseCase,
+    private readonly logoutUseCase: LogoutUseCase,
   ) {}
 
   @Post('register')
@@ -53,5 +57,13 @@ export class AuthController {
   @ApiOkResponse({ type: AuthResponseDto })
   refresh(@Body() body: RefreshDto): Promise<AuthResponseDto> {
     return this.refreshUseCase.execute(body);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Revoke the refresh-token family for this device' })
+  @ApiNoContentResponse()
+  logout(@Body() body: LogoutDto): Promise<void> {
+    return this.logoutUseCase.execute(body);
   }
 }

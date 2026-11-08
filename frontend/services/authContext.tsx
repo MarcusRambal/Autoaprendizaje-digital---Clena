@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { accessTokenExpiresAt, appRole, authRequest, AuthError, type AuthSession, type Credentials } from './authApi';
+import { accessTokenExpiresAt, appRole, authRequest, logoutRequest, AuthError, type AuthSession, type Credentials } from './authApi';
 import { AuthContext, type AuthContextType } from './authState';
 
 const storageKey = 'clena_refresh_token';
@@ -79,12 +79,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [saveSession]);
 
   const logout = useCallback(() => {
+    const refreshToken = session?.refreshToken;
     generation.current += 1;
     sessionStorage.removeItem(storageKey);
     setSession(null);
     setSessionError(null);
     setIsLoading(false);
-  }, []);
+    if (refreshToken) {
+      void logoutRequest(refreshToken, apiBaseUrl).catch((error: unknown) => {
+        if (error instanceof AuthError && error.status === 401) return;
+        const detail = error instanceof Error ? error.message : 'Error desconocido.';
+        setSessionError(
+          `La sesión se cerró en este navegador, pero no se pudo revocar en el servidor: ${detail}`,
+        );
+      });
+    }
+  }, [session]);
 
   const value = useMemo<AuthContextType>(() => ({
     user: session ? { id: session.user.id, email: session.user.email, userRole: appRole(session.user.role) } : null,

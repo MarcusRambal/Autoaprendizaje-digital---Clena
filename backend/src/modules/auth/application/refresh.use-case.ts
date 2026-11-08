@@ -1,17 +1,12 @@
 import { AuthApplicationError } from './auth-application.error';
 import { AuthRepository } from '../domain/auth.repository';
 import { NewAuthSession } from '../domain/auth-session';
-import { PublicAuthUser, toPublicAuthUser } from '../domain/auth-user';
+import { toPublicAuthUser } from '../domain/auth-user';
 import { TokenIssuer } from '../domain/token-issuer.port';
+import { AuthTokensOutput } from './auth-tokens.output';
 
 export interface RefreshInput {
   refreshToken: string;
-}
-
-export interface RefreshOutput {
-  accessToken: string;
-  refreshToken: string;
-  user: PublicAuthUser;
 }
 
 export class RefreshUseCase {
@@ -21,8 +16,20 @@ export class RefreshUseCase {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async execute(input: RefreshInput): Promise<RefreshOutput> {
+  async execute(input: RefreshInput): Promise<AuthTokensOutput> {
+    if (
+      !input ||
+      typeof input.refreshToken !== 'string' ||
+      input.refreshToken.length === 0
+    ) {
+      throw this.invalidRefreshToken();
+    }
+    if (typeof input.refreshToken !== 'string') {
+      throw this.invalidRefreshToken();
+    }
+
     const now = this.now();
+
     const verifiedToken = await this.tokenIssuer.verifyRefreshToken(
       input.refreshToken,
     );
@@ -30,11 +37,12 @@ export class RefreshUseCase {
       throw this.invalidRefreshToken();
     }
 
-    const tokenHash = await this.tokenIssuer.hashRefreshToken(
-      input.refreshToken,
-    );
     const user = await this.repository.findUserById(verifiedToken.userId);
-    if (!user) {
+    if (!user || user.status !== 'ACTIVE') {
+      await this.repository.revokeRefreshSessionFamily(
+        verifiedToken.familyId,
+        now,
+      );
       throw this.invalidRefreshToken();
     }
 
@@ -49,9 +57,17 @@ export class RefreshUseCase {
       tokenHash: await this.tokenIssuer.hashRefreshToken(refresh.token),
       expiresAt: refresh.expiresAt,
     };
-    const accessToken = await this.tokenIssuer.issueAccessToken(user);
+    const accessToken = await this.tokenIssuer.issueAccessToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const incomingHash = await this.tokenIssuer.hashRefreshToken(
+      input.refreshToken,
+    );
     const rotation = await this.repository.rotateRefreshSession({
-      tokenHash,
+      tokenHash: incomingHash,
       expectedSessionId: verifiedToken.id,
       expectedUserId: verifiedToken.userId,
       expectedFamilyId: verifiedToken.familyId,
@@ -59,9 +75,6 @@ export class RefreshUseCase {
       nextSession,
     });
 
-    if (rotation.kind === 'replayed') {
-      throw this.invalidRefreshToken();
-    }
     if (rotation.kind !== 'rotated') {
       throw this.invalidRefreshToken();
     }

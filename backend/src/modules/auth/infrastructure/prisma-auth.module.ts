@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { TOKEN_ISSUER } from '../domain/token-issuer.port';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { BcryptCredentialHasher } from './bcrypt-credential-hasher';
 import { JwtTokenIssuer } from './jwt-token-issuer';
@@ -8,10 +9,9 @@ import { PrismaAuthRepository } from './prisma-auth.repository';
 
 export const AUTH_REPOSITORY = Symbol('AUTH_REPOSITORY');
 export const CREDENTIAL_HASHER = Symbol('CREDENTIAL_HASHER');
-export const TOKEN_ISSUER = Symbol('TOKEN_ISSUER');
 
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [JwtModule.register({}), ConfigModule],
   providers: [
     PrismaService,
     PrismaAuthRepository,
@@ -22,10 +22,7 @@ export const TOKEN_ISSUER = Symbol('TOKEN_ISSUER');
     {
       provide: BcryptCredentialHasher,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new BcryptCredentialHasher(
-          config.getOrThrow<number>('BCRYPT_SALT_ROUNDS'),
-        ),
+      useFactory: (config: ConfigService) => new BcryptCredentialHasher(config),
     },
     {
       provide: JwtTokenIssuer,

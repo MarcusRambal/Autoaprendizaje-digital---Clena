@@ -40,16 +40,25 @@ function setup(existing: AuthUser[] = [], duplicateOnCreate = false) {
 }
 
 describe('RegisterUseCase', () => {
+  it('rejects a missing input as invalid authentication data', async () => {
+    const { useCase } = setup();
+
+    await expect(useCase.execute(undefined as never)).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'INVALID_AUTH_INPUT',
+    });
+  });
+
   it('normalizes email, always assigns PUBLIC_USER, and returns a safe user', async () => {
     const { useCase, created } = setup();
     const result = await useCase.execute({
       email: '  Person@Example.COM  ',
-      password: 'secret',
+      password: 'strong-password',
     });
 
     expect(created[0]).toMatchObject({
       email: 'person@example.com',
-      passwordHash: 'hashed:secret',
+      passwordHash: 'hashed:strong-password',
       role: 'PUBLIC_USER',
     });
     expect(result).toEqual({
@@ -58,7 +67,7 @@ describe('RegisterUseCase', () => {
       role: 'PUBLIC_USER',
     });
     expect(JSON.stringify(result)).not.toContain('passwordHash');
-    expect(JSON.stringify(result)).not.toContain('hashed:secret');
+    expect(JSON.stringify(result)).not.toContain('hashed:strong-password');
   });
 
   it('rejects empty email or password as invalid input', async () => {
@@ -74,7 +83,7 @@ describe('RegisterUseCase', () => {
       useCase.execute({ email: 'person@example.com', password: '' }),
     ).rejects.toMatchObject({
       statusCode: 400,
-      code: 'INVALID_AUTH_INPUT',
+      code: 'WEAK_PASSWORD',
     });
     expect(created).toHaveLength(0);
   });
@@ -85,7 +94,7 @@ describe('RegisterUseCase', () => {
     await expect(
       useCase.execute({
         email: ' PERSON@example.com ',
-        password: 'secret',
+        password: 'strong-password',
         role: 'ADMIN',
       } as never),
     ).rejects.toMatchObject({
@@ -99,7 +108,10 @@ describe('RegisterUseCase', () => {
     const { useCase } = setup([], true);
 
     await expect(
-      useCase.execute({ email: 'person@example.com', password: 'secret' }),
+      useCase.execute({
+        email: 'person@example.com',
+        password: 'strong-password',
+      }),
     ).rejects.toMatchObject({
       statusCode: 409,
       code: 'EMAIL_ALREADY_REGISTERED',

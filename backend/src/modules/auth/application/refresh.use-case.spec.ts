@@ -53,6 +53,7 @@ function setup(
       }),
     hashRefreshToken: (value) => Promise.resolve(`hashed:${value}`),
     verifyRefreshToken: () => Promise.resolve(token),
+    verifyAccessToken: () => Promise.resolve(null),
   };
   return {
     useCase: new RefreshUseCase(
@@ -67,6 +68,16 @@ function setup(
 }
 
 describe('RefreshUseCase', () => {
+  it('rejects a missing input with 401', async () => {
+    const { useCase, rotated } = setup();
+
+    await expect(useCase.execute(undefined as never)).rejects.toMatchObject({
+      statusCode: 401,
+      code: 'INVALID_REFRESH_TOKEN',
+    });
+    expect(rotated).toHaveLength(0);
+  });
+
   it('rotates a valid session by its token hash and returns no persisted hashes', async () => {
     const { useCase, rotated } = setup();
     const result = await useCase.execute({ refreshToken: 'presented-token' });
@@ -146,9 +157,12 @@ describe('RefreshUseCase', () => {
     expect(rotated).toHaveLength(0);
   });
 
-  it('routes a disabled user through the atomic rotation status check', async () => {
+  it('revokes the device family and rejects a disabled user', async () => {
     const disabledUser: AuthUser = { ...activeUser, status: 'DISABLED' };
-    const { useCase, rotated } = setup('revoked', disabledUser);
+    const { useCase, rotated, revokedFamilies } = setup(
+      'revoked',
+      disabledUser,
+    );
 
     await expect(
       useCase.execute({ refreshToken: 'presented-token' }),
@@ -156,7 +170,8 @@ describe('RefreshUseCase', () => {
       statusCode: 401,
       code: 'INVALID_REFRESH_TOKEN',
     });
-    expect(rotated).toHaveLength(1);
+    expect(rotated).toHaveLength(0);
+    expect(revokedFamilies).toEqual(['family-1']);
   });
 
   it('rejects a replay after the repository revokes the family transactionally', async () => {
