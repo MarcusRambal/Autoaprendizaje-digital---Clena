@@ -48,6 +48,7 @@ function setup(
       }),
     hashRefreshToken: (token) => Promise.resolve(`hashed:${token}`),
     verifyRefreshToken: () => Promise.resolve(null),
+    verifyAccessToken: () => Promise.resolve(null),
   };
   return {
     useCase: new LoginUseCase(repository, hasher, tokens),
@@ -123,6 +124,7 @@ describe('LoginUseCase', () => {
         }),
       hashRefreshToken: (token) => Promise.resolve(`hashed:${token}`),
       verifyRefreshToken: () => Promise.resolve(null),
+      verifyAccessToken: () => Promise.resolve(null),
     };
     const useCase = new LoginUseCase(repository, hasher, tokens);
 

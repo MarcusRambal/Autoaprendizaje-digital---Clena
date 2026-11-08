@@ -1,5 +1,7 @@
 import { AuthUser, AuthUserRole } from './auth-user';
 
+export const TOKEN_ISSUER = Symbol('TOKEN_ISSUER');
+
 export interface IssuedRefreshToken {
   id: string;
   familyId: string;

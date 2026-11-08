@@ -6,8 +6,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { TOKEN_ISSUER } from '../domain/token-issuer.port';
 import type { TokenIssuer } from '../domain/token-issuer.port';
-import { TOKEN_ISSUER } from '../infrastructure/prisma-auth.module';
 
 export interface AuthenticatedUser {
   id: string;
@@ -26,17 +26,17 @@ export class AccessTokenGuard implements CanActivate {
     const request = context
       .switchToHttp()
       .getRequest<Request & { user?: AuthenticatedUser }>();
-      
+
     const authorization = request.headers.authorization;
     const [scheme, token] = authorization?.split(' ') ?? [];
 
     if (scheme !== 'Bearer' || !token) {
       throw new UnauthorizedException('Authentication required');
     }
-    
+
     // El guard no sabe qué es JWT, solo le pide al dominio que verifique.
     const verifiedToken = await this.tokenIssuer.verifyAccessToken(token);
-    
+
     if (!verifiedToken) {
       throw new UnauthorizedException('Invalid access token');
     }

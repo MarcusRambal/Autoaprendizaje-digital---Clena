@@ -53,6 +53,7 @@ function setup(
       }),
     hashRefreshToken: (value) => Promise.resolve(`hashed:${value}`),
     verifyRefreshToken: () => Promise.resolve(token),
+    verifyAccessToken: () => Promise.resolve(null),
   };
   return {
     useCase: new RefreshUseCase(

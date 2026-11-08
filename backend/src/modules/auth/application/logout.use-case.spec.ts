@@ -31,6 +31,7 @@ function setup(token: typeof verifiedToken | null = verifiedToken) {
         expiresAt: new Date('2030-01-01T00:00:00.000Z'),
       }),
     verifyRefreshToken: () => Promise.resolve(token),
+    verifyAccessToken: () => Promise.resolve(null),
     hashRefreshToken: (refreshToken) =>
       Promise.resolve(`hashed:${refreshToken}`),
   };

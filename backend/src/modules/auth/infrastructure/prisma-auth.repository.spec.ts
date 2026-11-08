@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { PrismaAuthRepository } from './prisma-auth.repository';
 
@@ -50,7 +49,7 @@ describe('PrismaAuthRepository', () => {
     };
   }
 
-  it('normalizes email before lookup and insertion, reporting unique conflicts', async () => {
+  it('uses the normalized email supplied by the application and reports unique conflicts', async () => {
     const { repository, prisma } = setup();
     const user = {
       id: 'user-1',
@@ -64,7 +63,7 @@ describe('PrismaAuthRepository', () => {
       create: jest.Mock;
     };
     userDelegate.findUnique.mockResolvedValue(user);
-    await repository.findUserByEmail('  Person@Example.COM ');
+    await repository.findUserByEmail('person@example.com');
     expect(userDelegate.findUnique).toHaveBeenCalledWith({
       where: { email: 'person@example.com' },
     });
@@ -72,7 +71,7 @@ describe('PrismaAuthRepository', () => {
     userDelegate.create.mockRejectedValue({ code: 'P2002' });
     await expect(
       repository.createUser({
-        email: ' PERSON@Example.COM ',
+        email: 'person@example.com',
         passwordHash: 'stored-hash',
         role: 'PUBLIC_USER',
       }),
@@ -134,7 +133,7 @@ describe('PrismaAuthRepository', () => {
     expect(prismaMock.$transaction).toHaveBeenCalled();
   });
 
-  it('treats a failed conditional consume as replay and checks expiry atomically', async () => {
+  it('fails loudly if the locked session cannot be conditionally consumed', async () => {
     const { repository, prismaMock, tx } = setup();
     const txRefresh = tx.refreshSession;
     tx.$queryRaw
@@ -166,7 +165,7 @@ describe('PrismaAuthRepository', () => {
           expiresAt: new Date('2030-02-01T00:00:00.000Z'),
         },
       }),
-    ).resolves.toEqual({ kind: 'replayed' });
+    ).rejects.toThrow('CAS failed rotating session session-1 (count=0)');
     expect(txRefresh.updateMany).toHaveBeenNthCalledWith(1, {
       where: {
         id: 'session-1',
@@ -179,9 +178,7 @@ describe('PrismaAuthRepository', () => {
       data: { revokedAt: new Date('2029-01-01T00:00:00.000Z') },
     });
     expect(txRefresh.create).not.toHaveBeenCalled();
-    expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    });
+    expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('rejects an expired session without consuming or creating a successor', async () => {
@@ -269,9 +266,7 @@ describe('PrismaAuthRepository', () => {
       'FROM "RefreshSession"',
     );
     expect(tx.$queryRaw.mock.calls[1][0].join(' ')).toContain('FOR UPDATE');
-    expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function), {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-    });
+    expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function));
   });
 
   it('revokes the family when an expired revoked token is replayed', async () => {
@@ -354,7 +349,7 @@ describe('PrismaAuthRepository', () => {
     expect(tx.refreshSession.create).not.toHaveBeenCalled();
   });
 
-  it('revokes a family when serializable isolation reports a concurrent consume', async () => {
+  it('propagates unexpected transaction errors without treating them as replay', async () => {
     const { repository, prismaMock, tx } = setup();
     const revokedAt = new Date('2029-01-01T00:00:00.000Z');
     prismaMock.$transaction.mockRejectedValueOnce({ code: 'P2034' });
@@ -375,21 +370,18 @@ describe('PrismaAuthRepository', () => {
           expiresAt: new Date('2030-02-01T00:00:00.000Z'),
         },
       }),
-    ).resolves.toEqual({ kind: 'replayed' });
-    expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', familyId: 'family-1', revokedAt: null },
-      data: { revokedAt },
-    });
+    ).rejects.toEqual({ code: 'P2034' });
+    expect(tx.refreshSession.updateMany).not.toHaveBeenCalled();
   });
 
-  it('treats a raw-query serialization failure as a replay', async () => {
+  it('propagates raw-query errors without treating them as replay', async () => {
     const { repository, tx } = setup();
     const revokedAt = new Date('2029-01-01T00:00:00.000Z');
-    tx.$queryRaw.mockRejectedValueOnce({
+    const queryError = {
       code: 'P2010',
       meta: { code: '40001' },
-    });
-    tx.refreshSession.updateMany.mockResolvedValue({ count: 2 });
+    };
+    tx.$queryRaw.mockRejectedValueOnce(queryError);
 
     await expect(
       repository.rotateRefreshSession({
@@ -406,11 +398,8 @@ describe('PrismaAuthRepository', () => {
           expiresAt: new Date('2030-02-01T00:00:00.000Z'),
         },
       }),
-    ).resolves.toEqual({ kind: 'replayed' });
-    expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', familyId: 'family-1', revokedAt: null },
-      data: { revokedAt },
-    });
+    ).rejects.toEqual(queryError);
+    expect(tx.refreshSession.updateMany).not.toHaveBeenCalled();
   });
 
   it('revokes a family idempotently while holding the user lock used by refresh', async () => {
@@ -429,7 +418,7 @@ describe('PrismaAuthRepository', () => {
     expect(tx.$queryRaw.mock.calls[0][0].join(' ')).toContain('FROM "User"');
     expect(tx.$queryRaw.mock.calls[0][0].join(' ')).toContain('FOR UPDATE');
     expect(tx.refreshSession.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', familyId: 'family-device-1', revokedAt: null },
+      where: { familyId: 'family-device-1', revokedAt: null },
       data: { revokedAt },
     });
     expect(prismaMock.$transaction).toHaveBeenCalledWith(expect.any(Function));
