@@ -1,4 +1,5 @@
 import { compare } from 'bcrypt';
+import { resolveDemoAccounts } from '../../prisma/demo-accounts';
 import { PrismaClient } from '@prisma/client';
 
 const expectedEnums: Record<string, string[]> = {
@@ -181,20 +182,22 @@ describe('PostgreSQL schema and demo seed', () => {
     ]);
   });
 
-  it('creates an admin only when optional seed credentials are supplied', async () => {
-    const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
-    const password = process.env.SEED_ADMIN_PASSWORD;
-    if (!email || !password) {
+  it('creates the demo accounts only when their seed credentials are supplied', async () => {
+    const accounts = resolveDemoAccounts(process.env);
+    if (!accounts.some((account) => account.role === 'ADMIN')) {
       expect(await prisma.user.count({ where: { role: 'ADMIN' } })).toBe(0);
-      return;
     }
 
-    const admin = await prisma.user.findUnique({ where: { email } });
-    expect(admin).not.toBeNull();
-    if (!admin) {
-      throw new Error('Configured seed admin was not created.');
+    for (const account of accounts) {
+      const user = await prisma.user.findUnique({
+        where: { email: account.email },
+      });
+      expect(user).not.toBeNull();
+      if (!user) {
+        throw new Error(`Configured seed ${account.label} was not created.`);
+      }
+      expect(user.role).toBe(account.role);
+      expect(await compare(account.password, user.passwordHash)).toBe(true);
     }
-    expect(admin.role).toBe('ADMIN');
-    expect(await compare(password, admin.passwordHash)).toBe(true);
   });
 });
