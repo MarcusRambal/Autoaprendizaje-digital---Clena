@@ -54,6 +54,6 @@ import { RolesGuard } from './presentation/roles.guard';
     AccessTokenGuard,
     RolesGuard,
   ],
-  exports: [AccessTokenGuard, RolesGuard],
+  exports: [AccessTokenGuard, RolesGuard, PrismaAuthModule],
 })
 export class AuthModule {}

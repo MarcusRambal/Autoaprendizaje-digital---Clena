@@ -3,6 +3,7 @@ import { validateEnv } from '../../../src/shared/config/env.schema';
 const validEnvironment = {
   NODE_ENV: 'test',
   PORT: '3000',
+  FRONTEND_URL: 'http://localhost:5173',
   DATABASE_URL: 'postgresql://test:test@localhost:5432/test',
   JWT_ACCESS_SECRET: 'test-access-secret-that-is-at-least-32-characters',
   JWT_REFRESH_SECRET: 'test-refresh-secret-that-is-at-least-32-characters',

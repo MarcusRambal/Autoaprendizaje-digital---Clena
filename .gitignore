@@ -1,3 +1,10 @@
 Proyecto Final Backend — Soluciones para el CLENA.pdf*
 API_ENDPOINTS_AND_FRONTEND.md
 PendientesAutenticacion.txt
+node_modules
+dist
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
