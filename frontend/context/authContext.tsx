@@ -14,22 +14,12 @@ import {
   AuthError,
   type AuthSession,
   type Credentials,
-} from "./authApi";
-import { AuthContext, type AuthContextType } from "./authState";
+} from "../services/authApi";
+import { refreshSession } from "../services/apiClient";
+import { AuthContext, type AuthContextType } from "../services/authState";
+import { tokenManager } from "../services/tokenManager";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
-let pendingRefresh: Promise<AuthSession> | null = null;
-
-function refreshOnce(): Promise<AuthSession> {
-  if (pendingRefresh) return pendingRefresh;
-  const promise = authRequest("refresh", undefined, apiBaseUrl);
-  pendingRefresh = promise;
-  const clearPending = () => {
-    if (pendingRefresh === promise) pendingRefresh = null;
-  };
-  void promise.then(clearPending, clearPending);
-  return promise;
-}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -40,14 +30,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const saveSession = useCallback((next: AuthSession) => {
     accessTokenExpiresAt(next.accessToken);
     appRole(next.user.role);
+    tokenManager.setToken(next.accessToken);
     setSession(next);
     setSessionError(null);
   }, []);
 
+  const handleUnauthorized = useCallback(() => {
+    generation.current += 1;
+    setSession(null);
+    setSessionError("Sesión expirada");
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    tokenManager.setUnauthorizedHandler(handleUnauthorized);
+    return () => tokenManager.setUnauthorizedHandler(() => {});
+  }, [handleUnauthorized]);
+
   useEffect(() => {
     let active = true;
     const currentGeneration = generation.current;
-    refreshOnce()
+    refreshSession()
       .then((next) => {
         if (active && generation.current === currentGeneration)
           saveSession(next);
@@ -82,7 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       remaining - Math.min(30_000, remaining * 0.1),
     );
     const timer = window.setTimeout(() => {
-      refreshOnce()
+      refreshSession()
         .then((next) => {
           if (active && generation.current === currentGeneration)
             saveSession(next);
@@ -119,6 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     generation.current += 1;
+    tokenManager.setToken(null);
     setSession(null);
     setSessionError(null);
     setIsLoading(false);
