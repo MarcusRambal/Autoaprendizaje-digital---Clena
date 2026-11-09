@@ -2,10 +2,8 @@ import {
   HelpRequestStatus,
   PrismaClient,
   PublicationState,
-  UserRole,
-  UserStatus,
 } from '@prisma/client';
-import { hash } from 'bcrypt';
+import { resolveDemoAccounts, seedDemoAccounts } from './demo-accounts';
 
 const prisma = new PrismaClient();
 
@@ -203,13 +201,8 @@ async function main(): Promise<void> {
     throw new Error('The development seed cannot run in production.');
   }
 
-  const seedAdminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
-  const seedAdminPassword = process.env.SEED_ADMIN_PASSWORD;
-  if (Boolean(seedAdminEmail) !== Boolean(seedAdminPassword)) {
-    throw new Error(
-      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be provided together.',
-    );
-  }
+  // Validate the demo accounts first so a typo fails before anything is written.
+  const demoAccounts = resolveDemoAccounts(process.env);
 
   const categoriesBySlug = new Map<string, { id: string }>();
 
@@ -353,30 +346,16 @@ async function main(): Promise<void> {
     });
   }
 
-  if (seedAdminEmail && seedAdminPassword) {
+  if (demoAccounts.length > 0) {
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
     if (!Number.isInteger(saltRounds) || saltRounds < 10 || saltRounds > 15) {
       throw new Error('BCRYPT_SALT_ROUNDS must be an integer from 10 to 15.');
     }
 
-    const passwordHash = await hash(seedAdminPassword, saltRounds);
-    await prisma.user.upsert({
-      where: { email: seedAdminEmail },
-      update: {
-        passwordHash,
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-        privacyAcceptedAt: new Date(),
-        privacyNoticeVersion: 'seed',
-      },
-      create: {
-        email: seedAdminEmail,
-        passwordHash,
-        role: UserRole.ADMIN,
-        privacyAcceptedAt: new Date(),
-        privacyNoticeVersion: 'seed',
-      },
-    });
+    await seedDemoAccounts(prisma, demoAccounts, saltRounds);
+    for (const account of demoAccounts) {
+      console.log(`Demo ${account.label} account ready: ${account.email}`);
+    }
   }
 }
 
