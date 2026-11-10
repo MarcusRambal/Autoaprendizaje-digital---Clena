@@ -53,11 +53,14 @@ test('cada pregunta requiere exactamente cuatro opciones y una respuesta válida
   assert.equal(MAX_QUESTIONS, 8);
   assert.equal(OPTION_COUNT, 4);
   const question = { description: 'Pregunta', options: ['A', 'B', 'C', 'D'], correctOptionIndex: 2 };
+  question.immediateFeedback = 'Explicación';
   assert.equal(isValidQuestion(question), true);
   assert.equal(isValidQuestion({ ...question, description: ' ' }), false);
   assert.equal(isValidQuestion({ ...question, options: ['A', 'B', 'C'] }), false);
   assert.equal(isValidQuestion({ ...question, options: ['A', 'B', 'C', 'D', 'E'] }), false);
   assert.equal(isValidQuestion({ ...question, options: ['A', 'B', ' ', 'D'] }), false);
+  assert.equal(isValidQuestion({ ...question, options: ['A', 'B', 'B', 'D'] }), false);
+  assert.equal(isValidQuestion({ ...question, immediateFeedback: ' ' }), false);
   assert.equal(isValidQuestion({ ...question, correctOptionIndex: 4 }), false);
   assert.equal(isValidQuestion({ ...question, correctOptionIndex: 1.5 }), false);
 });

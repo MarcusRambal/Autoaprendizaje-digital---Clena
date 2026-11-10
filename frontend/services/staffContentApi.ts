@@ -76,7 +76,7 @@ function mapGuide(guide: ApiGuide): Guide {
   return {
     id: guide.id,
     title: guide.title,
-    file: guide.file,
+    file: guide.file ?? "",
     category: guide.category,
     categoryId: guide.categoryId,
     fileUrl: guide.fileUrl,

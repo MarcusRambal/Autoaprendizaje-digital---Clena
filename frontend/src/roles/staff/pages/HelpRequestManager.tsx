@@ -1,9 +1,40 @@
 import './HelpRequestManager.css';
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import type { HelpRequest, RequestStatus } from '../../../../types/contracts';
-import { initialRequests } from '../demoData';
+import {
+  apiErrorMessage,
+  createHelpRequest,
+  deleteHelpRequest,
+  listHelpRequests,
+  updateHelpRequestStatus,
+  type ApiHelpRequest,
+  type ApiRequestStatus
+} from '../../../../services/staffContentApi';
 
 const requestStatuses: RequestStatus[] = ['Pendiente', 'En Atención', 'Atendida'];
+const PAGE_SIZE = 20;
+
+const uiStatuses: Record<ApiRequestStatus, RequestStatus> = {
+  PENDING: 'Pendiente',
+  IN_PROGRESS: 'En Atención',
+  ATTENDED: 'Atendida'
+};
+const toUiStatus = (status: ApiRequestStatus): RequestStatus => uiStatuses[status];
+
+const apiStatuses: Record<RequestStatus, ApiRequestStatus> = {
+  Pendiente: 'PENDING',
+  'En Atención': 'IN_PROGRESS',
+  Atendida: 'ATTENDED'
+};
+const toApiStatus = (status: RequestStatus): ApiRequestStatus => apiStatuses[status];
+
+const toHelpRequest = (request: ApiHelpRequest): HelpRequest => ({
+  id: request.id,
+  requesterName: request.requesterName ?? 'Sin nombre',
+  topic: request.topic,
+  date: request.date.slice(0, 10),
+  status: toUiStatus(request.status)
+});
 
 const formatDate = (date: string) => {
   const parsedDate = new Date(`${date}T00:00:00`);
@@ -13,51 +44,101 @@ const formatDate = (date: string) => {
 };
 
 export const HelpRequestManager = () => {
-  const [requests, setRequests] = useState<HelpRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [requesterName, setRequesterName] = useState('');
   const [topic, setTopic] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const handleCreateRequest = (event: FormEvent<HTMLFormElement>) => {
+  const loadRequests = useCallback(async (requestedPage: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await listHelpRequests(requestedPage, PAGE_SIZE);
+      setRequests(result.items.map(toHelpRequest));
+      setPage(result.page);
+      setTotalPages(Math.max(1, result.totalPages));
+    } catch (loadError) {
+      setError(apiErrorMessage(loadError));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void listHelpRequests(1, PAGE_SIZE)
+      .then(result => {
+        if (!active) return;
+        setRequests(result.items.map(toHelpRequest));
+        setPage(result.page);
+        setTotalPages(Math.max(1, result.totalPages));
+      })
+      .catch(loadError => {
+        if (active) setError(apiErrorMessage(loadError));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCreateRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = requesterName.trim();
     const trimmedTopic = topic.trim();
 
     if (!trimmedName || !trimmedTopic) {
-      setFormError('Completa el nombre del solicitante y el tema.');
+      setError('Completa el nombre del solicitante y el tema.');
       return;
     }
 
-    setRequests(current => [
-      ...current,
-      {
-        id: current.reduce((maxId, request) => Math.max(maxId, request.id), 0) + 1,
-        requesterName: trimmedName,
-        topic: trimmedTopic,
-        date: new Date().toISOString().slice(0, 10),
-        status: 'Pendiente'
-      }
-    ]);
-    setRequesterName('');
-    setTopic('');
-    setFormError(null);
+    setSaving(true);
+    setError(null);
+    try {
+      await createHelpRequest({ requesterName: trimmedName, topic: trimmedTopic });
+      setRequesterName('');
+      setTopic('');
+      await loadRequests(1);
+    } catch (createError) {
+      setError(apiErrorMessage(createError));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleStatusChange = (requestId: number, status: RequestStatus) => {
-    setRequests(current => current.map(request =>
-      request.id === requestId ? { ...request, status } : request
-    ));
+  const handleStatusChange = async (requestId: HelpRequest['id'], status: RequestStatus) => {
+    setError(null);
+    try {
+      const updated = await updateHelpRequestStatus(String(requestId), toApiStatus(status));
+      setRequests(current => current.map(request =>
+        request.id === requestId ? toHelpRequest(updated) : request
+      ));
+    } catch (updateError) {
+      setError(apiErrorMessage(updateError));
+    }
   };
 
-  const handleDeleteRequest = (requestId: number) => {
-    setRequests(current => current.filter(request => request.id !== requestId));
+  const handleDeleteRequest = async (requestId: HelpRequest['id']) => {
+    setError(null);
+    try {
+      await deleteHelpRequest(String(requestId));
+      await loadRequests(page);
+    } catch (deleteError) {
+      setError(apiErrorMessage(deleteError));
+    }
   };
 
   return (
     <section className="help-request-manager">
       <header>
         <h1>Solicitudes de ayuda</h1>
-        <p role="status"><strong>Demostración:</strong> las solicitudes son ejemplos locales. No llegan avisos del público ni se guardan los cambios.</p>
+        <p>Consulta y gestiona las solicitudes registradas en la plataforma.</p>
       </header>
 
       <form className="request-form" onSubmit={handleCreateRequest}>
@@ -69,7 +150,7 @@ export const HelpRequestManager = () => {
             value={requesterName}
             onChange={event => {
               setRequesterName(event.target.value);
-              setFormError(null);
+              setError(null);
             }}
             placeholder="Nombre"
           />
@@ -81,18 +162,18 @@ export const HelpRequestManager = () => {
             value={topic}
             onChange={event => {
               setTopic(event.target.value);
-              setFormError(null);
+              setError(null);
             }}
             placeholder="Ej. Correo electrónico"
           />
         </label>
-        {formError && <p className="request-error" role="alert">{formError}</p>}
-        <button type="submit">Registrar solicitud</button>
+        {error && <p className="request-error" role="alert">{error}</p>}
+        <button type="submit" disabled={saving}>{saving ? 'Registrando…' : 'Registrar solicitud'}</button>
       </form>
 
       <section aria-labelledby="requests-list-title">
         <h2 id="requests-list-title">Solicitudes actuales</h2>
-        {requests.length > 0 ? (
+        {loading ? <p role="status">Cargando solicitudes…</p> : requests.length > 0 ? (
           <div className="request-table-wrapper" role="region" aria-label="Tabla de solicitudes" tabIndex={0}>
             <table className="request-table">
               <thead>
@@ -118,7 +199,7 @@ export const HelpRequestManager = () => {
                         aria-label={`Estado de solicitud ${request.id}`}
                         onChange={event => {
                           const status = requestStatuses.find(value => value === event.target.value);
-                          if (status) handleStatusChange(request.id, status);
+                          if (status) void handleStatusChange(request.id, status);
                         }}
                       >
                         {requestStatuses.map(status => (
@@ -129,7 +210,7 @@ export const HelpRequestManager = () => {
                     <td>
                       <button
                         type="button"
-                        onClick={() => handleDeleteRequest(request.id)}
+                        onClick={() => void handleDeleteRequest(request.id)}
                         aria-label={`Eliminar solicitud ${request.id}`}
                       >
                         Eliminar
@@ -141,6 +222,17 @@ export const HelpRequestManager = () => {
             </table>
           </div>
         ) : <p>No hay solicitudes registradas.</p>}
+        {!loading && totalPages > 1 && (
+          <nav className="request-pagination" aria-label="Páginas de solicitudes">
+            <button type="button" disabled={page <= 1} onClick={() => void loadRequests(page - 1)}>
+              Anterior
+            </button>
+            <span aria-live="polite">Página {page} de {totalPages}</span>
+            <button type="button" disabled={page >= totalPages} onClick={() => void loadRequests(page + 1)}>
+              Siguiente
+            </button>
+          </nav>
+        )}
       </section>
     </section>
   );

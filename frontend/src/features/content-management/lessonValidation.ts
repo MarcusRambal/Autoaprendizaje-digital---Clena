@@ -7,6 +7,8 @@ export function isValidQuestion(question: QuizQuestion) {
   return question.description.trim().length > 0 &&
     question.options.length === OPTION_COUNT &&
     question.options.every(option => option.trim().length > 0) &&
+    new Set(question.options.map(option => option.trim())).size === OPTION_COUNT &&
+    question.immediateFeedback.trim().length > 0 &&
     Number.isInteger(question.correctOptionIndex) &&
     question.correctOptionIndex >= 0 &&
     question.correctOptionIndex < OPTION_COUNT;

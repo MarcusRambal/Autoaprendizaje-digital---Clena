@@ -4,16 +4,18 @@ import type { Category, Guide } from '../../../types/contracts';
 import { matchesSearch } from './searchContent';
 import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
+import { apiErrorMessage } from '../../../services/staffContentApi';
 
 type ViewState = 'guideView' | 'createView' | 'editView' | 'deleteView';
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 
 interface EditGuidesPanelProps {
   categories: Category[];
   guides: Guide[];
   searchQuery: string;
-  onCreate: (guide: Omit<Guide, 'id'>) => void;
-  onSave: (guide: Guide) => void;
-  onDelete: (guideId: number) => void;
+  onCreate: (guide: Omit<Guide, 'id'>) => void | Promise<void>;
+  onSave: (guide: Guide) => void | Promise<void>;
+  onDelete: (guideId: Guide['id']) => void | Promise<void>;
 }
 
 interface EditGuideRowProps {
@@ -21,7 +23,7 @@ interface EditGuideRowProps {
   guides: Guide[];
   categories: Category[];
   hidden: boolean;
-  onSave: (updatedGuide: Guide) => void;
+  onSave: (updatedGuide: Guide) => void | Promise<void>;
 }
 
 const getGuideFileName = (file: Guide['file']) =>
@@ -30,22 +32,31 @@ const getGuideFileName = (file: Guide['file']) =>
 const normalizeTitle = (title: string) => title.toLowerCase().replace(/\s+/g, '');
 const isPdf = (file: File) =>
   file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+const validatePdf = (file: File) => {
+  if (!isPdf(file)) return 'Solo se admiten archivos en formato .pdf.';
+  if (file.size > MAX_PDF_BYTES) return 'El archivo PDF no puede superar los 10 MB.';
+  return null;
+};
 
 const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRowProps) => {
   const [draftTitle, setDraftTitle] = useState(guide.title);
-  const [draftCategory, setDraftCategory] = useState(guide.category);
+  const [draftCategoryId, setDraftCategoryId] = useState(String(
+    guide.categoryId ?? categories.find(category => category.title === guide.category)?.id ?? ''
+  ));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const trimmedTitle = draftTitle.trim();
+    const category = categories.find(item => String(item.id) === draftCategoryId);
 
     if (!trimmedTitle) {
       setError('El título de la guía no puede estar vacío.');
       return;
     }
 
-    if (!categories.some(category => category.title === draftCategory)) {
+    if (!category) {
       setError('Debes seleccionar una categoría válida.');
       return;
     }
@@ -59,18 +70,26 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
       return;
     }
 
+    setSaving(true);
     setError(null);
-    onSave({
-      ...guide,
-      title: trimmedTitle,
-      category: draftCategory,
-      file: selectedFile ?? guide.file
-    });
+    try {
+      await onSave({
+        ...guide,
+        title: trimmedTitle,
+        category: category.title,
+        categoryId: category.id,
+        file: selectedFile ?? guide.file
+      });
+    } catch (saveError) {
+      setError(apiErrorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isChanged =
     draftTitle.trim() !== guide.title ||
-    draftCategory !== guide.category ||
+    draftCategoryId !== String(guide.categoryId ?? categories.find(category => category.title === guide.category)?.id ?? '') ||
     selectedFile !== null;
 
   return (
@@ -93,15 +112,15 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
         <label className="guide-edit-field">
           <span>Categoría</span>
           <select
-            value={draftCategory}
+            value={draftCategoryId}
             aria-label={`Categoría de ${guide.title}`}
             onChange={event => {
-              setDraftCategory(event.target.value);
+              setDraftCategoryId(event.target.value);
               setError(null);
             }}
           >
             {categories.map(category => (
-              <option key={category.id} value={category.title}>{category.title}</option>
+              <option key={category.id} value={String(category.id)}>{category.title}</option>
             ))}
           </select>
         </label>
@@ -114,8 +133,9 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
             onChange={event => {
               const file = event.target.files?.[0];
               if (!file) return;
-              if (!isPdf(file)) {
-                setError('Solo se admiten archivos en formato .pdf');
+              const fileError = validatePdf(file);
+              if (fileError) {
+                setError(fileError);
                 setSelectedFile(null);
                 event.target.value = '';
                 return;
@@ -130,7 +150,9 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
         </label>
         {error && <span className="error-text" role="alert">{error}</span>}
       </div>
-      <button type="button" onClick={handleSave} disabled={!isChanged}>Guardar</button>
+      <button type="button" onClick={() => void handleSave()} disabled={!isChanged || saving}>
+        {saving ? 'Guardando…' : 'Guardar'}
+      </button>
     </li>
   );
 };
@@ -146,31 +168,39 @@ export const EditGuidesPanel = ({
   const [viewState, setViewState] = useState<ViewState>('guideView');
   const [selectedGuide, setSelectedGuide] = useState<{ guide: Guide; url: string } | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategoryId, setNewCategoryId] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
   const pagination = usePagination(filteredGuides, `${viewState}:${searchQuery}`);
   const visibleGuideIds = new Set(pagination.items.map(guide => guide.id));
   const selectedGuideMatches = selectedGuide !== null &&
     filteredGuides.some(guide => guide.id === selectedGuide.guide.id);
 
-  const handleCreateGuide = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateGuide = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = newTitle.trim();
+    const category = categories.find(item => String(item.id) === newCategoryId);
 
     if (!trimmedTitle) {
       setCreateError('El título no puede estar vacío.');
       return;
     }
 
-    if (!categories.some(category => category.title === newCategory)) {
+    if (!category) {
       setCreateError('Selecciona una categoría válida para la guía.');
       return;
     }
 
-    if (!newFile || !isPdf(newFile)) {
+    if (!newFile) {
       setCreateError('Debes adjuntar un archivo en formato .pdf.');
+      return;
+    }
+    const fileError = validatePdf(newFile);
+    if (fileError) {
+      setCreateError(fileError);
       return;
     }
 
@@ -183,19 +213,31 @@ export const EditGuidesPanel = ({
       return;
     }
 
-    onCreate({ title: trimmedTitle, category: newCategory, file: newFile });
-    setNewTitle('');
-    setNewCategory('');
-    setNewFile(null);
-    setCreateError(null);
-    const fileInput = document.getElementById('new-guide-file');
-    if (fileInput instanceof HTMLInputElement) fileInput.value = '';
+    setSaving(true);
+    try {
+      await onCreate({
+        title: trimmedTitle,
+        category: category.title,
+        categoryId: category.id,
+        file: newFile
+      });
+      setNewTitle('');
+      setNewCategoryId('');
+      setNewFile(null);
+      setCreateError(null);
+      const fileInput = document.getElementById('new-guide-file');
+      if (fileInput instanceof HTMLInputElement) fileInput.value = '';
+    } catch (error) {
+      setCreateError(apiErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleOpenGuide = (guide: Guide) => {
     const url = guide.file instanceof File
       ? URL.createObjectURL(guide.file)
-      : `/${encodeURIComponent(guide.file)}`;
+      : guide.fileUrl ?? `/${encodeURIComponent(guide.file)}`;
     setSelectedGuide({ guide, url });
   };
 
@@ -204,14 +246,20 @@ export const EditGuidesPanel = ({
     return () => URL.revokeObjectURL(selectedGuide.url);
   }, [selectedGuide]);
 
-  const handleDeleteGuide = (guideId: number) => {
-    onDelete(guideId);
-    setSelectedGuide(current => current?.guide.id === guideId ? null : current);
+  const handleDeleteGuide = async (guideId: Guide['id']) => {
+    setActionError(null);
+    try {
+      await onDelete(guideId);
+      setSelectedGuide(current => current?.guide.id === guideId ? null : current);
+    } catch (error) {
+      setActionError(apiErrorMessage(error));
+    }
   };
 
   return (
     <section className="edit-panel guide-management" aria-labelledby="guides-management-title">
       <h2 id="guides-management-title">Gestión de guías</h2>
+      {actionError && <p className="error-text" role="alert">{actionError}</p>}
 
       <div className="viewCreateEditGuides">
         <div className="viewButton" role="group" aria-label="Acciones de guías">
@@ -231,7 +279,7 @@ export const EditGuidesPanel = ({
             aria-controls="guide-management-panel"
             onClick={() => {
               setNewTitle('');
-              setNewCategory('');
+              setNewCategoryId('');
               setNewFile(null);
               setCreateError(null);
               setViewState('createView');
@@ -324,17 +372,17 @@ export const EditGuidesPanel = ({
                   <label htmlFor="new-guide-category">Categoría</label>
                   <select
                     id="new-guide-category"
-                    value={newCategory}
+                    value={newCategoryId}
                     required
                     onChange={event => {
-                      setNewCategory(event.target.value);
+                      setNewCategoryId(event.target.value);
                       setCreateError(null);
                     }}
-                    className={createError && !newCategory ? 'input-error' : ''}
+                    className={createError && !newCategoryId ? 'input-error' : ''}
                   >
                     <option value="">Selecciona una categoría</option>
                     {categories.map(category => (
-                      <option key={category.id} value={category.title}>{category.title}</option>
+                      <option key={category.id} value={String(category.id)}>{category.title}</option>
                     ))}
                   </select>
                   <label htmlFor="new-guide-file">Archivo PDF</label>
@@ -346,8 +394,9 @@ export const EditGuidesPanel = ({
                     onChange={event => {
                       const file = event.target.files?.[0];
                       if (!file) return;
-                      if (!isPdf(file)) {
-                        setCreateError('Solo se admiten archivos en formato .pdf');
+                      const fileError = validatePdf(file);
+                      if (fileError) {
+                        setCreateError(fileError);
                         setNewFile(null);
                         event.target.value = '';
                         return;
@@ -360,7 +409,7 @@ export const EditGuidesPanel = ({
                   {newFile && <span className="file-info">{newFile.name}</span>}
                   {createError && <span className="error-text" role="alert">{createError}</span>}
                 </div>
-                <button type="submit">Crear guía</button>
+                <button type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Crear guía'}</button>
               </form>
             ) : <p role="status">Crea una categoría antes de agregar guías.</p>}
           </div>
@@ -378,9 +427,9 @@ export const EditGuidesPanel = ({
                     guides={guides}
                     categories={categories}
                     hidden={!visibleGuideIds.has(guide.id)}
-                    onSave={updatedGuide => {
-                      setSelectedGuide(null);
-                      onSave(updatedGuide);
+                    onSave={async updatedGuide => {
+                    await onSave(updatedGuide);
+                    setSelectedGuide(null);
                     }}
                   />
                 ))}
@@ -402,7 +451,7 @@ export const EditGuidesPanel = ({
                       <strong>{guide.title}</strong>
                       <small>{guide.category}</small>
                     </span>
-                    <button type="button" aria-label={`Eliminar guía ${guide.title}`} onClick={() => handleDeleteGuide(guide.id)}>Eliminar</button>
+                    <button type="button" aria-label={`Eliminar guía ${guide.title}`} onClick={() => void handleDeleteGuide(guide.id)}>Eliminar</button>
                   </li>
                 ))}
               </ul>

@@ -10,7 +10,7 @@ interface EditCategoriesPanelProps {
   searchQuery: string;
   onCreate: (title: string) => void;
   onSave: (category: Category) => void;
-  onDelete: (categoryId: number) => string | null;
+  onDelete: (categoryId: number | string) => string | null;
 }
 
 interface EditCategoryRowProps {
@@ -105,7 +105,7 @@ export const EditCategoriesPanel = ({
     setCreateError(null);
   };
 
-  const handleDeleteCategory = (categoryId: number) => {
+  const handleDeleteCategory = (categoryId: number | string) => {
     setDeleteError(onDelete(categoryId));
   };
 

@@ -5,6 +5,7 @@ import { matchesSearch } from './searchContent';
 import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
 import { isValidQuestion, MAX_QUESTIONS, OPTION_COUNT } from './lessonValidation';
+import { apiErrorMessage } from '../../../services/staffContentApi';
 
 type ViewState = 'quizView' | 'createView' | 'editView' | 'editingView' | 'deleteView';
 type QuizDraft = Omit<Quiz, 'id'>;
@@ -13,34 +14,39 @@ interface EditQuizPanelProps {
   categories: Category[];
   quizzes: Quiz[];
   searchQuery: string;
-  onCreate: (quiz: QuizDraft) => void;
-  onSave: (quiz: Quiz) => void;
-  onDelete: (quizId: number) => void;
+  onCreate: (quiz: QuizDraft) => void | Promise<void>;
+  onSave: (quiz: Quiz) => void | Promise<void>;
+  onDelete: (quizId: Quiz['id']) => void | Promise<void>;
 }
 
 interface QuizFormProps {
   quiz?: Quiz;
   quizzes: Quiz[];
   categories: Category[];
-  onSave: (quiz: QuizDraft, quizId?: number) => void;
+  onSave: (quiz: QuizDraft, quizId?: Quiz['id']) => void | Promise<void>;
   onCancel: () => void;
 }
 
 const emptyQuestion = (): QuizQuestion => ({
   description: '',
   options: ['', '', '', ''],
-  correctOptionIndex: 0
+  correctOptionIndex: 0,
+  immediateFeedback: ''
 });
 const normalizeTitle = (title: string) => title.toLowerCase().replace(/\s+/g, '');
 
 const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps) => {
   const [name, setName] = useState(quiz?.name ?? '');
-  const [category, setCategory] = useState(quiz?.category ?? '');
+  const [description, setDescription] = useState(quiz?.description ?? '');
+  const [categoryId, setCategoryId] = useState(String(
+    quiz?.categoryId ?? categories.find(item => item.title === quiz?.category)?.id ?? ''
+  ));
   const [questions, setQuestions] = useState<QuizQuestion[]>(
     () => quiz?.questions.map(question => ({ ...question, options: [...question.options] })) ?? [emptyQuestion()]
   );
   const [questionIndex, setQuestionIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const questionDescriptionRef = useRef<HTMLTextAreaElement>(null);
   const previousQuestionIndex = useRef(questionIndex);
   const question = questions[questionIndex];
@@ -58,7 +64,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
     ));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
 
@@ -67,7 +73,8 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       return;
     }
 
-    if (!categories.some(item => item.title === category)) {
+    const category = categories.find(item => String(item.id) === categoryId);
+    if (!category) {
       setError('Selecciona una categoría válida.');
       return;
     }
@@ -80,14 +87,15 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
     const cleanedQuestions = questions.map(question => ({
       description: question.description.trim(),
       options: question.options.map(option => option.trim()),
-      correctOptionIndex: question.correctOptionIndex
+      correctOptionIndex: question.correctOptionIndex,
+      immediateFeedback: question.immediateFeedback.trim()
     }));
 
     const invalidQuestionIndex = cleanedQuestions.findIndex(question => !isValidQuestion(question));
 
     if (invalidQuestionIndex !== -1) {
       setQuestionIndex(invalidQuestionIndex);
-      setError(`Revisa la pregunta ${invalidQuestionIndex + 1}: debe tener descripción, cuatro opciones completas y una respuesta correcta.`);
+      setError(`Revisa la pregunta ${invalidQuestionIndex + 1}: debe tener descripción, cuatro opciones distintas, una respuesta correcta y feedback.`);
       return;
     }
 
@@ -100,7 +108,20 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       return;
     }
 
-    onSave({ name: trimmedName, category, questions: cleanedQuestions }, quiz?.id);
+    setSaving(true);
+    try {
+      await onSave({
+        name: trimmedName,
+        description: description.trim(),
+        category: category.title,
+        categoryId: category.id,
+        questions: cleanedQuestions
+      }, quiz?.id);
+    } catch (saveError) {
+      setError(apiErrorMessage(saveError));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -119,16 +140,29 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       </label>
 
       <label>
+        Descripción de la lección
+        <textarea
+          value={description}
+          onChange={event => {
+            setDescription(event.target.value);
+            setError(null);
+          }}
+          placeholder="Describe brevemente la lección"
+          rows={3}
+        />
+      </label>
+
+      <label>
         Categoría
         <select
-          value={category}
+          value={categoryId}
           onChange={event => {
-            setCategory(event.target.value);
+            setCategoryId(event.target.value);
             setError(null);
           }}
         >
           <option value="">Selecciona una categoría</option>
-          {categories.map(item => <option key={item.id} value={item.title}>{item.title}</option>)}
+          {categories.map(item => <option key={item.id} value={String(item.id)}>{item.title}</option>)}
         </select>
       </label>
 
@@ -232,6 +266,21 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
                 Agregar opción
               </button>}
             </div>
+            <label>
+              Feedback inmediato
+              <textarea
+                value={question.immediateFeedback}
+                onChange={event => {
+                  updateQuestion(questionIndex, current => ({
+                    ...current,
+                    immediateFeedback: event.target.value
+                  }));
+                  setError(null);
+                }}
+                placeholder="Explica por qué la respuesta es correcta"
+                rows={2}
+              />
+            </label>
             <button
               type="button"
               onClick={() => {
@@ -277,7 +326,9 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
 
       {error && <p className="error-text" role="alert">{error}</p>}
       <div className="quiz-form-actions">
-        <button type="submit">{quiz ? 'Confirmar edición' : 'Crear lección'}</button>
+        <button type="submit" disabled={saving}>
+          {saving ? 'Guardando…' : quiz ? 'Confirmar edición' : 'Crear lección'}
+        </button>
         <button type="button" onClick={onCancel}>Cancelar</button>
       </div>
     </form>
@@ -286,16 +337,26 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
 
 export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSave, onDelete }: EditQuizPanelProps) => {
   const [viewState, setViewState] = useState<ViewState>('quizView');
-  const [editingQuizId, setEditingQuizId] = useState<number | null>(null);
+  const [editingQuizId, setEditingQuizId] = useState<Quiz['id'] | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const handleSave = (quiz: QuizDraft, quizId?: number) => {
+  const handleSave = async (quiz: QuizDraft, quizId?: Quiz['id']) => {
     if (quizId === undefined) {
-      onCreate(quiz);
+      await onCreate(quiz);
     } else {
-      onSave({ ...quiz, id: quizId });
+      await onSave({ ...quiz, id: quizId });
     }
     setEditingQuizId(null);
     setViewState('quizView');
+  };
+
+  const handleDelete = async (quizId: Quiz['id']) => {
+    setActionError(null);
+    try {
+      await onDelete(quizId);
+    } catch (error) {
+      setActionError(apiErrorMessage(error));
+    }
   };
 
   const editingQuiz = quizzes.find(quiz => quiz.id === editingQuizId);
@@ -305,6 +366,7 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
   return (
     <div className="edit-quiz-panel">
       <h2>Gestión de lecciones</h2>
+      {actionError && <p className="error-text" role="alert">{actionError}</p>}
       <div className="viewButton" role="group" aria-label="Acciones de lecciones">
         <button
           type="button"
@@ -358,6 +420,7 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
           {quizzes.length > 0 ? pagination.items.map(quiz => (
             <article className="quiz-card" key={quiz.id}>
               <h3>{quiz.name}</h3>
+              <p>{quiz.description}</p>
               <p>Categoría: {quiz.category}</p>
               <p>{quiz.questions.length} pregunta(s)</p>
               <ol>
@@ -452,7 +515,7 @@ export const EditQuizPanel = ({ categories, quizzes, searchQuery, onCreate, onSa
               {pagination.items.map(quiz => (
                 <li key={quiz.id}>
                   <span>{quiz.name} ({quiz.category})</span>
-                  <button type="button" aria-label={`Eliminar lección ${quiz.name}`} onClick={() => onDelete(quiz.id)}>Eliminar</button>
+                  <button type="button" aria-label={`Eliminar lección ${quiz.name}`} onClick={() => void handleDelete(quiz.id)}>Eliminar</button>
                 </li>
               ))}
             </ul>

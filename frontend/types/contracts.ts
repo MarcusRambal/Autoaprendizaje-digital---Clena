@@ -6,34 +6,39 @@ export interface User {
 }
 
 export interface Category {
-  id: number;
+  id: number | string;
   title: string;
 }
 
 export type Guide = {
-  id: number;
+  id: number | string;
   title: string;
   file: string | File;
   category: string;
+  categoryId?: number | string;
+  fileUrl?: string | null;
 };
 
 export interface QuizQuestion {
   description: string;
   options: string[];
   correctOptionIndex: number;
+  immediateFeedback: string;
 }
 
 export interface Quiz {
-  id: number;
+  id: number | string;
   name: string;
+  description: string;
   category: string;
+  categoryId?: number | string;
   questions: QuizQuestion[];
 }
 
 export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida';
 
 export interface HelpRequest {
-  id: number;
+  id: number | string;
   requesterName: string;
   topic: string;
   date: string;
