@@ -19,7 +19,7 @@ export class BcryptCredentialHasher implements CredentialHasher {
 
   async verify(plainText: string, hash: string): Promise<boolean> {
     if (Buffer.byteLength(plainText, 'utf8') > MAX_BYTES) {
-      return false;   
+      return false;
     }
     try {
       return await bcrypt.compare(plainText, hash);

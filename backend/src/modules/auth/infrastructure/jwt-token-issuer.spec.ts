@@ -54,11 +54,11 @@ describe('JwtTokenIssuer', () => {
   it('issueRefreshToken expiresAt matches JWT exp', async () => {
     const r = await issuer.issueRefreshToken('u1');
     const decoded = new JwtService().decode<{ exp: number }>(r.token);
-    expect(r.expiresAt.getTime()).toBe(decoded!.exp * 1000);
+    expect(r.expiresAt.getTime()).toBe(decoded.exp * 1000);
     const claims = new JwtService().decode<{ exp: number; iat: number }>(
       r.token,
     );
-    expect(claims!.exp - claims!.iat).toBe(604800);
+    expect(claims.exp - claims.iat).toBe(604800);
   });
 
   it('verifyRefreshToken rejects garbage', async () => {
@@ -74,7 +74,7 @@ describe('JwtTokenIssuer', () => {
     const decoded = new JwtService().decode<{ exp: number; iat: number }>(
       token,
     );
-    expect(decoded!.exp - decoded!.iat).toBe(900);
+    expect(decoded.exp - decoded.iat).toBe(900);
   });
 
   it('rejects TTL values without units', async () => {

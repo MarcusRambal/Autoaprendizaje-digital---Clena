@@ -69,6 +69,28 @@ describe('LogoutUseCase', () => {
     expect(revokedFamilies).toEqual([]);
   });
 
+  it('uses the current time when no clock is injected', async () => {
+    const revokedAt: Date[] = [];
+    const repository = {
+      revokeRefreshSessionFamily: (_familyId: string, at: Date) => {
+        revokedAt.push(at);
+        return Promise.resolve();
+      },
+    } as unknown as AuthRepository;
+    const tokenIssuer = {
+      verifyRefreshToken: () => Promise.resolve(verifiedToken),
+    } as unknown as TokenIssuer;
+    const before = Date.now();
+
+    await new LogoutUseCase(repository, tokenIssuer).execute({
+      refreshToken: 'presented-token',
+    });
+
+    expect(revokedAt).toHaveLength(1);
+    expect(revokedAt[0].getTime()).toBeGreaterThanOrEqual(before);
+    expect(revokedAt[0].getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it('resolves without repository access when no refresh token is supplied', async () => {
     const { useCase, revokedFamilies } = setup();
 
