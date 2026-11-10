@@ -17,10 +17,12 @@ const TTL_PATTERN = /^(?=.*[1-9])\d+(ms|s|m|h|d)$/;
 export class JwtTokenIssuer implements TokenIssuer {
   constructor(
     private readonly config: ConfigService,
-    private readonly jwt: JwtService, 
+    private readonly jwt: JwtService,
   ) {}
 
-  async issueAccessToken(user: Pick<AuthUser, 'id' | 'email' | 'role'>): Promise<string> {
+  async issueAccessToken(
+    user: Pick<AuthUser, 'id' | 'email' | 'role'>,
+  ): Promise<string> {
     return this.jwt.signAsync(
       { email: user.email, role: user.role },
       {
@@ -33,7 +35,10 @@ export class JwtTokenIssuer implements TokenIssuer {
     );
   }
 
-  async issueRefreshToken(userId: string, familyId?: string): Promise<IssuedRefreshToken> {
+  async issueRefreshToken(
+    userId: string,
+    familyId?: string,
+  ): Promise<IssuedRefreshToken> {
     const id = randomUUID();
     const nextFamilyId = familyId ?? randomUUID();
     const token = await this.jwt.signAsync(
@@ -46,7 +51,8 @@ export class JwtTokenIssuer implements TokenIssuer {
         algorithm: 'HS256',
       },
     );
-    const payload = this.jwt.decode(token);
+    // decode() is typed as any; narrow it before reading the expiry.
+    const payload: unknown = this.jwt.decode(token);
     if (
       typeof payload !== 'object' ||
       payload === null ||
@@ -63,13 +69,18 @@ export class JwtTokenIssuer implements TokenIssuer {
     };
   }
 
-  async verifyRefreshToken(token: string): Promise<VerifiedRefreshToken | null> {
+  async verifyRefreshToken(
+    token: string,
+  ): Promise<VerifiedRefreshToken | null> {
     try {
-      const payload = await this.jwt.verifyAsync<Record<string, unknown>>(token, {
-        secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
-        algorithms: ['HS256'],
-        ignoreExpiration: true,
-      });
+      const payload = await this.jwt.verifyAsync<Record<string, unknown>>(
+        token,
+        {
+          secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
+          algorithms: ['HS256'],
+          ignoreExpiration: true,
+        },
+      );
       if (
         typeof payload.sub !== 'string' ||
         typeof payload.jti !== 'string' ||
@@ -78,7 +89,11 @@ export class JwtTokenIssuer implements TokenIssuer {
       ) {
         return null;
       }
-      return { id: payload.jti, userId: payload.sub, familyId: payload.familyId };
+      return {
+        id: payload.jti,
+        userId: payload.sub,
+        familyId: payload.familyId,
+      };
     } catch {
       return null;
     }
@@ -86,10 +101,13 @@ export class JwtTokenIssuer implements TokenIssuer {
 
   async verifyAccessToken(token: string): Promise<VerifiedAccessToken | null> {
     try {
-      const payload = await this.jwt.verifyAsync<Record<string, unknown>>(token, {
-        secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
-        algorithms: ['HS256'],
-      });
+      const payload = await this.jwt.verifyAsync<Record<string, unknown>>(
+        token,
+        {
+          secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
+          algorithms: ['HS256'],
+        },
+      );
       if (
         typeof payload.sub !== 'string' ||
         typeof payload.email !== 'string' ||
@@ -107,7 +125,9 @@ export class JwtTokenIssuer implements TokenIssuer {
     return Promise.resolve(createHash('sha256').update(token).digest('hex'));
   }
 
-  private getTtl(key: 'JWT_ACCESS_TTL' | 'JWT_REFRESH_TTL'): JwtSignOptions['expiresIn'] {
+  private getTtl(
+    key: 'JWT_ACCESS_TTL' | 'JWT_REFRESH_TTL',
+  ): JwtSignOptions['expiresIn'] {
     const raw = this.config.getOrThrow<string>(key);
     if (!TTL_PATTERN.test(raw)) {
       throw new Error(
