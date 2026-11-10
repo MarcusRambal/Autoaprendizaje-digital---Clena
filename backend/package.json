@@ -13,6 +13,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "architecture:check": "depcruise --config .dependency-cruiser.cjs --exclude '.*\\.spec\\.ts$' src",
     "architecture:test-fixture": "node ./test/architecture/check-fixture.cjs",
+    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
