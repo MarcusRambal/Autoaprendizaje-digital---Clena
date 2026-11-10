@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getPage } from './pagination';
+import { getPage } from './paginationUtils';
 
 export function usePagination<T>(items: T[], scope: string) {
   const [selection, setSelection] = useState({ scope, page: 1 });

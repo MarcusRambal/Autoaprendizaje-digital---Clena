@@ -2,7 +2,7 @@ export interface User {
   email: string;
   userRole: 'admin' | 'student';
   token?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Category {

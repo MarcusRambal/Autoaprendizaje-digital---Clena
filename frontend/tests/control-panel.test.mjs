@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { categories, guides, quizzes } from './fixtures/controlPanelData.ts';
 import { matchesSearch } from '../src/features/content-management/searchContent.ts';
-import { getPage, PAGE_SIZE } from '../src/features/content-management/pagination.ts';
+import { getPage, PAGE_SIZE } from '../src/features/content-management/paginationUtils.ts';
 import { isValidQuestion, MAX_QUESTIONS, OPTION_COUNT } from '../src/features/content-management/lessonValidation.ts';
 
 test('los datos simulados son abundantes y mantienen sus relaciones', () => {
