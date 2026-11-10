@@ -41,6 +41,7 @@ async function bootstrap(): Promise<void> {
     .setTitle('CLENA API')
     .setDescription('CLENA digital self-learning API')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
