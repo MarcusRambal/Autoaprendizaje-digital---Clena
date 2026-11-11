@@ -49,9 +49,7 @@ export class UsersController {
       'Paginated, alphabetical by email by default. Optional filters: search (part of the email) and role. Never returns credentials.',
   })
   @ApiOkResponse({ type: UserPageResponseDto })
-  async list(
-    @Query() query: ListUsersQueryDto,
-  ): Promise<UserPageResponseDto> {
+  async list(@Query() query: ListUsersQueryDto): Promise<UserPageResponseDto> {
     return toUserPageResponse(await this.listUsers.execute(query));
   }
 

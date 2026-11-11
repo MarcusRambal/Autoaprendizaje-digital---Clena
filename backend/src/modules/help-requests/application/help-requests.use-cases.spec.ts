@@ -80,12 +80,7 @@ describe('CreateHelpRequestUseCase', () => {
     ['a topic under 3 characters', 'María', 'ab', 'Detalle'],
     ['a topic over 200 characters', 'María', 'x'.repeat(201), 'Detalle'],
     ['an empty description', 'María', 'Correo', '   '],
-    [
-      'a description over 1000 characters',
-      'María',
-      'Correo',
-      'x'.repeat(1001),
-    ],
+    ['a description over 1000 characters', 'María', 'Correo', 'x'.repeat(1001)],
   ])('rejects %s', async (_name, requesterName, topic, description) => {
     const { useCase, received } = setup();
 

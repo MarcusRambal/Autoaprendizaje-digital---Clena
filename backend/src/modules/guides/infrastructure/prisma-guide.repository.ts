@@ -214,9 +214,7 @@ export class PrismaGuideRepository implements GuideRepository {
   private visibility(
     options?: GuideReadOptions,
   ): Pick<Prisma.GuideWhereInput, 'publicationState'> {
-    return options?.includeUnpublished
-      ? {}
-      : { publicationState: 'PUBLISHED' };
+    return options?.includeUnpublished ? {} : { publicationState: 'PUBLISHED' };
   }
 
   private toFileData(file: NewGuideFile) {

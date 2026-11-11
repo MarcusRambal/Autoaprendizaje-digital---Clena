@@ -11,7 +11,6 @@ import { Page } from '../../../../shared/primitives/pagination';
 import { PaginationQueryDto } from '../../../../shared/transport/pagination-query.dto';
 import { HelpRequest } from '../../domain/help-request';
 
-
 export const MANAGED_STATUSES = ['PENDING', 'IN_PROGRESS', 'ATTENDED'] as const;
 
 const trim = ({ value }: { value: unknown }) =>
@@ -66,7 +65,6 @@ export class ListHelpRequestsQueryDto extends PaginationQueryDto {
   @IsIn(MANAGED_STATUSES)
   status?: (typeof MANAGED_STATUSES)[number];
 }
-
 
 export class HelpRequestResponseDto {
   @ApiProperty({ format: 'uuid' })
