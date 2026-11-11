@@ -15,6 +15,9 @@ export interface NewHelpRequest {
 
 export interface ListHelpRequestsQuery extends PageRequest {
   status?: HelpRequestStatus;
+  requester?: string;
+  /** Calendar date in Colombia, formatted as YYYY-MM-DD. */
+  date?: string;
   /** Only the requests made by this account. */
   requesterId?: string;
   order: SortOrder;

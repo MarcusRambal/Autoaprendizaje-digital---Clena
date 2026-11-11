@@ -34,14 +34,18 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
-export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida';
+export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida' | 'Cancelada';
 
 export interface HelpRequest {
-  id: number;
-  requesterName: string;
+  id: number | string;
+  requesterName: string | null;
+  requesterEmail?: string | null;
   topic: string;
+  description?: string;
   date: string;
   status: RequestStatus;
+  createdAt?: string;
+  attendedAt?: string | null;
 }
 
 export interface StatItem {

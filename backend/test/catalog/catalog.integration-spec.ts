@@ -657,10 +657,19 @@ describe('PrismaHelpRequestRepository (PostgreSQL)', () => {
       order: 'asc',
       status: 'PENDING',
     });
+    const filtered = await helpRequests.list({
+      page: 1,
+      pageSize: 100,
+      order: 'asc',
+      status: 'IN_PROGRESS',
+      requester: 'PERSONA 0',
+      date: '2026-06-01',
+    });
 
     expect(mine(all.items)).toEqual(ids);
     expect(mine(desc.items)).toEqual([...ids].reverse());
     expect(mine(pending.items)).toEqual(ids.slice(1));
+    expect(mine(filtered.items)).toEqual([ids[0]]);
     expect(all.total).toBe(await prisma.helpRequest.count());
 
     const first = await helpRequests.list({

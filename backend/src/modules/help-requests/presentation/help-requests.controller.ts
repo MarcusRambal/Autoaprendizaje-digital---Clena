@@ -104,7 +104,7 @@ export class HelpRequestsController {
   @ApiOperation({
     summary: 'List help requests',
     description:
-      'Paginated, oldest first by default, optionally filtered by status.',
+      'Paginated, oldest first by default, optionally filtered by status, requester name or email, and date in Colombia.',
   })
   @ApiOkResponse({ type: HelpRequestPageResponseDto })
   async list(

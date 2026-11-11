@@ -9,7 +9,8 @@
   margin-bottom: 8px;
 }
 
-.request-form {
+.request-form,
+.request-filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   align-items: end;
@@ -17,23 +18,54 @@
   padding: 16px;
   border: 1px solid #dfe3e8;
   border-radius: 8px;
+  background: #fff;
 }
 
 .request-form h2 {
   grid-column: 1 / -1;
 }
 
-.request-form label {
+.request-form label,
+.request-filters label {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .request-form input,
+.request-form textarea,
+.request-filters input,
+.request-filters select,
 .request-table select {
   box-sizing: border-box;
   min-height: 38px;
   padding: 8px;
+}
+
+.request-form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.request-form__description {
+  grid-column: span 2;
+}
+
+.request-form button,
+.request-filter-actions button,
+.request-error button,
+.request-table button {
+  min-height: 38px;
+}
+
+.request-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.request-secondary-button {
+  background: #fff;
 }
 
 .request-error {
@@ -42,8 +74,12 @@
   color: #b42318;
 }
 
-.request-form button {
-  min-height: 38px;
+.request-error p {
+  margin: 0 0 8px;
+}
+
+.request-result-count {
+  margin: 12px 0;
 }
 
 .request-table-wrapper {
@@ -60,8 +96,31 @@
   padding: 10px;
   border-bottom: 1px solid #dfe3e8;
   text-align: left;
+  vertical-align: top;
 }
 
 .request-table th {
   background: #f5f6f8;
+}
+
+.request-table td:first-child strong,
+.request-table td:nth-child(2) strong {
+  display: block;
+}
+
+.requester-email {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.request-description {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 40rem) {
+  .request-form__description {
+    grid-column: 1 / -1;
+  }
 }

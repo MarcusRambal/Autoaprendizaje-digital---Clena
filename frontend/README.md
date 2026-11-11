@@ -44,13 +44,17 @@ requiere una cuenta de usuario público. Los temas de seguridad digital se
 incluyen en las guías.
 
 El catálogo público de guías consulta `/api/v1/guides` y muestra seis guías por
-página. El catálogo de lecciones, el progreso y la solicitud de ayuda siguen
-usando datos de demostración en `services/publicLearning.ts`; no guardan
-progreso ni envían solicitudes. En el panel del personal, las solicitudes,
-estadísticas y lecciones siguen siendo demostraciones en memoria. El formulario
-para preparar usuarios y las acciones de privacidad son demostraciones de
-frontend; el formulario no crea cuentas reales ni se persiste el consentimiento.
-Auditoría y respaldos siguen sin implementarse.
+página. El catálogo de lecciones y el progreso siguen usando datos de demostración en
+`services/publicLearning.ts`; el progreso no se guarda. El formulario de ayuda
+usa `/api/v1/help-requests` para que un usuario autenticado envíe solicitudes y
+consulte su propio historial y estado; las visitas sin sesión deben iniciar
+sesión para usar esa función. En el panel del personal, la gestión de
+solicitudes se conecta a los mismos endpoints: permite registrar, buscar por
+solicitante, filtrar por estado y fecha, actualizar el estado y eliminar. Las
+estadísticas y lecciones del panel siguen siendo demostraciones en memoria. El
+formulario para preparar usuarios y las acciones de privacidad son
+demostraciones de frontend; el formulario no crea cuentas reales ni se persiste
+el consentimiento. Auditoría y respaldos siguen sin implementarse.
 
 La administración de categorías consulta y modifica el endpoint `/api/v1/categories`
 del backend; listar es público y las operaciones de creación, edición y borrado
