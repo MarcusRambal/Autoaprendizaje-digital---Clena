@@ -43,21 +43,24 @@ consultar ejemplos de guías y un cuestionario sin iniciar sesión; el progreso
 requiere una cuenta de usuario público. Los temas de seguridad digital se
 incluyen en las guías.
 
-El catálogo público de guías y lecciones, el progreso y la solicitud de ayuda
-usan datos de demostración en `services/publicLearning.ts`, tras una interfaz
-tipada que se puede implementar con el cliente HTTP cuando estén disponibles
-los endpoints. No guardan progreso ni envían solicitudes. El aviso de
-demostración aparece en cada vista para dejarlo claro. En el panel
-del personal, las solicitudes, estadísticas, edición y publicación también
-son demostraciones en memoria. El formulario para preparar usuarios y las
-acciones de privacidad son demostraciones de frontend; el formulario no crea
-cuentas reales ni se persiste el consentimiento. Auditoría y respaldos siguen
-sin implementarse.
+El catálogo público de guías consulta `/api/v1/guides` y muestra seis guías por
+página. El catálogo de lecciones, el progreso y la solicitud de ayuda siguen
+usando datos de demostración en `services/publicLearning.ts`; no guardan
+progreso ni envían solicitudes. En el panel del personal, las solicitudes,
+estadísticas y lecciones siguen siendo demostraciones en memoria. El formulario
+para preparar usuarios y las acciones de privacidad son demostraciones de
+frontend; el formulario no crea cuentas reales ni se persiste el consentimiento.
+Auditoría y respaldos siguen sin implementarse.
 
 La administración de categorías consulta y modifica el endpoint `/api/v1/categories`
 del backend; listar es público y las operaciones de creación, edición y borrado
-requieren una sesión de `ADMIN`. El panel de guías y lecciones permanece en modo
-demostración y no persiste cambios.
+requieren una sesión de `ADMIN`.
+
+El catálogo público consulta `/api/v1/guides`; la gestión del personal usa
+`/api/v1/guides/manage` para listar borradores y guías publicadas. Ambas listas
+muestran seis guías por página. El personal puede crear, editar, publicar,
+despublicar y eliminar guías mediante los endpoints existentes; el PDF se envía
+como archivo y se abre desde el endpoint protegido correspondiente.
 
 La administración de usuarios consulta `/api/v1/users` y permite buscar por
 correo, filtrar por rol y eliminar cuentas; estas operaciones requieren una
@@ -65,7 +68,7 @@ sesión de `ADMIN`. La eliminación de cuentas administradoras está protegida p
 el backend.
 
 Las restricciones del frontend no sustituyen la autorización del backend. Los
-endpoints de categorías y usuarios aplican sus propios controles de roles.
+endpoints de categorías, guías y usuarios aplican sus propios controles de roles.
 
 El token de acceso se mantiene en memoria y el refresh token en `sessionStorage`
 para recuperar la sesión al recargar la misma pestaña. La renovación rota el

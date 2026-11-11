@@ -11,10 +11,14 @@ export interface Category {
 }
 
 export type Guide = {
-  id: number;
+  id: number | string;
   title: string;
-  file: string | File;
+  file: string | File | null;
   category: string;
+  categoryId?: string;
+  fileUrl?: string | null;
+  publicationState?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  createdAt?: string;
 };
 
 export interface QuizQuestion {

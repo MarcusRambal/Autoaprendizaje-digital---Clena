@@ -2,6 +2,13 @@ import './ControlPanel.css';
 import { useEffect, useState } from 'react';
 import type { Category, Guide, Quiz } from '../../../types/contracts';
 import { createCategory, deleteCategory, listCategories, renameCategory } from '../../../services/categoriesApi';
+import {
+  createManagedGuide,
+  deleteManagedGuide,
+  listManagedGuides,
+  setManagedGuidePublication,
+  updateManagedGuide,
+} from '../../../services/guidesApi';
 import { EditCategoriesPanel } from './EditCategoriesPanel';
 import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
@@ -59,20 +66,42 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) => {
-  const usesBackendCategories = mode === 'categories' && initialData === undefined;
+  const usesBackendCategories =
+    (mode === 'categories' || mode === 'content') && initialData === undefined;
+  const usesBackendGuides = mode === 'content' && initialData === undefined;
   const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>(mode === 'categories' ? 'categories' : 'guides');
   const [categories, setCategories] = useState<Category[]>(initialData?.categories ?? (usesBackendCategories ? [] : initialCategories));
-  const [guides, setGuides] = useState<Guide[]>(initialData?.guides ?? initialGuides);
+  const [guides, setGuides] = useState<Guide[]>(initialData?.guides ?? (usesBackendGuides ? [] : initialGuides));
   const [quizzes, setQuizzes] = useState<Quiz[]>(initialData?.quizzes ?? []);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesLoading, setCategoriesLoading] = useState(usesBackendCategories);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [publishedGuides, setPublishedGuides] = useState<number[]>([]);
+  const [guidesLoading, setGuidesLoading] = useState(usesBackendGuides);
+  const [guidesError, setGuidesError] = useState<string | null>(null);
+  const [guidesTotal, setGuidesTotal] = useState(0);
+  const [guidePage, setGuidePage] = useState(1);
+  const [guideTotalPages, setGuideTotalPages] = useState(1);
+  const [guideReload, setGuideReload] = useState(0);
+  const [publicationError, setPublicationError] = useState<string | null>(null);
+  const [publishingGuideId, setPublishingGuideId] = useState<Guide['id'] | null>(null);
+  const [publishedGuides, setPublishedGuides] = useState<Guide['id'][]>([]);
   const [publishedQuizzes, setPublishedQuizzes] = useState<number[]>([]);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
   const filteredQuizzes = quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category));
   const guidePublicationPages = usePagination(filteredGuides, searchQuery);
   const quizPublicationPages = usePagination(filteredQuizzes, searchQuery);
+  const guidePagination = {
+    page: guidePage,
+    totalPages: guideTotalPages,
+    setPage: (page: number) => {
+      setGuidesLoading(true);
+      setGuidesError(null);
+      setGuidePage(page);
+    },
+  };
+  const guidePublicationItems = usesBackendGuides
+    ? filteredGuides
+    : guidePublicationPages.items;
 
   const loadCategories = async () => {
     setCategoriesLoading(true);
@@ -103,6 +132,53 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
       active = false;
     };
   }, [usesBackendCategories]);
+
+  useEffect(() => {
+    if (!usesBackendGuides) return;
+    let active = true;
+    let correctedPage = false;
+    listManagedGuides({ page: guidePage, search: searchQuery })
+      .then(response => {
+        if (!active) return;
+        setGuidesTotal(response.total);
+        const safeTotalPages = Math.max(1, response.totalPages);
+        setGuideTotalPages(safeTotalPages);
+        if (guidePage > safeTotalPages) {
+          correctedPage = true;
+          setGuidePage(safeTotalPages);
+          return;
+        }
+        setGuides(response.items);
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setGuidesError(reason instanceof Error
+            ? reason.message
+            : 'No se pudieron cargar las guías. Inténtalo de nuevo.');
+        }
+      })
+      .finally(() => {
+        if (active && !correctedPage) setGuidesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [guidePage, guideReload, searchQuery, usesBackendGuides]);
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    if (usesBackendGuides) {
+      setGuidePage(1);
+      setGuidesLoading(true);
+      setGuidesError(null);
+    }
+  };
+
+  const reloadManagedGuides = () => {
+    setGuidesLoading(true);
+    setGuidesError(null);
+    setGuideReload(current => current + 1);
+  };
 
   const handleCreateCategory = async (title: string) => {
     if (usesBackendCategories) {
@@ -159,19 +235,89 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
     return null;
   };
 
-  const handleCreateGuide = (guide: Omit<Guide, 'id'>) => {
+  const canManageGuides = !usesBackendGuides || (!categoriesLoading && !categoriesError);
+
+  const handleCreateGuide = async (guide: Omit<Guide, 'id'>) => {
+    if (usesBackendGuides) {
+      const categoryId =
+        guide.categoryId ??
+        categories.find(category => category.title === guide.category)?.id;
+      if (!categoryId || !(guide.file instanceof File)) {
+        throw new Error('Selecciona una categoría y adjunta un archivo PDF válido.');
+      }
+      await createManagedGuide({
+        title: guide.title,
+        categoryId,
+        file: guide.file,
+      });
+      setGuidePage(1);
+      reloadManagedGuides();
+      return;
+    }
     setGuides(current => [...current, { ...guide, id: nextId(current) }]);
   };
 
-  const handleSaveGuide = (updatedGuide: Guide) => {
+  const handleSaveGuide = async (updatedGuide: Guide) => {
+    if (usesBackendGuides) {
+      const categoryId =
+        updatedGuide.categoryId ??
+        categories.find(category => category.title === updatedGuide.category)?.id;
+      if (typeof updatedGuide.id !== 'string' || !categoryId) {
+        throw new Error('Selecciona una categoría válida para la guía.');
+      }
+      const saved = await updateManagedGuide({
+        id: updatedGuide.id,
+        title: updatedGuide.title,
+        categoryId,
+        ...(updatedGuide.file instanceof File ? { file: updatedGuide.file } : {}),
+      });
+      setGuides(current =>
+        current.map(guide => guide.id === saved.id ? saved : guide)
+      );
+      return;
+    }
     setGuides(current =>
       current.map(guide => guide.id === updatedGuide.id ? updatedGuide : guide)
     );
   };
 
-  const handleDeleteGuide = (guideId: number) => {
+  const handleDeleteGuide = async (guideId: Guide['id']) => {
+    if (usesBackendGuides) {
+      if (typeof guideId !== 'string') {
+        throw new Error('No se pudo identificar la guía que quieres eliminar.');
+      }
+      await deleteManagedGuide(guideId);
+      setGuides(current => current.filter(guide => guide.id !== guideId));
+      setGuidesTotal(current => Math.max(0, current - 1));
+      reloadManagedGuides();
+      return;
+    }
     setGuides(current => current.filter(guide => guide.id !== guideId));
     setPublishedGuides(current => current.filter(id => id !== guideId));
+  };
+
+  const handleGuidePublication = async (guide: Guide) => {
+    if (!usesBackendGuides || typeof guide.id !== 'string') {
+      setPublishedGuides(current => togglePublished(current, guide.id));
+      return;
+    }
+    setPublicationError(null);
+    setPublishingGuideId(guide.id);
+    try {
+      const updated = await setManagedGuidePublication(
+        guide.id,
+        guide.publicationState !== 'PUBLISHED',
+      );
+      setGuides(current =>
+        current.map(item => item.id === updated.id ? updated : item)
+      );
+    } catch (reason) {
+      setPublicationError(reason instanceof Error
+        ? reason.message
+        : 'No se pudo actualizar la publicación de la guía.');
+    } finally {
+      setPublishingGuideId(null);
+    }
   };
 
   const handleCreateQuiz = (quiz: Omit<Quiz, 'id'>) => {
@@ -194,8 +340,10 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
       <header className="control-panel-header">
         <h1>{mode === 'categories' ? 'Categorías' : mode === 'content' ? 'Guías y lecciones' : 'Panel de control'}</h1>
         <p>{mode === 'categories' ? 'Organiza las categorías de la plataforma.' : mode === 'content' ? 'Organiza las guías y lecciones de la plataforma.' : 'Organiza las categorías, guías y lecciones de la plataforma.'}</p>
-        {usesBackendCategories
-          ? <p role="status">Las categorías se cargan y guardan en el servidor.</p>
+        {usesBackendGuides
+          ? <p role="status">Las guías se consultan y administran desde el servidor.</p>
+          : usesBackendCategories
+            ? <p role="status">Las categorías se cargan y guardan en el servidor.</p>
           : <p role="status"><strong>Demostración:</strong> los datos son de prueba y los cambios no se guardan en el servidor.</p>}
       </header>
       <div className="control-panel-toolbar">
@@ -231,9 +379,9 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
             <input
               id="control-panel-search"
               type="search"
-              placeholder="Buscar por nombre o categoría"
+              placeholder={usesBackendGuides ? 'Buscar guía por título' : 'Buscar por nombre o categoría'}
               value={searchQuery}
-              onChange={event => setSearchQuery(event.target.value)}
+              onChange={event => handleSearchChange(event.target.value)}
             />
             {searchQuery && (
               <button type="button" onClick={() => setSearchQuery('')}>Limpiar búsqueda</button>
@@ -260,44 +408,74 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
                 />}
         </div>}
         {mode !== 'categories' && <div hidden={activeSection !== 'guides'}>
-          <EditGuidesPanel
-            categories={categories}
-            guides={guides}
-            searchQuery={searchQuery}
-            onCreate={handleCreateGuide}
-            onSave={handleSaveGuide}
-            onDelete={handleDeleteGuide}
-          />
+          {usesBackendGuides && categoriesLoading && <p role="status">Cargando categorías…</p>}
+          {usesBackendGuides && categoriesError && (
+            <div role="alert">
+              <p>{categoriesError}</p>
+              <button type="button" onClick={loadCategories}>Reintentar</button>
+            </div>
+          )}
+          {usesBackendGuides && guidesLoading && <p role="status">Cargando guías…</p>}
+          {usesBackendGuides && guidesError && (
+            <div role="alert">
+              <p>{guidesError}</p>
+              <button type="button" onClick={reloadManagedGuides}>Reintentar</button>
+            </div>
+          )}
+          {canManageGuides && (
+            <EditGuidesPanel
+              categories={categories}
+              guides={guides}
+              searchQuery={searchQuery}
+              totalGuides={usesBackendGuides ? guidesTotal : undefined}
+              serverPagination={usesBackendGuides ? guidePagination : undefined}
+              onCreate={handleCreateGuide}
+              onSave={handleSaveGuide}
+              onDelete={handleDeleteGuide}
+            />
+          )}
           {mode === 'content' && (
             <section className="guide-publication-panel" aria-labelledby="guide-publication-title">
               <h2 id="guide-publication-title">Estado de publicación de guías</h2>
-              <p>Estos cambios son locales y no publican contenido en el catálogo.</p>
-              {filteredGuides.length > 0 ? (
+              <p>{usesBackendGuides ? 'El estado de publicación se guarda en el servidor.' : 'Estos cambios son locales y no publican contenido en el catálogo.'}</p>
+              {publicationError && <p role="alert">{publicationError}</p>}
+              {guidePublicationItems.length > 0 ? (
                 <ul className="guide-publication-list">
-                {guidePublicationPages.items.map(guide => {
-                  const isPublished = publishedGuides.includes(guide.id);
+                {guidePublicationItems.map(guide => {
+                  const isPublished = usesBackendGuides
+                    ? guide.publicationState === 'PUBLISHED'
+                    : publishedGuides.includes(guide.id);
+                  const publicationLabel = usesBackendGuides
+                    ? guide.publicationState === 'ARCHIVED' ? 'Archivada' : isPublished ? 'Publicada' : 'Borrador'
+                    : isPublished ? 'Publicada · demostración' : 'Borrador · demostración';
                   return (
                   <li key={guide.id}>
                     <span className="guide-publication-info">
                       <strong>{guide.title}</strong>
                       <span className={`guide-publication-status ${isPublished ? 'is-published' : 'is-draft'}`}>
-                        {isPublished ? 'Publicada · demostración' : 'Borrador · demostración'}
+                        {publicationLabel}
                       </span>
                     </span>
                     <button
                       type="button"
                       aria-pressed={isPublished}
                       aria-label={`${isPublished ? 'Despublicar' : 'Publicar'} ${guide.title}`}
-                      onClick={() => setPublishedGuides(current => togglePublished(current, guide.id))}
+                      disabled={publishingGuideId === guide.id}
+                      onClick={() => handleGuidePublication(guide)}
                     >
-                      {isPublished ? 'Despublicar' : 'Publicar'}
+                      {publishingGuideId === guide.id
+                        ? 'Guardando…'
+                        : isPublished ? 'Despublicar' : 'Publicar'}
                     </button>
                   </li>
                   );
                 })}
                 </ul>
-              ) : <p role="status">No hay guías que coincidan con esta búsqueda.</p>}
-              <Pagination {...guidePublicationPages} label="Páginas de publicación de guías" />
+              ) : <p role="status">{searchQuery ? 'No hay guías que coincidan con esta búsqueda.' : 'No hay guías para publicar.'}</p>}
+              <Pagination
+                {...(usesBackendGuides ? guidePagination : guidePublicationPages)}
+                label="Páginas de publicación de guías"
+              />
             </section>
           )}
         </div>}
