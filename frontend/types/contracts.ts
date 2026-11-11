@@ -6,15 +6,19 @@ export interface User {
 }
 
 export interface Category {
-  id: number;
+  id: string;
   title: string;
 }
 
 export type Guide = {
-  id: number;
+  id: number | string;
   title: string;
-  file: string | File;
+  file: string | File | null;
   category: string;
+  categoryId?: string;
+  fileUrl?: string | null;
+  publicationState?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  createdAt?: string;
 };
 
 export interface QuizQuestion {
@@ -30,14 +34,18 @@ export interface Quiz {
   questions: QuizQuestion[];
 }
 
-export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida';
+export type RequestStatus = 'Pendiente' | 'En Atención' | 'Atendida' | 'Cancelada';
 
 export interface HelpRequest {
-  id: number;
-  requesterName: string;
+  id: number | string;
+  requesterName: string | null;
+  requesterEmail?: string | null;
   topic: string;
+  description?: string;
   date: string;
   status: RequestStatus;
+  createdAt?: string;
+  attendedAt?: string | null;
 }
 
 export interface StatItem {

@@ -39,9 +39,40 @@ export class PrismaHelpRequestRepository implements HelpRequestRepository {
   }
 
   async list(query: ListHelpRequestsQuery): Promise<HelpRequestPage> {
+    const dateStart = query.date
+      ? new Date(`${query.date}T00:00:00-05:00`)
+      : undefined;
+    const dateEnd = dateStart
+      ? new Date(dateStart.getTime() + 24 * 60 * 60 * 1000)
+      : undefined;
     const where: Prisma.HelpRequestWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.requesterId ? { requesterId: query.requesterId } : {}),
+      ...(query.requester
+        ? {
+            OR: [
+              {
+                requesterName: {
+                  contains: query.requester,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                requester: {
+                  is: {
+                    email: {
+                      contains: query.requester,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(dateStart && dateEnd
+        ? { createdAt: { gte: dateStart, lt: dateEnd } }
+        : {}),
     };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.helpRequest.count({ where }),

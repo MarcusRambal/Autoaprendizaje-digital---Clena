@@ -363,6 +363,58 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     });
   });
 
+  it('searches guide titles and category names without case or Spanish accent differences', async () => {
+    const created = await guides.create({
+      title: `Cómo crear un perfil en una red social ${run}`,
+      categoryId,
+      file: { originalName: 'perfil.pdf', content: pdf('perfil') },
+    });
+    if (created.kind !== 'created') {
+      throw new Error('unreachable');
+    }
+
+    const result = await guides.list({
+      page: 1,
+      pageSize: 6,
+      categoryId,
+      search: `COMO CREAR UN PERFIL EN UNA RED SOCIAL ${run}`,
+      order: 'desc',
+    });
+
+    expect(result.items.map(({ id }) => id)).toContain(created.guide.id);
+
+    const categoryResult = await guides.list({
+      page: 1,
+      pageSize: 100,
+      search: `GUIASA ${run}`,
+      order: 'desc',
+    });
+
+    expect(categoryResult.items.map(({ id }) => id)).toContain(
+      created.guide.id,
+    );
+
+    const distinctLetter = await prisma.guide.create({
+      data: {
+        title: `Año de aprendizaje ${run}`,
+        slug: `ano-de-aprendizaje-${run}`,
+        publicationState: 'PUBLISHED',
+        categoryId,
+      },
+    });
+    const differentWord = await guides.list({
+      page: 1,
+      pageSize: 6,
+      categoryId,
+      search: `Ano de aprendizaje ${run}`,
+      order: 'desc',
+    });
+
+    expect(differentWord.items.map(({ id }) => id)).not.toContain(
+      distinctLetter.id,
+    );
+  });
+
   it('finds published guides and their PDF, but not drafts or missing files', async () => {
     const created = await guides.create({
       title: `Con PDF ${run}`,
@@ -616,10 +668,19 @@ describe('PrismaHelpRequestRepository (PostgreSQL)', () => {
       order: 'asc',
       status: 'PENDING',
     });
+    const filtered = await helpRequests.list({
+      page: 1,
+      pageSize: 100,
+      order: 'asc',
+      status: 'IN_PROGRESS',
+      requester: 'PERSONA 0',
+      date: '2026-06-01',
+    });
 
     expect(mine(all.items)).toEqual(ids);
     expect(mine(desc.items)).toEqual([...ids].reverse());
     expect(mine(pending.items)).toEqual(ids.slice(1));
+    expect(mine(filtered.items)).toEqual([ids[0]]);
     expect(all.total).toBe(await prisma.helpRequest.count());
 
     const first = await helpRequests.list({

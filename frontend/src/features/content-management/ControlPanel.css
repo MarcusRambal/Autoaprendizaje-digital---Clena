@@ -44,10 +44,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin: 0;
 }
 
 .control-panel-search-controls input {
   flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.control-panel-search-controls button {
+  flex: 0 0 auto;
 }
 
 .control-panel [hidden] {
@@ -181,6 +187,18 @@
 
 .guide-publication-status.is-draft {
   color: #674915;
+}
+
+@media (max-width: 40rem) {
+  .control-panel-search {
+    flex-basis: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .control-panel-search-controls input {
+    flex-basis: 100%;
+  }
 }
 
 @media (max-width: 40rem) {

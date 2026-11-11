@@ -81,10 +81,12 @@ export class PrismaGuideRepository implements GuideRepository {
         ? { publicationState: query.publicationState }
         : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-      ...(query.search
-        ? { title: { contains: query.search, mode: 'insensitive' as const } }
-        : {}),
     };
+
+    if (query.search) {
+      return this.listByTitleOrCategorySearch(query, where);
+    }
+
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.guide.count({ where }),
       this.prisma.guide.findMany({
@@ -96,6 +98,60 @@ export class PrismaGuideRepository implements GuideRepository {
       }),
     ]);
     return { items: rows.map((row) => this.toGuide(row)), total };
+  }
+
+  private async listByTitleOrCategorySearch(
+    query: ListGuidesQuery,
+    where: Prisma.GuideWhereInput,
+  ): Promise<GuidePage> {
+    const filters = [
+      query.publicationState
+        ? Prisma.sql`"Guide"."publicationState" = ${query.publicationState}::"PublicationState"`
+        : Prisma.sql`TRUE`,
+      query.categoryId
+        ? Prisma.sql`"Guide"."categoryId" = ${query.categoryId}::uuid`
+        : Prisma.sql`TRUE`,
+      Prisma.sql`(
+        translate(lower("Guide"."title"), 'áéíóúü', 'aeiouu')
+          LIKE '%' || translate(lower(${query.search}), 'áéíóúü', 'aeiouu') || '%'
+        OR translate(lower("Category"."name"), 'áéíóúü', 'aeiouu')
+          LIKE '%' || translate(lower(${query.search}), 'áéíóúü', 'aeiouu') || '%'
+      )`,
+    ];
+    const sqlWhere = Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`;
+    const direction =
+      query.order === 'asc' ? Prisma.sql`ASC` : Prisma.sql`DESC`;
+
+    return this.prisma.$transaction(async (transaction) => {
+      const [count] = await transaction.$queryRaw<Array<{ total: number }>>`
+        SELECT COUNT(*)::int AS total
+        FROM "Guide"
+        INNER JOIN "Category" ON "Category"."id" = "Guide"."categoryId"
+        ${sqlWhere}
+      `;
+      const matchingIds = await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT "Guide"."id"
+        FROM "Guide"
+        INNER JOIN "Category" ON "Category"."id" = "Guide"."categoryId"
+        ${sqlWhere}
+        ORDER BY "Guide"."createdAt" ${direction}, "Guide"."id" ${direction}
+        OFFSET ${(query.page - 1) * query.pageSize}
+        LIMIT ${query.pageSize}
+      `;
+      const rows = await transaction.guide.findMany({
+        where: {
+          ...where,
+          id: { in: matchingIds.map(({ id }) => id) },
+        },
+        select: guideSelect,
+        orderBy: [{ createdAt: query.order }, { id: query.order }],
+      });
+
+      return {
+        items: rows.map((row) => this.toGuide(row)),
+        total: count.total,
+      };
+    });
   }
 
   async findById(

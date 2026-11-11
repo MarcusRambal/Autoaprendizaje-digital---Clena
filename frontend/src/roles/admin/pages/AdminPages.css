@@ -21,6 +21,73 @@
   border-radius: 0.8rem;
   background: #fff;
 }
+.user-directory, .user-create-section {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  border: 1px solid #e4d9df;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+.user-directory > header { display: grid; gap: 0.4rem; }
+.user-directory > header :is(h2, p), .user-create-section > h2 { margin: 0; }
+.user-directory > header h2, .user-create-section > h2 { color: #652e4e; font-size: 1.4rem; }
+.user-filter-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+  align-items: end;
+  gap: 0.75rem;
+}
+.user-filter-field { display: grid; gap: 0.35rem; min-width: 0; }
+.admin-page .user-filter-actions {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.admin-page .user-filter-actions button,
+.admin-page .user-account-delete,
+.admin-page .user-directory [role="alert"] button {
+  min-height: 2.8rem;
+  padding: 0.55rem 0.9rem;
+  border: 2px solid #652e4e;
+  border-radius: 0.55rem;
+  background: #652e4e;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.admin-page .user-filter-actions .user-filter-clear {
+  background: #fff;
+  color: #652e4e;
+}
+.admin-page .user-account-delete { background: #a32121; border-color: #a32121; }
+.admin-page .user-filter-actions button:disabled,
+.admin-page .user-account-delete:disabled { opacity: 0.65; cursor: not-allowed; }
+.user-directory-count { margin: 0; color: #51434c; }
+.user-account-list { display: grid; gap: 0.65rem; }
+.user-account-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e4d9df;
+  border-radius: 0.65rem;
+  background: #fbf9fa;
+}
+.user-account-details { display: grid; gap: 0.25rem; overflow-wrap: anywhere; }
+.user-account-protected { color: #a32121; font-weight: 700; }
+.admin-page .user-directory [role="alert"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.admin-page .user-directory [role="alert"] p { margin: 0; }
 .privacy-section h2, .privacy-section p, .admin-form p { margin: 0; }
 .admin-form label { font-weight: 700; }
 .admin-form input:not([type="checkbox"]), .admin-form select {
@@ -61,3 +128,11 @@
 .admin-demo-users { display: grid; gap: 0.5rem; padding-left: 1.5rem; overflow-wrap: anywhere; }
 .privacy-page .consent-notice { padding: 1rem; border: 1px solid #cbb8c2; border-radius: 0.5rem; background: #faf8f9; }
 .privacy-page .consent-notice p + p { margin-top: 0.75rem; }
+
+@media (max-width: 42rem) {
+  .user-filter-form { grid-template-columns: minmax(0, 1fr); }
+  .admin-page .user-filter-actions { grid-column: auto; }
+  .admin-page .user-filter-actions button { flex: 1 1 auto; }
+  .user-account-card { align-items: flex-start; }
+  .admin-page .user-account-delete { width: 100%; }
+}

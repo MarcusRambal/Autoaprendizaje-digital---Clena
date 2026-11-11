@@ -204,6 +204,8 @@ describe('ListHelpRequestsUseCase', () => {
       page: 1,
       pageSize: 20,
       status: undefined,
+      requester: undefined,
+      date: undefined,
       order: 'asc',
     });
     expect(result).toMatchObject({ page: 1, pageSize: 20, totalPages: 1 });
@@ -223,9 +225,27 @@ describe('ListHelpRequestsUseCase', () => {
       page: 2,
       pageSize: 100,
       status: 'IN_PROGRESS',
+      requester: undefined,
+      date: undefined,
       order: 'desc',
     });
     expect(result.totalPages).toBe(1);
+  });
+
+  it('passes trimmed requester and Colombia date filters through', async () => {
+    const { useCase, queries } = setup(1);
+
+    await useCase.execute({
+      requester: ' María ',
+      date: '2026-11-09',
+      status: 'PENDING',
+    });
+
+    expect(queries[0]).toMatchObject({
+      requester: 'María',
+      date: '2026-11-09',
+      status: 'PENDING',
+    });
   });
 });
 

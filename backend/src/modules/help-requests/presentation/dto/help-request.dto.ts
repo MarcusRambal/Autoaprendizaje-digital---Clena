@@ -1,9 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsDateString,
   IsIn,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -64,6 +66,25 @@ export class ListHelpRequestsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(MANAGED_STATUSES)
   status?: (typeof MANAGED_STATUSES)[number];
+
+  @ApiPropertyOptional({
+    maxLength: 100,
+    description: 'Case-insensitive search in requester name or email',
+  })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(100)
+  requester?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-11-09',
+    description: 'Filter by the request date in Colombia (YYYY-MM-DD)',
+  })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  date?: string;
 }
 
 export class HelpRequestResponseDto {

@@ -46,7 +46,7 @@
   font-size: clamp(1rem, 1.8vw, 1.6rem);
 }
 
-.admin-layout .navBar-logo a {
+.admin-layout .navBar-logo :is(a, span) {
   display: inline-flex;
   align-items: center;
   min-height: 3rem;

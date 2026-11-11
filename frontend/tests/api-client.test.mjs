@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { apiClient } from "../services/apiClient.ts";
+import { apiBlobClient, apiClient } from "../services/apiClient.ts";
 import { AuthError } from "../services/authApi.ts";
 import { tokenManager } from "../services/tokenManager.ts";
 
@@ -116,4 +116,19 @@ test("returns undefined for a successful 204 response", async (t) => {
   );
 
   assert.equal(await apiClient("/resource", { method: "DELETE" }), undefined);
+});
+
+test("returns binary responses without parsing them as JSON", async (t) => {
+  resetTokenManager();
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async () => new Response(new Uint8Array([37, 80, 68, 70, 45]), {
+      headers: { "Content-Type": "application/pdf" },
+    }),
+  );
+
+  const file = await apiBlobClient("/guides/guide-id/file");
+  assert.equal(file.type, "application/pdf");
+  assert.deepEqual([...new Uint8Array(await file.arrayBuffer())], [37, 80, 68, 70, 45]);
 });

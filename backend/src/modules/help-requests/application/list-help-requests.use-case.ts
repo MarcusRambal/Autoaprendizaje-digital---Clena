@@ -9,6 +9,8 @@ import { HelpRequestRepository } from '../domain/help-request.repository';
 
 export interface ListHelpRequestsInput {
   status?: HelpRequestStatus;
+  requester?: string;
+  date?: string;
   order?: SortOrder;
   page?: number;
   pageSize?: number;
@@ -22,6 +24,8 @@ export class ListHelpRequestsUseCase {
     const { items, total } = await this.repository.list({
       ...request,
       status: input.status,
+      requester: input.requester?.trim() || undefined,
+      date: input.date,
       // Oldest first by default: it is the attention queue for the staff.
       order: input.order ?? 'asc',
     });
