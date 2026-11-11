@@ -112,3 +112,91 @@ describe('PrismaUserRepository', () => {
     expect(tx.refreshSession.updateMany).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaUserRepository.list', () => {
+  const createdAt = new Date('2026-11-09T10:00:00.000Z');
+
+  function setup() {
+    const prismaMock = {
+      user: {
+        count: jest.fn().mockResolvedValue(2),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'user-1',
+            email: 'ana@example.com',
+            role: 'STAFF',
+            status: 'ACTIVE',
+            createdAt,
+          },
+        ]),
+      },
+      $transaction: jest.fn((operations: Array<Promise<unknown>>) =>
+        Promise.all(operations),
+      ),
+    };
+    return {
+      repository: new PrismaUserRepository(
+        prismaMock as unknown as PrismaService,
+      ),
+      prismaMock,
+    };
+  }
+
+  it('pages without filters and never selects the password hash', async () => {
+    const { repository, prismaMock } = setup();
+
+    await expect(
+      repository.list({ page: 3, pageSize: 10, order: 'asc' }),
+    ).resolves.toEqual({
+      items: [
+        {
+          id: 'user-1',
+          email: 'ana@example.com',
+          role: 'STAFF',
+          status: 'ACTIVE',
+          createdAt,
+        },
+      ],
+      total: 2,
+    });
+
+    expect(prismaMock.user.count).toHaveBeenCalledWith({ where: {} });
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+      where: {},
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: [{ email: 'asc' }, { id: 'asc' }],
+      skip: 20,
+      take: 10,
+    });
+  });
+
+  it('filters by role and by a case-insensitive email fragment', async () => {
+    const { repository, prismaMock } = setup();
+
+    await repository.list({
+      page: 1,
+      pageSize: 20,
+      order: 'desc',
+      role: 'PUBLIC_USER',
+      search: 'ANA',
+    });
+
+    const where = {
+      role: 'PUBLIC_USER',
+      email: { contains: 'ANA', mode: 'insensitive' },
+    };
+    expect(prismaMock.user.count).toHaveBeenCalledWith({ where });
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where,
+        orderBy: [{ email: 'desc' }, { id: 'desc' }],
+      }),
+    );
+  });
+});
