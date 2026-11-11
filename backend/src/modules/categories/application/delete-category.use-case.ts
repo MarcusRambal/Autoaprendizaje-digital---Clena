@@ -17,7 +17,7 @@ export class DeleteCategoryUseCase {
       throw new CategoryApplicationError(
         409,
         'CATEGORY_IN_USE',
-        'The category has guides or activities and cannot be deleted',
+        'The category has guides or activities. Reassign them to another category before deleting it',
       );
     }
   }
