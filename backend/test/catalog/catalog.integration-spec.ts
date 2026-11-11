@@ -233,6 +233,53 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     expect(new Set(rows.map((row) => row.slug)).size).toBe(2);
   });
 
+  it('hides unpublished guides from public reads but not from staff reads', async () => {
+    const created = await guides.create({
+      title: `Para despublicar ${run}`,
+      categoryId,
+      file: { originalName: 'd.pdf', content: pdf('d') },
+    });
+    if (created.kind !== 'created') {
+      throw new Error('unreachable');
+    }
+    const { id } = created.guide;
+    const listIds = async (publicationState?: 'PUBLISHED' | 'DRAFT') =>
+      (
+        await guides.list({
+          page: 1,
+          pageSize: 100,
+          order: 'desc',
+          categoryId,
+          publicationState,
+        })
+      ).items.map((item) => item.id);
+
+    const unpublished = await guides.setPublication(id, 'DRAFT');
+    expect(unpublished).toMatchObject({
+      kind: 'updated',
+      guide: { id, publicationState: 'DRAFT' },
+    });
+
+    await expect(guides.findById(id)).resolves.toBeNull();
+    await expect(guides.findFile(id)).resolves.toBeNull();
+    expect(await listIds('PUBLISHED')).not.toContain(id);
+    await expect(
+      guides.findById(id, { includeUnpublished: true }),
+    ).resolves.toMatchObject({ id, publicationState: 'DRAFT' });
+    await expect(
+      guides.findFile(id, { includeUnpublished: true }),
+    ).resolves.toMatchObject({ fileName: 'd.pdf' });
+    expect(await listIds()).toContain(id);
+    expect(await listIds('DRAFT')).toContain(id);
+
+    await guides.setPublication(id, 'PUBLISHED');
+    await expect(guides.findById(id)).resolves.toMatchObject({ id });
+    expect(await listIds('PUBLISHED')).toContain(id);
+    await expect(
+      guides.setPublication(randomUUID(), 'DRAFT'),
+    ).resolves.toEqual({ kind: 'not-found' });
+  });
+
   it('reports a missing category without creating anything', async () => {
     const before = await prisma.guide.count();
 
@@ -479,17 +526,56 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
 describe('PrismaHelpRequestRepository (PostgreSQL)', () => {
   it('creates a PENDING request with the name and topic', async () => {
     const created = await helpRequests.create({
+      requesterId: null,
       requesterName: `María ${run}`,
       topic: `Correo ${run}`,
+      description: `No puedo entrar a mi correo ${run}`,
     });
 
     expect(created).toMatchObject({
       requesterName: `María ${run}`,
+      requesterEmail: null,
       topic: `Correo ${run}`,
+      description: `No puedo entrar a mi correo ${run}`,
       status: 'PENDING',
       attendedById: null,
       attendedAt: null,
     });
+  });
+
+  it('links a request to its account and lists only the requests of one account', async () => {
+    const owner = await newUser('owner-hr');
+    const other = await newUser('other-hr');
+    const ownRequest = await helpRequests.create({
+      requesterId: owner.id,
+      requesterName: 'Dueña',
+      topic: `Propia ${run}`,
+      description: 'Mi solicitud',
+    });
+    await helpRequests.create({
+      requesterId: other.id,
+      requesterName: 'Otra',
+      topic: `Ajena ${run}`,
+      description: 'La de otra persona',
+    });
+
+    expect(ownRequest.requesterEmail).toBe(`owner-hr-${run}@example.com`);
+
+    const mine = await helpRequests.list({
+      page: 1,
+      pageSize: 20,
+      order: 'desc',
+      requesterId: owner.id,
+    });
+    expect(mine.total).toBe(1);
+    expect(mine.items.map((item) => item.id)).toEqual([ownRequest.id]);
+
+    await expect(helpRequests.findById(ownRequest.id)).resolves.toMatchObject({
+      id: ownRequest.id,
+      requesterEmail: `owner-hr-${run}@example.com`,
+      description: 'Mi solicitud',
+    });
+    await expect(helpRequests.findById(randomUUID())).resolves.toBeNull();
   });
 
   it('filters by status and orders and paginates without gaps', async () => {
@@ -548,8 +634,10 @@ describe('PrismaHelpRequestRepository (PostgreSQL)', () => {
   it('records who attended and when, and clears it when reopened', async () => {
     const staff = await newUser('staff-hr', 'STAFF');
     const created = await helpRequests.create({
+      requesterId: null,
       requesterName: 'Elena',
       topic: `Redes ${run}`,
+      description: 'Necesito ayuda con el wifi',
     });
     const attendedAt = new Date('2026-11-09T12:00:00.000Z');
 
@@ -606,8 +694,10 @@ describe('PrismaHelpRequestRepository (PostgreSQL)', () => {
 
   it('deletes a request', async () => {
     const created = await helpRequests.create({
+      requesterId: null,
       requesterName: 'Borrar',
       topic: `Borrar ${run}`,
+      description: 'Para borrar',
     });
 
     await expect(helpRequests.delete(created.id)).resolves.toBe('deleted');
