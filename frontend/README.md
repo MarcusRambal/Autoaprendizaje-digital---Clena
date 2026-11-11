@@ -49,17 +49,23 @@ tipada que se puede implementar con el cliente HTTP cuando estén disponibles
 los endpoints. No guardan progreso ni envían solicitudes. El aviso de
 demostración aparece en cada vista para dejarlo claro. En el panel
 del personal, las solicitudes, estadísticas, edición y publicación también
-son demostraciones en memoria. La administración de usuarios y las acciones
-de privacidad son demostraciones de frontend y no modifican cuentas ni
-persisten consentimiento. Auditoría y respaldos siguen sin implementarse.
+son demostraciones en memoria. El formulario para preparar usuarios y las
+acciones de privacidad son demostraciones de frontend; el formulario no crea
+cuentas reales ni se persiste el consentimiento. Auditoría y respaldos siguen
+sin implementarse.
 
 La administración de categorías consulta y modifica el endpoint `/api/v1/categories`
 del backend; listar es público y las operaciones de creación, edición y borrado
 requieren una sesión de `ADMIN`. El panel de guías y lecciones permanece en modo
 demostración y no persiste cambios.
 
-Las restricciones del frontend no sustituyen la autorización del backend:
-los futuros endpoints deben aplicar sus propios controles de roles.
+La administración de usuarios consulta `/api/v1/users` y permite buscar por
+correo, filtrar por rol y eliminar cuentas; estas operaciones requieren una
+sesión de `ADMIN`. La eliminación de cuentas administradoras está protegida por
+el backend.
+
+Las restricciones del frontend no sustituyen la autorización del backend. Los
+endpoints de categorías y usuarios aplican sus propios controles de roles.
 
 El token de acceso se mantiene en memoria y el refresh token en `sessionStorage`
 para recuperar la sesión al recargar la misma pestaña. La renovación rota el
