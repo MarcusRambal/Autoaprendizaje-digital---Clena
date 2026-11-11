@@ -1,12 +1,15 @@
 import { GuideFileContent } from '../domain/guide';
-import { GuideRepository } from '../domain/guide.repository';
+import { GuideReadOptions, GuideRepository } from '../domain/guide.repository';
 import { GuideApplicationError } from './guide-application.error';
 
 export class GetGuideFileUseCase {
   constructor(private readonly repository: GuideRepository) {}
 
-  async execute(id: string): Promise<GuideFileContent> {
-    const file = await this.repository.findFile(id);
+  async execute(
+    id: string,
+    options?: GuideReadOptions,
+  ): Promise<GuideFileContent> {
+    const file = await this.repository.findFile(id, options);
     if (!file) {
       throw new GuideApplicationError(
         404,

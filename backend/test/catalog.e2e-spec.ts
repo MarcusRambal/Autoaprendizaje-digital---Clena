@@ -14,6 +14,8 @@ import { DeleteGuideUseCase } from '../src/modules/guides/application/delete-gui
 import { GetGuideFileUseCase } from '../src/modules/guides/application/get-guide-file.use-case';
 import { GetGuideUseCase } from '../src/modules/guides/application/get-guide.use-case';
 import { GuideApplicationError } from '../src/modules/guides/application/guide-application.error';
+import { ListManagedGuidesUseCase } from '../src/modules/guides/application/list-managed-guides.use-case';
+import { SetGuidePublicationUseCase } from '../src/modules/guides/application/set-guide-publication.use-case';
 import { ListGuidesUseCase } from '../src/modules/guides/application/list-guides.use-case';
 import { UpdateGuideUseCase } from '../src/modules/guides/application/update-guide.use-case';
 import { Guide } from '../src/modules/guides/domain/guide';
@@ -21,9 +23,12 @@ import { ChangeHelpRequestStatusUseCase } from '../src/modules/help-requests/app
 import { CreateHelpRequestUseCase } from '../src/modules/help-requests/application/create-help-request.use-case';
 import { DeleteHelpRequestUseCase } from '../src/modules/help-requests/application/delete-help-request.use-case';
 import { HelpRequestApplicationError } from '../src/modules/help-requests/application/help-request-application.error';
+import { GetHelpRequestUseCase } from '../src/modules/help-requests/application/get-help-request.use-case';
+import { ListMyHelpRequestsUseCase } from '../src/modules/help-requests/application/list-my-help-requests.use-case';
 import { ListHelpRequestsUseCase } from '../src/modules/help-requests/application/list-help-requests.use-case';
 import { HelpRequest } from '../src/modules/help-requests/domain/help-request';
 import { DeleteUserAccountUseCase } from '../src/modules/users/application/delete-user-account.use-case';
+import { ListUsersUseCase } from '../src/modules/users/application/list-users.use-case';
 import { UserApplicationError } from '../src/modules/users/application/user-application.error';
 import { PrismaService } from '../src/shared/database/prisma.service';
 import { GlobalExceptionFilter } from '../src/shared/errors/global-exception.filter';
@@ -47,6 +52,7 @@ const CATEGORY_ID = '0b9d5f7a-3d1c-4b8e-8a55-2c1f9e3a7b44';
 const guide: Guide = {
   id: ID,
   title: 'Cómo crear una cuenta',
+  publicationState: 'PUBLISHED',
   categoryId: CATEGORY_ID,
   categoryTitle: 'Correo electrónico',
   fileName: 'guia.pdf',
@@ -57,7 +63,9 @@ const guide: Guide = {
 const helpRequest: HelpRequest = {
   id: ID,
   requesterName: 'María López',
+  requesterEmail: 'maria@example.com',
   topic: 'Correo electrónico',
+  description: 'No puedo entrar a mi correo',
   status: 'PENDING',
   attendedById: null,
   attendedAt: null,
@@ -80,14 +88,19 @@ describe('Catalog endpoints (e2e)', () => {
     deleteCategory: { execute: jest.fn() },
     createGuide: { execute: jest.fn() },
     listGuides: { execute: jest.fn() },
+    listManagedGuides: { execute: jest.fn() },
+    setPublication: { execute: jest.fn() },
     getGuide: { execute: jest.fn() },
     getGuideFile: { execute: jest.fn() },
     updateGuide: { execute: jest.fn() },
     deleteGuide: { execute: jest.fn() },
     createHelpRequest: { execute: jest.fn() },
     listHelpRequests: { execute: jest.fn() },
+    listMyHelpRequests: { execute: jest.fn() },
+    getHelpRequest: { execute: jest.fn() },
     changeStatus: { execute: jest.fn() },
     deleteHelpRequest: { execute: jest.fn() },
+    listUsers: { execute: jest.fn() },
     deleteAccount: { execute: jest.fn() },
   };
 
@@ -124,6 +137,10 @@ describe('Catalog endpoints (e2e)', () => {
       .useValue(fakes.createGuide)
       .overrideProvider(ListGuidesUseCase)
       .useValue(fakes.listGuides)
+      .overrideProvider(ListManagedGuidesUseCase)
+      .useValue(fakes.listManagedGuides)
+      .overrideProvider(SetGuidePublicationUseCase)
+      .useValue(fakes.setPublication)
       .overrideProvider(GetGuideUseCase)
       .useValue(fakes.getGuide)
       .overrideProvider(GetGuideFileUseCase)
@@ -136,10 +153,16 @@ describe('Catalog endpoints (e2e)', () => {
       .useValue(fakes.createHelpRequest)
       .overrideProvider(ListHelpRequestsUseCase)
       .useValue(fakes.listHelpRequests)
+      .overrideProvider(ListMyHelpRequestsUseCase)
+      .useValue(fakes.listMyHelpRequests)
+      .overrideProvider(GetHelpRequestUseCase)
+      .useValue(fakes.getHelpRequest)
       .overrideProvider(ChangeHelpRequestStatusUseCase)
       .useValue(fakes.changeStatus)
       .overrideProvider(DeleteHelpRequestUseCase)
       .useValue(fakes.deleteHelpRequest)
+      .overrideProvider(ListUsersUseCase)
+      .useValue(fakes.listUsers)
       .overrideProvider(DeleteUserAccountUseCase)
       .useValue(fakes.deleteAccount)
       .overrideProvider(PrismaService)
@@ -369,6 +392,7 @@ describe('Catalog endpoints (e2e)', () => {
             title: 'Cómo crear una cuenta',
             category: 'Correo electrónico',
             categoryId: CATEGORY_ID,
+            publicationState: 'PUBLISHED',
             file: 'guia.pdf',
             fileUrl: `/api/v1/guides/${ID}/file`,
             createdAt: '2026-11-09T10:00:00.000Z',
@@ -379,6 +403,180 @@ describe('Catalog endpoints (e2e)', () => {
         total: 1,
         totalPages: 1,
       });
+    });
+
+    it('passes the title search to the use case', async () => {
+      fakes.listGuides.execute.mockResolvedValue({
+        items: [],
+        page: 1,
+        pageSize: 20,
+        total: 0,
+        totalPages: 0,
+      });
+
+      await http()
+        .get('/api/v1/guides')
+        .query({ search: '  correo ' })
+        .expect(200);
+
+      expect(fakes.listGuides.execute).toHaveBeenCalledWith({
+        search: 'correo',
+      });
+    });
+
+    it('rejects a search longer than 100 characters', async () => {
+      await http()
+        .get('/api/v1/guides')
+        .query({ search: 'x'.repeat(101) })
+        .expect(400);
+    });
+
+    it('lists every guide for staff only, drafts included', async () => {
+      const draft: Guide = { ...guide, publicationState: 'DRAFT' };
+      fakes.listManagedGuides.execute.mockResolvedValue({
+        items: [draft],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+      });
+
+      await http().get('/api/v1/guides/manage').expect(401);
+      await http()
+        .get('/api/v1/guides/manage')
+        .set('Authorization', bearer('PUBLIC_USER'))
+        .expect(403);
+      expect(fakes.listManagedGuides.execute).not.toHaveBeenCalled();
+
+      const response = await http()
+        .get('/api/v1/guides/manage')
+        .query({ publicationState: 'DRAFT', search: 'cuenta' })
+        .set('Authorization', bearer('STAFF'))
+        .expect(200);
+
+      expect(fakes.listManagedGuides.execute).toHaveBeenCalledWith({
+        publicationState: 'DRAFT',
+        search: 'cuenta',
+      });
+      expect(response.body).toMatchObject({
+        items: [
+          {
+            id: ID,
+            publicationState: 'DRAFT',
+            // A draft PDF is only reachable through the staff route.
+            fileUrl: `/api/v1/guides/manage/${ID}/file`,
+          },
+        ],
+      });
+    });
+
+    it('does not let the public catalog ask for drafts', async () => {
+      await http()
+        .get('/api/v1/guides')
+        .query({ publicationState: 'DRAFT' })
+        .expect(400);
+      expect(fakes.listGuides.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown publication state filter', async () => {
+      await http()
+        .get('/api/v1/guides/manage')
+        .query({ publicationState: 'HIDDEN' })
+        .set('Authorization', bearer('ADMIN'))
+        .expect(400);
+    });
+
+    it('lets staff open a guide and its PDF in any state', async () => {
+      fakes.getGuide.execute.mockResolvedValue({
+        ...guide,
+        publicationState: 'DRAFT',
+      });
+      fakes.getGuideFile.execute.mockResolvedValue({
+        fileName: 'guia.pdf',
+        contentType: 'application/pdf',
+        content: pdfBytes,
+      });
+
+      await http().get(`/api/v1/guides/manage/${ID}`).expect(401);
+      await http()
+        .get(`/api/v1/guides/manage/${ID}/file`)
+        .set('Authorization', bearer('PUBLIC_USER'))
+        .expect(403);
+
+      await http()
+        .get(`/api/v1/guides/manage/${ID}`)
+        .set('Authorization', bearer('STAFF'))
+        .expect(200);
+      expect(fakes.getGuide.execute).toHaveBeenCalledWith(ID, {
+        includeUnpublished: true,
+      });
+
+      await http()
+        .get(`/api/v1/guides/manage/${ID}/file`)
+        .set('Authorization', bearer('ADMIN'))
+        .expect(200);
+      expect(fakes.getGuideFile.execute).toHaveBeenCalledWith(ID, {
+        includeUnpublished: true,
+      });
+    });
+
+    it('publishes and unpublishes a guide (staff or admin only)', async () => {
+      fakes.setPublication.execute.mockResolvedValue({
+        ...guide,
+        publicationState: 'DRAFT',
+      });
+
+      await http()
+        .patch(`/api/v1/guides/${ID}/publication`)
+        .send({ published: false })
+        .expect(401);
+      await http()
+        .patch(`/api/v1/guides/${ID}/publication`)
+        .set('Authorization', bearer('PUBLIC_USER'))
+        .send({ published: false })
+        .expect(403);
+      expect(fakes.setPublication.execute).not.toHaveBeenCalled();
+
+      const response = await http()
+        .patch(`/api/v1/guides/${ID}/publication`)
+        .set('Authorization', bearer('STAFF'))
+        .send({ published: false })
+        .expect(200);
+
+      expect(fakes.setPublication.execute).toHaveBeenCalledWith({
+        id: ID,
+        published: false,
+      });
+      expect(response.body).toMatchObject({
+        id: ID,
+        publicationState: 'DRAFT',
+      });
+    });
+
+    it.each([
+      ['a missing flag', {}],
+      ['a non-boolean flag', { published: 'yes' }],
+      ['an unknown field', { published: true, slug: 'hack' }],
+    ])('rejects a publication change with %s', async (_name, body) => {
+      await http()
+        .patch(`/api/v1/guides/${ID}/publication`)
+        .set('Authorization', bearer('ADMIN'))
+        .send(body)
+        .expect(400);
+    });
+
+    it('maps publishing a missing guide to 404', async () => {
+      fakes.setPublication.execute.mockRejectedValue(
+        new GuideApplicationError(404, 'GUIDE_NOT_FOUND', 'missing'),
+      );
+
+      const response = await http()
+        .patch(`/api/v1/guides/${ID}/publication`)
+        .set('Authorization', bearer('STAFF'))
+        .send({ published: true })
+        .expect(404);
+
+      expect(response.body).toMatchObject({ code: 'GUIDE_NOT_FOUND' });
     });
 
     it('rejects an invalid category filter', async () => {
@@ -570,55 +768,196 @@ describe('Catalog endpoints (e2e)', () => {
   });
 
   describe('help requests', () => {
-    it('is closed to public users and anonymous callers', async () => {
+    it('keeps the staff panel closed to public users and anonymous callers', async () => {
       await http().get('/api/v1/help-requests').expect(401);
+      await http().get(`/api/v1/help-requests/${ID}`).expect(401);
+      for (const route of [
+        '/api/v1/help-requests',
+        `/api/v1/help-requests/${ID}`,
+      ]) {
+        await http()
+          .get(route)
+          .set('Authorization', bearer('PUBLIC_USER'))
+          .expect(403);
+      }
       await http()
-        .get('/api/v1/help-requests')
+        .patch(`/api/v1/help-requests/${ID}`)
         .set('Authorization', bearer('PUBLIC_USER'))
+        .send({ status: 'ATTENDED' })
         .expect(403);
       await http()
-        .post('/api/v1/help-requests')
+        .delete(`/api/v1/help-requests/${ID}`)
         .set('Authorization', bearer('PUBLIC_USER'))
-        .send({ requesterName: 'María', topic: 'Correo' })
         .expect(403);
-      expect(fakes.createHelpRequest.execute).not.toHaveBeenCalled();
       expect(fakes.listHelpRequests.execute).not.toHaveBeenCalled();
+      expect(fakes.getHelpRequest.execute).not.toHaveBeenCalled();
+      expect(fakes.changeStatus.execute).not.toHaveBeenCalled();
+      expect(fakes.deleteHelpRequest.execute).not.toHaveBeenCalled();
     });
 
-    it('registers a request and returns it in the frontend shape', async () => {
+    it('requires a signed-in user to send a request', async () => {
+      await http()
+        .post('/api/v1/help-requests')
+        .send({ requesterName: 'María', topic: 'Correo', description: 'Ayuda' })
+        .expect(401);
+      expect(fakes.createHelpRequest.execute).not.toHaveBeenCalled();
+    });
+
+    it('registers a public user request linked to their account', async () => {
       fakes.createHelpRequest.execute.mockResolvedValue(helpRequest);
 
       const response = await http()
         .post('/api/v1/help-requests')
-        .set('Authorization', bearer('STAFF'))
-        .send({ requesterName: ' María López ', topic: ' Correo electrónico ' })
+        .set('Authorization', bearer('PUBLIC_USER', 'user-7'))
+        .send({
+          requesterName: ' María López ',
+          topic: ' Correo electrónico ',
+          description: ' No puedo entrar a mi correo ',
+        })
         .expect(201);
 
       expect(fakes.createHelpRequest.execute).toHaveBeenCalledWith({
+        requesterId: 'user-7',
         requesterName: 'María López',
         topic: 'Correo electrónico',
+        description: 'No puedo entrar a mi correo',
       });
       expect(response.body).toEqual({
         id: ID,
         requesterName: 'María López',
+        requesterEmail: 'maria@example.com',
         topic: 'Correo electrónico',
+        description: 'No puedo entrar a mi correo',
         date: '2026-11-09',
         status: 'PENDING',
         createdAt: '2026-11-10T03:00:00.000Z',
+        attendedAt: null,
       });
     });
 
+    it('does not link a request the staff registers for someone else', async () => {
+      fakes.createHelpRequest.execute.mockResolvedValue(helpRequest);
+
+      for (const role of ['STAFF', 'ADMIN'] as const) {
+        await http()
+          .post('/api/v1/help-requests')
+          .set('Authorization', bearer(role, 'staff-1'))
+          .send({ requesterName: 'Elena', topic: 'Redes', description: 'Wifi' })
+          .expect(201);
+      }
+
+      expect(fakes.createHelpRequest.execute).toHaveBeenNthCalledWith(1, {
+        requesterId: null,
+        requesterName: 'Elena',
+        topic: 'Redes',
+        description: 'Wifi',
+      });
+      expect(fakes.createHelpRequest.execute).toHaveBeenCalledTimes(2);
+    });
+
     it.each([
-      ['a missing name', { topic: 'Correo' }],
-      ['a short topic', { requesterName: 'María', topic: 'ab' }],
-      ['an unknown property', { requesterName: 'M', topic: 'Correo', x: 1 }],
+      ['a missing name', { topic: 'Correo', description: 'Ayuda' }],
+      ['a missing description', { requesterName: 'María', topic: 'Correo' }],
+      [
+        'a blank description',
+        { requesterName: 'María', topic: 'Correo', description: '   ' },
+      ],
+      [
+        'a short topic',
+        { requesterName: 'María', topic: 'ab', description: 'Ayuda' },
+      ],
+      [
+        'an unknown property',
+        { requesterName: 'M', topic: 'Correo', description: 'A', x: 1 },
+      ],
+      [
+        'a requester id sent by the caller',
+        {
+          requesterName: 'M',
+          topic: 'Correo',
+          description: 'A',
+          requesterId: ID,
+        },
+      ],
     ])('rejects %s', async (_name, body) => {
       await http()
         .post('/api/v1/help-requests')
-        .set('Authorization', bearer('ADMIN'))
+        .set('Authorization', bearer('PUBLIC_USER'))
         .send(body)
         .expect(400);
       expect(fakes.createHelpRequest.execute).not.toHaveBeenCalled();
+    });
+
+    it('lists only my own requests, whatever the caller sends', async () => {
+      fakes.listMyHelpRequests.execute.mockResolvedValue({
+        items: [helpRequest],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+      });
+
+      await http().get('/api/v1/help-requests/mine').expect(401);
+      await http()
+        .get('/api/v1/help-requests/mine')
+        .query({ requesterId: ID })
+        .set('Authorization', bearer('PUBLIC_USER', 'user-7'))
+        .expect(400);
+      expect(fakes.listMyHelpRequests.execute).not.toHaveBeenCalled();
+
+      const response = await http()
+        .get('/api/v1/help-requests/mine')
+        .query({ status: 'PENDING', page: '1' })
+        .set('Authorization', bearer('PUBLIC_USER', 'user-7'))
+        .expect(200);
+
+      expect(fakes.listMyHelpRequests.execute).toHaveBeenCalledWith({
+        status: 'PENDING',
+        page: 1,
+        requesterId: 'user-7',
+      });
+      expect(response.body).toMatchObject({
+        total: 1,
+        items: [{ id: ID, status: 'PENDING', date: '2026-11-09' }],
+      });
+    });
+
+    it('lets staff open the detail of a request', async () => {
+      fakes.getHelpRequest.execute.mockResolvedValue({
+        ...helpRequest,
+        status: 'ATTENDED',
+        attendedAt: new Date('2026-11-10T15:30:00.000Z'),
+      });
+
+      const response = await http()
+        .get(`/api/v1/help-requests/${ID}`)
+        .set('Authorization', bearer('STAFF'))
+        .expect(200);
+
+      expect(fakes.getHelpRequest.execute).toHaveBeenCalledWith(ID);
+      expect(response.body).toMatchObject({
+        id: ID,
+        description: 'No puedo entrar a mi correo',
+        requesterEmail: 'maria@example.com',
+        status: 'ATTENDED',
+        attendedAt: '2026-11-10T15:30:00.000Z',
+      });
+
+      fakes.getHelpRequest.execute.mockRejectedValueOnce(
+        new HelpRequestApplicationError(
+          404,
+          'HELP_REQUEST_NOT_FOUND',
+          'missing',
+        ),
+      );
+      await http()
+        .get(`/api/v1/help-requests/${ID}`)
+        .set('Authorization', bearer('ADMIN'))
+        .expect(404);
+      await http()
+        .get('/api/v1/help-requests/123')
+        .set('Authorization', bearer('STAFF'))
+        .expect(400);
     });
 
     it('lists a page with parsed filters', async () => {
@@ -723,6 +1062,69 @@ describe('Catalog endpoints (e2e)', () => {
   });
 
   describe('users', () => {
+    it('lists accounts for an admin only, without credentials', async () => {
+      fakes.listUsers.execute.mockResolvedValue({
+        items: [
+          {
+            id: ID,
+            email: 'ana@example.com',
+            role: 'STAFF',
+            status: 'ACTIVE',
+            createdAt: new Date('2026-11-09T10:00:00.000Z'),
+            passwordHash: 'must-not-leak',
+          },
+        ],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+      });
+
+      await http().get('/api/v1/users').expect(401);
+      for (const role of ['PUBLIC_USER', 'STAFF'] as const) {
+        await http()
+          .get('/api/v1/users')
+          .set('Authorization', bearer(role))
+          .expect(403);
+      }
+      expect(fakes.listUsers.execute).not.toHaveBeenCalled();
+
+      const response = await http()
+        .get('/api/v1/users')
+        .query({ search: 'ana', role: 'STAFF', page: '1' })
+        .set('Authorization', bearer('ADMIN'))
+        .expect(200);
+
+      expect(fakes.listUsers.execute).toHaveBeenCalledWith({
+        search: 'ana',
+        role: 'STAFF',
+        page: 1,
+      });
+      expect(response.body).toEqual({
+        items: [
+          {
+            id: ID,
+            email: 'ana@example.com',
+            role: 'STAFF',
+            status: 'ACTIVE',
+            createdAt: '2026-11-09T10:00:00.000Z',
+          },
+        ],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        totalPages: 1,
+      });
+    });
+
+    it('rejects an unknown role filter', async () => {
+      await http()
+        .get('/api/v1/users')
+        .query({ role: 'OWNER' })
+        .set('Authorization', bearer('ADMIN'))
+        .expect(400);
+    });
+
     it('lets any signed-in user erase their own account', async () => {
       fakes.deleteAccount.execute.mockResolvedValue(undefined);
 

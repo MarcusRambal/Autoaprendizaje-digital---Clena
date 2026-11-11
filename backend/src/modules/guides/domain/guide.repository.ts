@@ -1,5 +1,11 @@
 import { PageRequest, SortOrder } from '../../../shared/primitives/pagination';
-import { Guide, GuideFileContent, NewGuideFile } from './guide';
+import {
+  Guide,
+  GuideFileContent,
+  GuidePublicationState,
+  ManagedPublicationState,
+  NewGuideFile,
+} from './guide';
 
 export interface NewGuide {
   title: string;
@@ -15,6 +21,10 @@ export interface GuideChanges {
 
 export interface ListGuidesQuery extends PageRequest {
   categoryId?: string;
+  /** Case-insensitive fragment that the guide title must contain. */
+  search?: string;
+  /** Only guides in this state; every state when omitted. */
+  publicationState?: GuidePublicationState;
   order: SortOrder;
 }
 
@@ -26,6 +36,14 @@ export interface GuidePage {
 export type CreateGuideResult =
   { kind: 'created'; guide: Guide } | { kind: 'category-not-found' };
 
+/** Visibility of a read. By default only PUBLISHED guides are returned. */
+export interface GuideReadOptions {
+  includeUnpublished?: boolean;
+}
+
+export type SetPublicationResult =
+  { kind: 'updated'; guide: Guide } | { kind: 'not-found' };
+
 export type UpdateGuideResult =
   | { kind: 'updated'; guide: Guide }
   | { kind: 'not-found' }
@@ -34,9 +52,16 @@ export type UpdateGuideResult =
 export interface GuideRepository {
   create(input: NewGuide): Promise<CreateGuideResult>;
   list(query: ListGuidesQuery): Promise<GuidePage>;
-  findById(id: string): Promise<Guide | null>;
-  findFile(id: string): Promise<GuideFileContent | null>;
+  findById(id: string, options?: GuideReadOptions): Promise<Guide | null>;
+  findFile(
+    id: string,
+    options?: GuideReadOptions,
+  ): Promise<GuideFileContent | null>;
   update(id: string, changes: GuideChanges): Promise<UpdateGuideResult>;
+  setPublication(
+    id: string,
+    state: ManagedPublicationState,
+  ): Promise<SetPublicationResult>;
   /** Deletes the guide together with its PDF and steps. */
   delete(id: string): Promise<'deleted' | 'not-found'>;
 }

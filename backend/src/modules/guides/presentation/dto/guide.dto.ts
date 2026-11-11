@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -47,6 +49,37 @@ export class ListGuidesQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    maxLength: 100,
+    example: 'correo',
+    description: 'Part of the title; ignores upper/lower case',
+  })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+}
+
+export const GUIDE_STATES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const;
+
+export class ListManagedGuidesQueryDto extends ListGuidesQueryDto {
+  @ApiPropertyOptional({
+    enum: GUIDE_STATES,
+    description: 'Only guides in this state; every state when omitted',
+  })
+  @IsOptional()
+  @IsIn(GUIDE_STATES)
+  publicationState?: (typeof GUIDE_STATES)[number];
+}
+
+export class SetGuidePublicationDto {
+  @ApiProperty({
+    description: 'true publishes the guide; false returns it to draft',
+  })
+  @IsBoolean()
+  published!: boolean;
 }
 
 export class GuideResponseDto {
@@ -61,6 +94,12 @@ export class GuideResponseDto {
 
   @ApiProperty({ format: 'uuid' })
   categoryId!: string;
+
+  @ApiProperty({
+    enum: GUIDE_STATES,
+    description: 'Only PUBLISHED guides are visible to the public',
+  })
+  publicationState!: (typeof GUIDE_STATES)[number];
 
   @ApiProperty({
     nullable: true,
@@ -103,8 +142,14 @@ export function toGuideResponse(guide: Guide): GuideResponseDto {
     title: guide.title,
     category: guide.categoryTitle,
     categoryId: guide.categoryId,
+    publicationState: guide.publicationState,
     file: guide.fileName,
-    fileUrl: guide.fileName ? `/api/v1/guides/${guide.id}/file` : null,
+    // Unpublished PDFs are only reachable through the staff route.
+    fileUrl: guide.fileName
+      ? guide.publicationState === 'PUBLISHED'
+        ? `/api/v1/guides/${guide.id}/file`
+        : `/api/v1/guides/manage/${guide.id}/file`
+      : null,
     createdAt: guide.createdAt.toISOString(),
   };
 }

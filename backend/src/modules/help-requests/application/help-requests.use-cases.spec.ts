@@ -9,12 +9,16 @@ import {
 import { ChangeHelpRequestStatusUseCase } from './change-help-request-status.use-case';
 import { CreateHelpRequestUseCase } from './create-help-request.use-case';
 import { DeleteHelpRequestUseCase } from './delete-help-request.use-case';
+import { GetHelpRequestUseCase } from './get-help-request.use-case';
+import { ListMyHelpRequestsUseCase } from './list-my-help-requests.use-case';
 import { ListHelpRequestsUseCase } from './list-help-requests.use-case';
 
 const helpRequest: HelpRequest = {
   id: 'request-1',
   requesterName: 'María López',
+  requesterEmail: 'maria@example.com',
   topic: 'Correo electrónico',
+  description: 'No puedo entrar a mi correo',
   status: 'PENDING',
   attendedById: null,
   attendedAt: null,
@@ -36,30 +40,57 @@ describe('CreateHelpRequestUseCase', () => {
     return { useCase: new CreateHelpRequestUseCase(repository), received };
   };
 
-  it('trims name and topic before saving', async () => {
+  it('trims name, topic and description before saving', async () => {
     const { useCase, received } = setup();
 
     await expect(
       useCase.execute({
+        requesterId: 'user-1',
         requesterName: '  María López ',
         topic: ' Correo electrónico  ',
+        description: '  No puedo entrar a mi correo ',
       }),
     ).resolves.toEqual(helpRequest);
     expect(received).toEqual([
-      { requesterName: 'María López', topic: 'Correo electrónico' },
+      {
+        requesterId: 'user-1',
+        requesterName: 'María López',
+        topic: 'Correo electrónico',
+        description: 'No puedo entrar a mi correo',
+      },
     ]);
   });
 
+  it('keeps the request unlinked when the staff registers it', async () => {
+    const { useCase, received } = setup();
+
+    await useCase.execute({
+      requesterId: null,
+      requesterName: 'Elena',
+      topic: 'Redes',
+      description: 'Wifi',
+    });
+
+    expect(received[0].requesterId).toBeNull();
+  });
+
   it.each([
-    ['an empty name', '   ', 'Correo'],
-    ['a name over 100 characters', 'x'.repeat(101), 'Correo'],
-    ['a topic under 3 characters', 'María', 'ab'],
-    ['a topic over 200 characters', 'María', 'x'.repeat(201)],
-  ])('rejects %s', async (_name, requesterName, topic) => {
+    ['an empty name', '   ', 'Correo', 'Detalle'],
+    ['a name over 100 characters', 'x'.repeat(101), 'Correo', 'Detalle'],
+    ['a topic under 3 characters', 'María', 'ab', 'Detalle'],
+    ['a topic over 200 characters', 'María', 'x'.repeat(201), 'Detalle'],
+    ['an empty description', 'María', 'Correo', '   '],
+    ['a description over 1000 characters', 'María', 'Correo', 'x'.repeat(1001)],
+  ])('rejects %s', async (_name, requesterName, topic, description) => {
     const { useCase, received } = setup();
 
     await expect(
-      useCase.execute({ requesterName, topic }),
+      useCase.execute({
+        requesterId: 'user-1',
+        requesterName,
+        topic,
+        description,
+      }),
     ).rejects.toMatchObject({
       statusCode: 400,
       code: 'INVALID_HELP_REQUEST',
@@ -71,11 +102,84 @@ describe('CreateHelpRequestUseCase', () => {
     const { useCase } = setup();
 
     await expect(
-      useCase.execute({ requesterName: 'x'.repeat(100), topic: 'abc' }),
+      useCase.execute({
+        requesterId: null,
+        requesterName: 'x'.repeat(100),
+        topic: 'abc',
+        description: 'd',
+      }),
     ).resolves.toBeDefined();
     await expect(
-      useCase.execute({ requesterName: 'M', topic: 'x'.repeat(200) }),
+      useCase.execute({
+        requesterId: null,
+        requesterName: 'M',
+        topic: 'x'.repeat(200),
+        description: 'x'.repeat(1000),
+      }),
     ).resolves.toBeDefined();
+  });
+});
+
+describe('ListMyHelpRequestsUseCase', () => {
+  const setup = () => {
+    const queries: ListHelpRequestsQuery[] = [];
+    const repository = repositoryWith({
+      list: (query) => {
+        queries.push(query);
+        return Promise.resolve({ items: [helpRequest], total: 1 });
+      },
+    });
+    return { useCase: new ListMyHelpRequestsUseCase(repository), queries };
+  };
+
+  it('only lists the requests of the given account, newest first', async () => {
+    const { useCase, queries } = setup();
+
+    const result = await useCase.execute({ requesterId: 'user-1' });
+
+    expect(queries[0]).toEqual({
+      page: 1,
+      pageSize: 20,
+      requesterId: 'user-1',
+      status: undefined,
+      order: 'desc',
+    });
+    expect(result).toMatchObject({ total: 1, totalPages: 1 });
+  });
+
+  it('keeps the account filter when a status and order are chosen', async () => {
+    const { useCase, queries } = setup();
+
+    await useCase.execute({
+      requesterId: 'user-1',
+      status: 'PENDING',
+      order: 'asc',
+      pageSize: 500,
+    });
+
+    expect(queries[0]).toMatchObject({
+      requesterId: 'user-1',
+      status: 'PENDING',
+      order: 'asc',
+      pageSize: 100,
+    });
+  });
+});
+
+describe('GetHelpRequestUseCase', () => {
+  it('returns the request or fails with 404', async () => {
+    const found = new GetHelpRequestUseCase(
+      repositoryWith({ findById: () => Promise.resolve(helpRequest) }),
+    );
+    const missing = new GetHelpRequestUseCase(
+      repositoryWith({ findById: () => Promise.resolve(null) }),
+    );
+
+    await expect(found.execute('request-1')).resolves.toEqual(helpRequest);
+    await expect(missing.execute('x')).rejects.toMatchObject({
+      statusCode: 404,
+      code: 'HELP_REQUEST_NOT_FOUND',
+    });
   });
 });
 

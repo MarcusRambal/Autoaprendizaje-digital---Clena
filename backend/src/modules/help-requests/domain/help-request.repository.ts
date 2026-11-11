@@ -6,12 +6,17 @@ import {
 } from './help-request';
 
 export interface NewHelpRequest {
+  /** Account that asked for help; null when the staff registers it for someone. */
+  requesterId: string | null;
   requesterName: string;
   topic: string;
+  description: string;
 }
 
 export interface ListHelpRequestsQuery extends PageRequest {
   status?: HelpRequestStatus;
+  /** Only the requests made by this account. */
+  requesterId?: string;
   order: SortOrder;
 }
 
@@ -33,6 +38,7 @@ export type ChangeStatusResult =
 export interface HelpRequestRepository {
   create(input: NewHelpRequest): Promise<HelpRequest>;
   list(query: ListHelpRequestsQuery): Promise<HelpRequestPage>;
+  findById(id: string): Promise<HelpRequest | null>;
   /**
    * Sets the status. ATTENDED records who and when; any other status clears
    * those fields so the request can be reopened.

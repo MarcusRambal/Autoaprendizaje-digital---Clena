@@ -12,25 +12,42 @@ import {
   NewHelpRequest,
 } from '../domain/help-request.repository';
 
+// The requester email is shown to the staff next to the request.
+const helpRequestInclude = {
+  requester: { select: { email: true } },
+} satisfies Prisma.HelpRequestInclude;
+
+type HelpRequestRow = Prisma.HelpRequestGetPayload<{
+  include: typeof helpRequestInclude;
+}>;
+
 @Injectable()
 export class PrismaHelpRequestRepository implements HelpRequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(input: NewHelpRequest): Promise<HelpRequest> {
     const row = await this.prisma.helpRequest.create({
-      data: { requesterName: input.requesterName, topic: input.topic },
+      data: {
+        requesterId: input.requesterId,
+        requesterName: input.requesterName,
+        topic: input.topic,
+        description: input.description,
+      },
+      include: helpRequestInclude,
     });
     return this.toHelpRequest(row);
   }
 
   async list(query: ListHelpRequestsQuery): Promise<HelpRequestPage> {
-    const where: Prisma.HelpRequestWhereInput = query.status
-      ? { status: query.status }
-      : {};
+    const where: Prisma.HelpRequestWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.requesterId ? { requesterId: query.requesterId } : {}),
+    };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.helpRequest.count({ where }),
       this.prisma.helpRequest.findMany({
         where,
+        include: helpRequestInclude,
         // `id` breaks ties so pages never repeat or skip rows.
         orderBy: [{ createdAt: query.order }, { id: query.order }],
         skip: (query.page - 1) * query.pageSize,
@@ -38,6 +55,14 @@ export class PrismaHelpRequestRepository implements HelpRequestRepository {
       }),
     ]);
     return { items: rows.map((row) => this.toHelpRequest(row)), total };
+  }
+
+  async findById(id: string): Promise<HelpRequest | null> {
+    const row = await this.prisma.helpRequest.findUnique({
+      where: { id },
+      include: helpRequestInclude,
+    });
+    return row ? this.toHelpRequest(row) : null;
   }
 
   async changeStatus(input: ChangeStatusInput): Promise<ChangeStatusResult> {
@@ -50,6 +75,7 @@ export class PrismaHelpRequestRepository implements HelpRequestRepository {
           attendedById: attended ? input.changedById : null,
           attendedAt: attended ? input.changedAt : null,
         },
+        include: helpRequestInclude,
       });
       return { kind: 'updated', helpRequest: this.toHelpRequest(row) };
     } catch (error) {
@@ -72,19 +98,13 @@ export class PrismaHelpRequestRepository implements HelpRequestRepository {
     }
   }
 
-  private toHelpRequest(row: {
-    id: string;
-    requesterName: string | null;
-    topic: string;
-    status: HelpRequest['status'];
-    attendedById: string | null;
-    attendedAt: Date | null;
-    createdAt: Date;
-  }): HelpRequest {
+  private toHelpRequest(row: HelpRequestRow): HelpRequest {
     return {
       id: row.id,
       requesterName: row.requesterName,
+      requesterEmail: row.requester?.email ?? null,
       topic: row.topic,
+      description: row.description,
       status: row.status,
       attendedById: row.attendedById,
       attendedAt: row.attendedAt,

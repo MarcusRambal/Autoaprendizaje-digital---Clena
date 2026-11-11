@@ -7,6 +7,8 @@ import { DeleteGuideUseCase } from './application/delete-guide.use-case';
 import { GetGuideFileUseCase } from './application/get-guide-file.use-case';
 import { GetGuideUseCase } from './application/get-guide.use-case';
 import { ListGuidesUseCase } from './application/list-guides.use-case';
+import { ListManagedGuidesUseCase } from './application/list-managed-guides.use-case';
+import { SetGuidePublicationUseCase } from './application/set-guide-publication.use-case';
 import { UpdateGuideUseCase } from './application/update-guide.use-case';
 import type { GuideRepository } from './domain/guide.repository';
 import { PrismaGuideRepository } from './infrastructure/prisma-guide.repository';
@@ -29,6 +31,8 @@ const useCase = <T>(UseCase: new (repository: GuideRepository) => T) => ({
     { provide: GUIDE_REPOSITORY, useExisting: PrismaGuideRepository },
     useCase(CreateGuideUseCase),
     useCase(ListGuidesUseCase),
+    useCase(ListManagedGuidesUseCase),
+    useCase(SetGuidePublicationUseCase),
     useCase(GetGuideUseCase),
     useCase(GetGuideFileUseCase),
     useCase(UpdateGuideUseCase),

@@ -184,7 +184,10 @@ model HelpRequest {
   guide         Guide?            @relation(fields: [guideId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   // Nombre de la persona atendida, escrito por el personal en el mostrador.
   requesterName String?           @db.VarChar(100)
+  // Asunto de la solicitud.
   topic         String            @db.Text
+  // Detalle que escribe quien pide ayuda (vacio en solicitudes anteriores).
+  description   String            @default("") @db.Text
   status        HelpRequestStatus @default(PENDING)
   attendedById  String?           @db.Uuid
   attendedBy    User?             @relation("HelpRequestAttendant", fields: [attendedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
