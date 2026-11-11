@@ -11,6 +11,7 @@ import { Page } from '../../../../shared/primitives/pagination';
 import { PaginationQueryDto } from '../../../../shared/transport/pagination-query.dto';
 import { HelpRequest } from '../../domain/help-request';
 
+
 export const MANAGED_STATUSES = ['PENDING', 'IN_PROGRESS', 'ATTENDED'] as const;
 
 const trim = ({ value }: { value: unknown }) =>
@@ -24,12 +25,29 @@ export class CreateHelpRequestDto {
   @MaxLength(100)
   requesterName!: string;
 
-  @ApiProperty({ example: 'Correo electrónico', minLength: 3, maxLength: 200 })
+  @ApiProperty({
+    example: 'Correo electrónico',
+    minLength: 3,
+    maxLength: 200,
+    description: 'Subject of the request',
+  })
   @Transform(trim)
   @IsString()
   @MinLength(3)
   @MaxLength(200)
   topic!: string;
+
+  @ApiProperty({
+    example: 'No puedo entrar a mi correo y no recuerdo la clave',
+    minLength: 1,
+    maxLength: 1000,
+    description: 'What the person needs, in their own words',
+  })
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(1000)
+  description!: string;
 }
 
 export class ChangeHelpRequestStatusDto {
@@ -49,6 +67,7 @@ export class ListHelpRequestsQueryDto extends PaginationQueryDto {
   status?: (typeof MANAGED_STATUSES)[number];
 }
 
+
 export class HelpRequestResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -56,8 +75,18 @@ export class HelpRequestResponseDto {
   @ApiProperty({ nullable: true, example: 'María López' })
   requesterName!: string | null;
 
-  @ApiProperty({ example: 'Correo electrónico' })
+  @ApiProperty({
+    nullable: true,
+    example: 'maria@example.com',
+    description: 'Email of the account that made the request, if any',
+  })
+  requesterEmail!: string | null;
+
+  @ApiProperty({ example: 'Correo electrónico', description: 'Subject' })
   topic!: string;
+
+  @ApiProperty({ example: 'No puedo entrar a mi correo' })
+  description!: string;
 
   @ApiProperty({
     example: '2026-11-09',
@@ -70,6 +99,14 @@ export class HelpRequestResponseDto {
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: string;
+
+  @ApiProperty({
+    type: String,
+    format: 'date-time',
+    nullable: true,
+    description: 'When the staff attended it; null while not attended',
+  })
+  attendedAt!: string | null;
 }
 
 export class HelpRequestPageResponseDto {
@@ -99,10 +136,13 @@ export function toHelpRequestResponse(
   return {
     id: helpRequest.id,
     requesterName: helpRequest.requesterName,
+    requesterEmail: helpRequest.requesterEmail,
     topic: helpRequest.topic,
+    description: helpRequest.description,
     date: colombiaDate.format(helpRequest.createdAt),
     status: helpRequest.status as HelpRequestResponseDto['status'],
     createdAt: helpRequest.createdAt.toISOString(),
+    attendedAt: helpRequest.attendedAt?.toISOString() ?? null,
   };
 }
 

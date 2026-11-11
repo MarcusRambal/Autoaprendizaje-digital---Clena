@@ -8,7 +8,12 @@ export interface HelpRequest {
   id: string;
   /** Name of the person being helped, written by the staff member. */
   requesterName: string | null;
+  /** Email of the account that made the request, if it has one. */
+  requesterEmail: string | null;
+  /** Subject of the request. */
   topic: string;
+  /** What the person needs, in their own words. */
+  description: string;
   status: HelpRequestStatus;
   attendedById: string | null;
   attendedAt: Date | null;
@@ -18,3 +23,4 @@ export interface HelpRequest {
 export const REQUESTER_NAME_MAX_LENGTH = 100;
 export const TOPIC_MIN_LENGTH = 3;
 export const TOPIC_MAX_LENGTH = 200;
+export const DESCRIPTION_MAX_LENGTH = 1000;
