@@ -84,7 +84,7 @@ export class PrismaGuideRepository implements GuideRepository {
     };
 
     if (query.search) {
-      return this.listByTitleSearch(query, where);
+      return this.listByTitleOrCategorySearch(query, where);
     }
 
     const [total, rows] = await this.prisma.$transaction([
@@ -100,18 +100,23 @@ export class PrismaGuideRepository implements GuideRepository {
     return { items: rows.map((row) => this.toGuide(row)), total };
   }
 
-  private async listByTitleSearch(
+  private async listByTitleOrCategorySearch(
     query: ListGuidesQuery,
     where: Prisma.GuideWhereInput,
   ): Promise<GuidePage> {
     const filters = [
       query.publicationState
-        ? Prisma.sql`"publicationState" = ${query.publicationState}::"PublicationState"`
+        ? Prisma.sql`"Guide"."publicationState" = ${query.publicationState}::"PublicationState"`
         : Prisma.sql`TRUE`,
       query.categoryId
-        ? Prisma.sql`"categoryId" = ${query.categoryId}::uuid`
+        ? Prisma.sql`"Guide"."categoryId" = ${query.categoryId}::uuid`
         : Prisma.sql`TRUE`,
-      Prisma.sql`translate(lower("title"), 'áéíóúü', 'aeiouu') LIKE '%' || translate(lower(${query.search}), 'áéíóúü', 'aeiouu') || '%'`,
+      Prisma.sql`(
+        translate(lower("Guide"."title"), 'áéíóúü', 'aeiouu')
+          LIKE '%' || translate(lower(${query.search}), 'áéíóúü', 'aeiouu') || '%'
+        OR translate(lower("Category"."name"), 'áéíóúü', 'aeiouu')
+          LIKE '%' || translate(lower(${query.search}), 'áéíóúü', 'aeiouu') || '%'
+      )`,
     ];
     const sqlWhere = Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`;
     const direction =
@@ -121,13 +126,15 @@ export class PrismaGuideRepository implements GuideRepository {
       const [count] = await transaction.$queryRaw<Array<{ total: number }>>`
         SELECT COUNT(*)::int AS total
         FROM "Guide"
+        INNER JOIN "Category" ON "Category"."id" = "Guide"."categoryId"
         ${sqlWhere}
       `;
       const matchingIds = await transaction.$queryRaw<Array<{ id: string }>>`
-        SELECT "id"
+        SELECT "Guide"."id"
         FROM "Guide"
+        INNER JOIN "Category" ON "Category"."id" = "Guide"."categoryId"
         ${sqlWhere}
-        ORDER BY "createdAt" ${direction}, "id" ${direction}
+        ORDER BY "Guide"."createdAt" ${direction}, "Guide"."id" ${direction}
         OFFSET ${(query.page - 1) * query.pageSize}
         LIMIT ${query.pageSize}
       `;

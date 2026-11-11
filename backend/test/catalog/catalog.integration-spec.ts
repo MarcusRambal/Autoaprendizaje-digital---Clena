@@ -363,7 +363,7 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     });
   });
 
-  it('searches guide titles without case or Spanish accent differences', async () => {
+  it('searches guide titles and category names without case or Spanish accent differences', async () => {
     const created = await guides.create({
       title: `Cómo crear un perfil en una red social ${run}`,
       categoryId,
@@ -382,6 +382,17 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     });
 
     expect(result.items.map(({ id }) => id)).toContain(created.guide.id);
+
+    const categoryResult = await guides.list({
+      page: 1,
+      pageSize: 100,
+      search: `GUIASA ${run}`,
+      order: 'desc',
+    });
+
+    expect(categoryResult.items.map(({ id }) => id)).toContain(
+      created.guide.id,
+    );
 
     const distinctLetter = await prisma.guide.create({
       data: {

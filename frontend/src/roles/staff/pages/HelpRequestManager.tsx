@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import {
   createHelpRequest,
   deleteHelpRequest,
@@ -33,6 +33,69 @@ const initialFilters = (): HelpRequestFilters => ({
   requester: '',
   date: '',
 });
+
+const HelpRequestDescription = ({ description }: { description: string }) => {
+  const descriptionId = useId();
+  const previewRef = useRef<HTMLParagraphElement>(null);
+  const expandedRef = useRef(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    const checkTruncation = () => {
+      if (expandedRef.current) return;
+      const truncated = preview.scrollHeight > preview.clientHeight + 1;
+      setIsTruncated(current => current === truncated ? current : truncated);
+    };
+
+    const observer = new ResizeObserver(checkTruncation);
+    observer.observe(preview);
+    checkTruncation();
+    return () => observer.disconnect();
+  }, [description]);
+
+  useEffect(() => {
+    if (isExpanded) return;
+    const frame = requestAnimationFrame(() => {
+      const preview = previewRef.current;
+      if (preview) {
+        setIsTruncated(preview.scrollHeight > preview.clientHeight + 1);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isExpanded]);
+
+  const toggleExpanded = () => {
+    expandedRef.current = !isExpanded;
+    setIsExpanded(current => !current);
+  };
+
+  return (
+    <div className="request-description-disclosure">
+      <p
+        ref={previewRef}
+        id={descriptionId}
+        className={`request-description-preview${isExpanded ? ' is-expanded' : ''}`}
+      >
+        {description}
+      </p>
+      {isTruncated && (
+        <button
+          type="button"
+          className="request-description-toggle"
+          aria-expanded={isExpanded}
+          aria-controls={descriptionId}
+          onClick={toggleExpanded}
+        >
+          {isExpanded ? 'Mostrar menos' : 'Leer descripción completa'}
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const HelpRequestManager = () => {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
@@ -188,55 +251,6 @@ export const HelpRequestManager = () => {
         <p>Consulta, filtra y atiende las solicitudes registradas.</p>
       </header>
 
-      <form className="request-form" onSubmit={handleCreateRequest}>
-        <h2>Registrar nueva solicitud</h2>
-        <label>
-          Nombre del solicitante
-          <input
-            type="text"
-            value={requesterName}
-            onChange={event => {
-              setRequesterName(event.target.value);
-              setFormError(null);
-            }}
-            placeholder="Nombre"
-            maxLength={100}
-            required
-          />
-        </label>
-        <label>
-          Tema de ayuda
-          <input
-            type="text"
-            value={topic}
-            onChange={event => {
-              setTopic(event.target.value);
-              setFormError(null);
-            }}
-            placeholder="Ej. Correo electrónico"
-            minLength={3}
-            maxLength={200}
-            required
-          />
-        </label>
-        <label className="request-form__description">
-          Descripción de la necesidad
-          <textarea
-            value={description}
-            onChange={event => {
-              setDescription(event.target.value);
-              setFormError(null);
-            }}
-            maxLength={1000}
-            required
-          />
-        </label>
-        {formError && <p className="request-error" role="alert">{formError}</p>}
-        <button type="submit" disabled={isCreating}>
-          {isCreating ? 'Registrando…' : 'Registrar solicitud'}
-        </button>
-      </form>
-
       <section aria-labelledby="requests-list-title">
         <h2 id="requests-list-title">Solicitudes registradas</h2>
         <form className="request-filters" onSubmit={applyFilters}>
@@ -331,7 +345,9 @@ export const HelpRequestManager = () => {
                             </td>
                             <td>
                               <strong>{request.topic}</strong>
-                              {request.description && <p className="request-description">{request.description}</p>}
+                              {request.description && (
+                                <HelpRequestDescription description={request.description} />
+                              )}
                             </td>
                             <td><time dateTime={request.date}>{formatDate(request.date)}</time></td>
                             <td>
@@ -383,6 +399,55 @@ export const HelpRequestManager = () => {
           </>
         )}
       </section>
+
+      <form className="request-form" onSubmit={handleCreateRequest}>
+        <h2>Registrar nueva solicitud</h2>
+        <label>
+          Nombre del solicitante
+          <input
+            type="text"
+            value={requesterName}
+            onChange={event => {
+              setRequesterName(event.target.value);
+              setFormError(null);
+            }}
+            placeholder="Nombre"
+            maxLength={100}
+            required
+          />
+        </label>
+        <label>
+          Tema de ayuda
+          <input
+            type="text"
+            value={topic}
+            onChange={event => {
+              setTopic(event.target.value);
+              setFormError(null);
+            }}
+            placeholder="Ej. Correo electrónico"
+            minLength={3}
+            maxLength={200}
+            required
+          />
+        </label>
+        <label className="request-form__description">
+          Descripción de la necesidad
+          <textarea
+            value={description}
+            onChange={event => {
+              setDescription(event.target.value);
+              setFormError(null);
+            }}
+            maxLength={1000}
+            required
+          />
+        </label>
+        {formError && <p className="request-error" role="alert">{formError}</p>}
+        <button type="submit" disabled={isCreating}>
+          {isCreating ? 'Registrando…' : 'Registrar solicitud'}
+        </button>
+      </form>
     </section>
   );
 };

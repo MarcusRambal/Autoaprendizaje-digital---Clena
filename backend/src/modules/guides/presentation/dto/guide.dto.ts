@@ -53,7 +53,7 @@ export class ListGuidesQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     maxLength: 100,
     example: 'correo',
-    description: 'Part of the title; ignores upper/lower case',
+    description: 'Part of the title or category name; ignores upper/lower case',
   })
   @IsOptional()
   @Transform(trim)

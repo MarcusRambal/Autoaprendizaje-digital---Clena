@@ -394,7 +394,6 @@ export const EditGuidesPanel = ({
         {viewState === 'createView' && (
           <div>
             <h3>Crear una guía</h3>
-            <p role="status">Al crearla, la guía se publica en el catálogo público.</p>
             {categories.length > 0 ? (
               <form className="create-category-form guide-create-form" onSubmit={handleCreateGuide}>
                 <div className="input-group">
