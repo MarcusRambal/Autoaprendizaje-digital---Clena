@@ -92,6 +92,29 @@ export function resolveDemoAccounts(env: NodeJS.ProcessEnv): DemoAccount[] {
   return accounts;
 }
 
+export function resolveRequiredDemoAccounts(
+  env: NodeJS.ProcessEnv,
+): DemoAccount[] {
+  const accounts = resolveDemoAccounts(env);
+  const missingAccounts = DEMO_ACCOUNT_DEFINITIONS.filter(
+    (definition) => !accounts.some((account) => account.role === definition.role),
+  );
+
+  if (missingAccounts.length > 0) {
+    const requiredVariables = missingAccounts
+      .map(
+        ({ emailVariable, passwordVariable }) =>
+          `${emailVariable} and ${passwordVariable}`,
+      )
+      .join('; ');
+    throw new Error(
+      `The seed requires credentials for ADMIN, STAFF, and PUBLIC_USER. Configure: ${requiredVariables}.`,
+    );
+  }
+
+  return accounts;
+}
+
 /** Creates or refreshes the demo accounts. Safe to run repeatedly. */
 export async function seedDemoAccounts(
   prisma: PrismaClient,

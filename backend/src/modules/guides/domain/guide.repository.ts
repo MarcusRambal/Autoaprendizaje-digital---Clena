@@ -21,7 +21,7 @@ export interface GuideChanges {
 
 export interface ListGuidesQuery extends PageRequest {
   categoryId?: string;
-  /** Case-insensitive fragment that the guide title must contain. */
+  /** Case- and accent-insensitive fragment that the guide title must contain. */
   search?: string;
   /** Only guides in this state; every state when omitted. */
   publicationState?: GuidePublicationState;

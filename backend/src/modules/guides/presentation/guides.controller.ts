@@ -127,7 +127,7 @@ export class GuidesController {
   @ApiOperation({
     summary: 'List guides',
     description:
-      'Public. Paginated, newest first by default, optionally filtered by category and by part of the title (search).',
+      'Public. Paginated, newest first by default, optionally filtered by category and by part of the title (search ignores case and Spanish accent marks).',
   })
   @ApiOkResponse({ type: GuidePageResponseDto })
   async list(
@@ -142,7 +142,7 @@ export class GuidesController {
   @ApiOperation({
     summary: 'List every guide, drafts included (staff or admin)',
     description:
-      'Paginated, newest first by default. Filters: categoryId, search (part of the title) and publicationState.',
+      'Paginated, newest first by default. Filters: categoryId, search (part of the title; ignores case and Spanish accent marks) and publicationState.',
   })
   @ApiOkResponse({ type: GuidePageResponseDto })
   async listForStaff(
