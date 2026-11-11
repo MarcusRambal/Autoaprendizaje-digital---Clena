@@ -4,14 +4,21 @@ import { randomBytes } from 'node:crypto';
 import { isPrismaError } from '../../../shared/database/prisma-errors';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { slugify } from '../../../shared/primitives/slug';
-import { Guide, GuideFileContent, NewGuideFile } from '../domain/guide';
+import {
+  Guide,
+  GuideFileContent,
+  ManagedPublicationState,
+  NewGuideFile,
+} from '../domain/guide';
 import {
   CreateGuideResult,
   GuideChanges,
   GuidePage,
+  GuideReadOptions,
   GuideRepository,
   ListGuidesQuery,
   NewGuide,
+  SetPublicationResult,
   UpdateGuideResult,
 } from '../domain/guide.repository';
 
@@ -19,6 +26,7 @@ import {
 const guideSelect = {
   id: true,
   title: true,
+  publicationState: true,
   categoryId: true,
   createdAt: true,
   updatedAt: true,
@@ -69,8 +77,13 @@ export class PrismaGuideRepository implements GuideRepository {
 
   async list(query: ListGuidesQuery): Promise<GuidePage> {
     const where: Prisma.GuideWhereInput = {
-      publicationState: 'PUBLISHED',
+      ...(query.publicationState
+        ? { publicationState: query.publicationState }
+        : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.search
+        ? { title: { contains: query.search, mode: 'insensitive' as const } }
+        : {}),
     };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.guide.count({ where }),
@@ -85,17 +98,23 @@ export class PrismaGuideRepository implements GuideRepository {
     return { items: rows.map((row) => this.toGuide(row)), total };
   }
 
-  async findById(id: string): Promise<Guide | null> {
+  async findById(
+    id: string,
+    options?: GuideReadOptions,
+  ): Promise<Guide | null> {
     const row = await this.prisma.guide.findFirst({
-      where: { id, publicationState: 'PUBLISHED' },
+      where: { id, ...this.visibility(options) },
       select: guideSelect,
     });
     return row ? this.toGuide(row) : null;
   }
 
-  async findFile(id: string): Promise<GuideFileContent | null> {
+  async findFile(
+    id: string,
+    options?: GuideReadOptions,
+  ): Promise<GuideFileContent | null> {
     const file = await this.prisma.guideFile.findFirst({
-      where: { guideId: id, guide: { publicationState: 'PUBLISHED' } },
+      where: { guideId: id, guide: this.visibility(options) },
     });
     return file
       ? {
@@ -156,6 +175,25 @@ export class PrismaGuideRepository implements GuideRepository {
     }
   }
 
+  async setPublication(
+    id: string,
+    state: ManagedPublicationState,
+  ): Promise<SetPublicationResult> {
+    try {
+      const row = await this.prisma.guide.update({
+        where: { id },
+        data: { publicationState: state },
+        select: guideSelect,
+      });
+      return { kind: 'updated', guide: this.toGuide(row) };
+    } catch (error) {
+      if (isPrismaError(error, 'P2025')) {
+        return { kind: 'not-found' };
+      }
+      throw error;
+    }
+  }
+
   async delete(id: string): Promise<'deleted' | 'not-found'> {
     try {
       await this.prisma.$transaction([
@@ -172,6 +210,15 @@ export class PrismaGuideRepository implements GuideRepository {
     }
   }
 
+  /** Public reads only see PUBLISHED guides; staff reads can see them all. */
+  private visibility(
+    options?: GuideReadOptions,
+  ): Pick<Prisma.GuideWhereInput, 'publicationState'> {
+    return options?.includeUnpublished
+      ? {}
+      : { publicationState: 'PUBLISHED' };
+  }
+
   private toFileData(file: NewGuideFile) {
     return {
       originalName: file.originalName,
@@ -185,6 +232,7 @@ export class PrismaGuideRepository implements GuideRepository {
     return {
       id: row.id,
       title: row.title,
+      publicationState: row.publicationState,
       categoryId: row.categoryId,
       categoryTitle: row.category.name,
       fileName: row.file?.originalName ?? null,
