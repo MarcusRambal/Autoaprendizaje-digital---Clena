@@ -9,6 +9,7 @@ import {
 } from '../../../../services/helpRequestsApi';
 import type { HelpRequest, RequestStatus } from '../../../../types/contracts';
 import { Pagination } from '../../../features/content-management/Pagination';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import './HelpRequestManager.css';
 
 const managedStatuses: Array<{
@@ -114,6 +115,7 @@ export const HelpRequestManager = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteRequest, setPendingDeleteRequest] = useState<HelpRequest | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -225,15 +227,20 @@ export const HelpRequestManager = () => {
     }
   };
 
-  const handleDeleteRequest = async (request: HelpRequest) => {
-    if (!window.confirm(`¿Eliminar la solicitud de ${request.requesterName ?? 'la persona solicitante'}? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+  const handleDeleteRequest = (request: HelpRequest) => {
+    setActionError(null);
+    setPendingDeleteRequest(request);
+  };
+
+  const confirmDeleteRequest = async () => {
+    const request = pendingDeleteRequest;
+    if (!request || deletingId !== null) return;
     const requestId = String(request.id);
     setDeletingId(requestId);
     setActionError(null);
     try {
       await deleteHelpRequest(requestId);
+      setPendingDeleteRequest(null);
       reloadRequests();
     } catch (reason) {
       setActionError(reason instanceof Error
@@ -306,7 +313,7 @@ export const HelpRequestManager = () => {
           </div>
         </form>
 
-        {actionError && <p className="request-error" role="alert">{actionError}</p>}
+        {actionError && !pendingDeleteRequest && <p className="request-error" role="alert">{actionError}</p>}
         {loadError && (
           <div className="request-error" role="alert">
             <p>{loadError}</p>
@@ -448,6 +455,22 @@ export const HelpRequestManager = () => {
           {isCreating ? 'Registrando…' : 'Registrar solicitud'}
         </button>
       </form>
+      {pendingDeleteRequest && (
+        <ConfirmDialog
+          title="¿Eliminar esta solicitud?"
+          description={`Se eliminará la solicitud de ${pendingDeleteRequest.requesterName ?? 'la persona solicitante'}. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar solicitud"
+          pendingLabel="Eliminando solicitud…"
+          isConfirming={deletingId === String(pendingDeleteRequest.id)}
+          error={actionError}
+          onCancel={() => {
+            if (deletingId !== null) return;
+            setPendingDeleteRequest(null);
+            setActionError(null);
+          }}
+          onConfirm={() => void confirmDeleteRequest()}
+        />
+      )}
     </section>
   );
 };

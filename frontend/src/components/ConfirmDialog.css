@@ -1,0 +1,107 @@
+.confirm-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 1px solid #e4d9df;
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #211820;
+  box-shadow: 0 1.5rem 4rem rgb(27 12 22 / 28%);
+}
+
+.confirm-dialog::backdrop {
+  background: rgb(27 12 22 / 55%);
+  backdrop-filter: blur(2px);
+}
+
+.confirm-dialog__content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  padding: clamp(1.25rem, 4vw, 1.75rem);
+}
+
+.confirm-dialog__icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff0ee;
+  color: #a32121;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.confirm-dialog__message {
+  display: grid;
+  align-content: start;
+  gap: 0.6rem;
+}
+
+.confirm-dialog__message h2,
+.confirm-dialog__message p {
+  margin: 0;
+}
+
+.confirm-dialog__message h2 {
+  color: #652e4e;
+  font-size: 1.3rem;
+}
+
+.confirm-dialog__message p {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog__message .confirm-dialog__error {
+  color: #a32121;
+  font-weight: 700;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.4rem;
+}
+
+.confirm-dialog .confirm-dialog__actions button {
+  min-height: 2.8rem;
+  padding: 0.55rem 1rem;
+  border: 2px solid transparent;
+  border-radius: 0.55rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm-dialog .confirm-dialog__actions .confirm-dialog__cancel {
+  border: 2px solid #8a7781;
+  background: #fff;
+  color: #51434c;
+}
+
+.confirm-dialog .confirm-dialog__confirm {
+  background: #a32121;
+  color: #fff;
+}
+
+.confirm-dialog .confirm-dialog__actions button:focus-visible {
+  outline: 3px solid #a34a00;
+  outline-offset: 3px;
+}
+
+.confirm-dialog .confirm-dialog__actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 32rem) {
+  .confirm-dialog__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

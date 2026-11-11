@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  deleteMyAccount,
   deleteUserAccount,
   listUserAccounts,
   USER_PAGE_SIZE,
@@ -64,4 +65,18 @@ test("elimina cuentas con DELETE y traduce la protección de administradores", a
   await assert.rejects(deleteUserAccount("admin-uuid"), {
     message: "No se pueden eliminar las cuentas de administrador.",
   });
+});
+
+test("elimina la cuenta propia con DELETE /users/me", async (t) => {
+  tokenManager.setToken(null);
+  let request;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    request = { url, options };
+    return new Response(null, { status: 204 });
+  });
+
+  await deleteMyAccount();
+
+  assert.match(request.url, /\/users\/me$/);
+  assert.equal(request.options.method, "DELETE");
 });

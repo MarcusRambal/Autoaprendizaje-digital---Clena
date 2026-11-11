@@ -71,6 +71,10 @@ correo, filtrar por rol y eliminar cuentas; estas operaciones requieren una
 sesión de `ADMIN`. La eliminación de cuentas administradoras está protegida por
 el backend.
 
+La página de privacidad permite a cada persona eliminar su propia cuenta
+mediante `DELETE /api/v1/users/me`, previa confirmación. El backend también
+protege las cuentas administradoras y elimina los datos personales asociados.
+
 Las restricciones del frontend no sustituyen la autorización del backend. Los
 endpoints de categorías, guías y usuarios aplican sus propios controles de roles.
 

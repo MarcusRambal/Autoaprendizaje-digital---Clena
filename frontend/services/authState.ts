@@ -6,6 +6,7 @@ export interface AuthContextType {
   token: string | null;
   login: (credentials: Credentials) => Promise<AppRole>;
   register: (credentials: Credentials) => Promise<AppRole>;
+  clearSession: () => void;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;

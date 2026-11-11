@@ -84,3 +84,11 @@ export function deleteUserAccount(id: string): Promise<void> {
     }),
   );
 }
+
+export function deleteMyAccount(): Promise<void> {
+  return requestUsers("delete", () =>
+    apiClient<void>("/users/me", {
+      method: "DELETE",
+    }),
+  );
+}

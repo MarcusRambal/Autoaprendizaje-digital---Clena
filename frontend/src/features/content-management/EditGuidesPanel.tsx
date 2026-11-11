@@ -5,6 +5,7 @@ import { matchesSearch } from './searchContent';
 import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
 import { getManagedGuidePdf } from '../../../services/guidesApi';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 type ViewState = 'guideView' | 'createView' | 'editView' | 'deleteView';
 
@@ -186,6 +187,7 @@ export const EditGuidesPanel = ({
   const [creating, setCreating] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletingGuideId, setDeletingGuideId] = useState<Guide['id'] | null>(null);
+  const [pendingDeleteGuide, setPendingDeleteGuide] = useState<Guide | null>(null);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
   const localPagination = usePagination(filteredGuides, `${viewState}:${searchQuery}`);
   const pagination = serverPagination ?? localPagination;
@@ -279,15 +281,20 @@ export const EditGuidesPanel = ({
     return () => URL.revokeObjectURL(selectedGuide.url);
   }, [selectedGuide]);
 
-  const handleDeleteGuide = async (guide: Guide) => {
-    if (!window.confirm(`¿Eliminar la guía "${guide.title}" y su archivo PDF? Esta acción no se puede deshacer.`)) {
-      return;
-    }
+  const handleDeleteGuide = (guide: Guide) => {
+    setDeleteError(null);
+    setPendingDeleteGuide(guide);
+  };
+
+  const confirmDeleteGuide = async () => {
+    const guide = pendingDeleteGuide;
+    if (!guide || deletingGuideId !== null) return;
     setDeletingGuideId(guide.id);
     setDeleteError(null);
     try {
       await onDelete(guide.id);
       setSelectedGuide(current => current?.guide.id === guide.id ? null : current);
+      setPendingDeleteGuide(null);
     } catch (reason) {
       setDeleteError(reason instanceof Error ? reason.message : 'No se pudo eliminar la guía.');
     } finally {
@@ -346,7 +353,7 @@ export const EditGuidesPanel = ({
         </div>
 
         <div id="guide-management-panel" className="guide-management-panel">
-        {deleteError && <p className="error-text" role="alert">{deleteError}</p>}
+        {!pendingDeleteGuide && deleteError && <p className="error-text" role="alert">{deleteError}</p>}
         {viewState === 'guideView' && (
           <div className={`guide-view-layout ${selectedGuideMatches ? 'has-preview' : ''}`}>
             <div className="guide-list">
@@ -512,6 +519,22 @@ export const EditGuidesPanel = ({
         )}
         </div>
       </div>
+      {pendingDeleteGuide && (
+        <ConfirmDialog
+          title="¿Eliminar esta guía?"
+          description={`Se eliminarán la guía "${pendingDeleteGuide.title}" y su archivo PDF. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar guía"
+          pendingLabel="Eliminando guía…"
+          isConfirming={deletingGuideId === pendingDeleteGuide.id}
+          error={deleteError}
+          onCancel={() => {
+            if (deletingGuideId !== null) return;
+            setPendingDeleteGuide(null);
+            setDeleteError(null);
+          }}
+          onConfirm={() => void confirmDeleteGuide()}
+        />
+      )}
     </section>
   );
 };

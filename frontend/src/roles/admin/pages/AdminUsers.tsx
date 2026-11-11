@@ -7,6 +7,7 @@ import {
   type UserAccountFilters,
 } from '../../../../services/usersApi';
 import { Pagination } from '../../../features/content-management/Pagination';
+import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import './AdminPages.css';
 
 const roleLabels = {
@@ -50,6 +51,7 @@ export function AdminUsers() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDeleteUser, setPendingDeleteUser] = useState<UserAccount | null>(null);
   const [reloadList, setReloadList] = useState(0);
 
   useEffect(() => {
@@ -118,18 +120,22 @@ export function AdminUsers() {
     setReloadList(current => current + 1);
   };
 
-  const removeUser = async (user: UserAccount) => {
-    const confirmed = window.confirm(
-      `¿Eliminar la cuenta de ${user.email}? También se borrarán sus datos personales, progreso y solicitudes. Esta acción no se puede deshacer.`,
-    );
-    if (!confirmed) return;
+  const removeUser = (user: UserAccount) => {
+    setDeleteError(null);
+    setDeleteSuccess(null);
+    setPendingDeleteUser(user);
+  };
 
+  const confirmRemoveUser = async () => {
+    const user = pendingDeleteUser;
+    if (!user || deletingId) return;
     setDeletingId(user.id);
     setDeleteError(null);
     setDeleteSuccess(null);
     try {
       await deleteUserAccount(user.id);
       setDeleteSuccess(`Se eliminó la cuenta de ${user.email}.`);
+      setPendingDeleteUser(null);
       setListLoading(true);
       setReloadList(current => current + 1);
     } catch (reason) {
@@ -220,7 +226,7 @@ export function AdminUsers() {
             <button type="button" onClick={retryList}>Reintentar</button>
           </div>
         )}
-        {deleteError && <p className="admin-form-error" role="alert">{deleteError}</p>}
+        {!pendingDeleteUser && deleteError && <p className="admin-form-error" role="alert">{deleteError}</p>}
         {deleteSuccess && <p className="admin-form-success" role="status">{deleteSuccess}</p>}
         {listLoading ? (
           <p role="status">Cargando cuentas de usuario…</p>
@@ -298,6 +304,22 @@ export function AdminUsers() {
           </section>
         )}
       </section>
+      {pendingDeleteUser && (
+        <ConfirmDialog
+          title="¿Eliminar esta cuenta?"
+          description={`Se eliminarán permanentemente la cuenta ${pendingDeleteUser.email}, sus datos personales, progreso y solicitudes. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar cuenta"
+          pendingLabel="Eliminando cuenta…"
+          isConfirming={deletingId === pendingDeleteUser.id}
+          error={deleteError}
+          onCancel={() => {
+            if (deletingId) return;
+            setPendingDeleteUser(null);
+            setDeleteError(null);
+          }}
+          onConfirm={() => void confirmRemoveUser()}
+        />
+      )}
     </section>
   );
 }

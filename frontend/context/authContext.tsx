@@ -120,12 +120,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [saveSession],
   );
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     generation.current += 1;
     tokenManager.setToken(null);
     setSession(null);
     setSessionError(null);
     setIsLoading(false);
+  }, []);
+
+  const logout = useCallback(() => {
+    clearSession();
     void logoutRequest(apiBaseUrl).catch((error: unknown) => {
       const detail =
         error instanceof Error ? error.message : "Error desconocido.";
@@ -133,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         `La sesión se cerró en este navegador, pero no se pudo revocar en el servidor: ${detail}`,
       );
     });
-  }, []);
+  }, [clearSession]);
 
   const value = useMemo<AuthContextType>(
     () => ({
@@ -147,12 +151,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       token: session?.accessToken ?? null,
       login: (credentials) => authenticate("login", credentials),
       register: (credentials) => authenticate("register", credentials),
+      clearSession,
       logout,
       isAuthenticated: session !== null,
       isLoading,
       sessionError,
     }),
-    [session, authenticate, logout, isLoading, sessionError],
+    [session, authenticate, clearSession, logout, isLoading, sessionError],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
