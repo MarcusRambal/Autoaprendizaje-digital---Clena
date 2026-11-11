@@ -8,6 +8,15 @@
   --clena-green: #76de8d;
 }
 
+[role="alert"],
+[role="status"] {
+  color: #b42318 !important;
+}
+
+.admin-form-success[role="status"] {
+  color: #237a3b !important;
+}
+
 * {
   font-family: 'Atkinson Hyperlegible', sans-serif;
   margin: 0;

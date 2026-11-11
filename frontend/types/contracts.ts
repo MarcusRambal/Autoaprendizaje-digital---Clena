@@ -6,7 +6,7 @@ export interface User {
 }
 
 export interface Category {
-  id: number;
+  id: string;
   title: string;
 }
 

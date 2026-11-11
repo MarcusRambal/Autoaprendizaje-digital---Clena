@@ -1,6 +1,7 @@
 import './ControlPanel.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Category, Guide, Quiz } from '../../../types/contracts';
+import { createCategory, deleteCategory, listCategories, renameCategory } from '../../../services/categoriesApi';
 import { EditCategoriesPanel } from './EditCategoriesPanel';
 import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
@@ -10,16 +11,16 @@ import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
 
 const initialCategories: Category[] = [
-  { id: 1, title: 'Categoria 1' },
-  { id: 2, title: 'Categoria 2' },
-  { id: 3, title: 'Categoria 3' },
-  { id: 4, title: 'Categoria 4' },
-  { id: 5, title: 'Categoria 5' },
-  { id: 6, title: 'Categoria 6' },
-  { id: 7, title: 'Categoria 7' },
-  { id: 8, title: 'Categoria 8' },
-  { id: 9, title: 'Categoria 9' },
-  { id: 10, title: 'Categoria 10' }
+  { id: '1', title: 'Categoria 1' },
+  { id: '2', title: 'Categoria 2' },
+  { id: '3', title: 'Categoria 3' },
+  { id: '4', title: 'Categoria 4' },
+  { id: '5', title: 'Categoria 5' },
+  { id: '6', title: 'Categoria 6' },
+  { id: '7', title: 'Categoria 7' },
+  { id: '8', title: 'Categoria 8' },
+  { id: '9', title: 'Categoria 9' },
+  { id: '10', title: 'Categoria 10' }
 ];
 
 const initialGuides: Guide[] = [
@@ -37,8 +38,14 @@ const initialGuides: Guide[] = [
 
 
 
-const nextId = <T extends { id: number }>(items: T[]) =>
-  items.reduce((largestId, item) => Math.max(largestId, item.id), 0) + 1;
+const nextId = <T extends { id: number | string }>(items: T[]) =>
+  items.reduce(
+    (largestId, item) => {
+      const id = typeof item.id === 'number' ? item.id : Number(item.id);
+      return Number.isSafeInteger(id) ? Math.max(largestId, id) : largestId;
+    },
+    0,
+  ) + 1;
 
 interface ControlPanelData {
   categories: Category[];
@@ -52,11 +59,14 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) => {
+  const usesBackendCategories = mode === 'categories' && initialData === undefined;
   const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>(mode === 'categories' ? 'categories' : 'guides');
-  const [categories, setCategories] = useState<Category[]>(initialData?.categories ?? initialCategories);
+  const [categories, setCategories] = useState<Category[]>(initialData?.categories ?? (usesBackendCategories ? [] : initialCategories));
   const [guides, setGuides] = useState<Guide[]>(initialData?.guides ?? initialGuides);
   const [quizzes, setQuizzes] = useState<Quiz[]>(initialData?.quizzes ?? []);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoriesLoading, setCategoriesLoading] = useState(usesBackendCategories);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [publishedGuides, setPublishedGuides] = useState<number[]>([]);
   const [publishedQuizzes, setPublishedQuizzes] = useState<number[]>([]);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
@@ -64,29 +74,78 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
   const guidePublicationPages = usePagination(filteredGuides, searchQuery);
   const quizPublicationPages = usePagination(filteredQuizzes, searchQuery);
 
-  const handleCreateCategory = (title: string) => {
-    setCategories(current => [...current, { id: nextId(current), title }]);
+  const loadCategories = async () => {
+    setCategoriesLoading(true);
+    setCategoriesError(null);
+    try {
+      setCategories(await listCategories());
+    } catch (reason) {
+      setCategoriesError(reason instanceof Error ? reason.message : 'No se pudieron cargar las categorías.');
+    } finally {
+      setCategoriesLoading(false);
+    }
   };
 
-  const handleSaveCategory = (updatedCategory: Category) => {
+  useEffect(() => {
+    if (!usesBackendCategories) return;
+    let active = true;
+    listCategories()
+      .then(items => {
+        if (active) setCategories(items);
+      })
+      .catch((reason: unknown) => {
+        if (active) setCategoriesError(reason instanceof Error ? reason.message : 'No se pudieron cargar las categorías.');
+      })
+      .finally(() => {
+        if (active) setCategoriesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [usesBackendCategories]);
+
+  const handleCreateCategory = async (title: string) => {
+    if (usesBackendCategories) {
+      const created = await createCategory(title);
+      setCategories(current => [...current, created]);
+      return;
+    }
+    setCategories(current => [...current, { id: String(nextId(current)), title }]);
+  };
+
+  const handleSaveCategory = async (updatedCategory: Category) => {
+    const previousCategory = categories.find(category => category.id === updatedCategory.id);
+    if (usesBackendCategories) {
+      const saved = await renameCategory(String(updatedCategory.id), updatedCategory.title);
+      setCategories(current =>
+        current.map(category => category.id === saved.id ? saved : category)
+      );
+      return;
+    }
     setCategories(current =>
       current.map(category => category.id === updatedCategory.id ? updatedCategory : category)
     );
     setGuides(current =>
-      current.map(guide => guide.category === categories.find(category => category.id === updatedCategory.id)?.title
+      current.map(guide => guide.category === previousCategory?.title
         ? { ...guide, category: updatedCategory.title }
         : guide)
     );
     setQuizzes(current =>
-      current.map(quiz => quiz.category === categories.find(category => category.id === updatedCategory.id)?.title
+      current.map(quiz => quiz.category === previousCategory?.title
         ? { ...quiz, category: updatedCategory.title }
         : quiz)
     );
   };
 
-  const handleDeleteCategory = (categoryId: number) => {
+  const handleDeleteCategory = async (categoryId: Category['id']) => {
     const category = categories.find(item => item.id === categoryId);
     if (!category) return null;
+
+    if (usesBackendCategories) {
+      await deleteCategory(String(categoryId));
+      setCategories(current => current.filter(item => item.id !== categoryId));
+      return null;
+    }
 
     const isInUse =
       guides.some(guide => guide.category === category.title) ||
@@ -135,7 +194,9 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
       <header className="control-panel-header">
         <h1>{mode === 'categories' ? 'Categorías' : mode === 'content' ? 'Guías y lecciones' : 'Panel de control'}</h1>
         <p>{mode === 'categories' ? 'Organiza las categorías de la plataforma.' : mode === 'content' ? 'Organiza las guías y lecciones de la plataforma.' : 'Organiza las categorías, guías y lecciones de la plataforma.'}</p>
-        <p role="status"><strong>Demostración:</strong> los datos son de prueba y los cambios no se guardan en el servidor.</p>
+        {usesBackendCategories
+          ? <p role="status">Las categorías se cargan y guardan en el servidor.</p>
+          : <p role="status"><strong>Demostración:</strong> los datos son de prueba y los cambios no se guardan en el servidor.</p>}
       </header>
       <div className="control-panel-toolbar">
         <div className="section-tabs" role="group" aria-label="Sección del panel de control">
@@ -183,13 +244,20 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
 
       <div className="section-content">
         {mode !== 'content' && <div hidden={activeSection !== 'categories'}>
-          <EditCategoriesPanel
-            categories={categories}
-            searchQuery={searchQuery}
-            onCreate={handleCreateCategory}
-            onSave={handleSaveCategory}
-            onDelete={handleDeleteCategory}
-          />
+          {categoriesLoading
+            ? <p role="status">Cargando categorías…</p>
+            : categoriesError
+              ? <div role="alert">
+                  <p>{categoriesError}</p>
+                  <button type="button" onClick={loadCategories}>Reintentar</button>
+                </div>
+              : <EditCategoriesPanel
+                  categories={categories}
+                  searchQuery={searchQuery}
+                  onCreate={handleCreateCategory}
+                  onSave={handleSaveCategory}
+                  onDelete={handleDeleteCategory}
+                />}
         </div>}
         {mode !== 'categories' && <div hidden={activeSection !== 'guides'}>
           <EditGuidesPanel

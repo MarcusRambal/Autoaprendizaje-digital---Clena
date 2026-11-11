@@ -28,6 +28,6 @@ export const AdminDashboard = () => (
         <span className="staff-dashboard-card__action">Ver privacidad <span aria-hidden="true">→</span></span>
       </Link>
     </nav>
-    <p className="staff-dashboard-note" role="status">La gestión de categorías y usuarios utiliza datos de demostración.</p>
+    <p className="staff-dashboard-note" role="status">La gestión de categorías está conectada al servidor; la administración de usuarios sigue siendo una demostración.</p>
   </section>
 );

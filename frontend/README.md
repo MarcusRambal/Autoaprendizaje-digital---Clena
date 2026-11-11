@@ -14,7 +14,8 @@ src/
   shared/styles/                Estilos compartidos por los paneles operativos.
 ```
 
-`services/` contiene los clientes de autenticación y aprendizaje público y sus
+`services/` contiene los clientes HTTP de autenticación y categorías, además de
+la interfaz de aprendizaje público y sus
 contratos; `config/`
 define la navegación por rol y `types/` los contratos del frontend. Las URL
 existentes se mantienen para no romper enlaces. El editor compartido se usa en
@@ -51,6 +52,11 @@ del personal, las solicitudes, estadísticas, edición y publicación también
 son demostraciones en memoria. La administración de usuarios y las acciones
 de privacidad son demostraciones de frontend y no modifican cuentas ni
 persisten consentimiento. Auditoría y respaldos siguen sin implementarse.
+
+La administración de categorías consulta y modifica el endpoint `/api/v1/categories`
+del backend; listar es público y las operaciones de creación, edición y borrado
+requieren una sesión de `ADMIN`. El panel de guías y lecciones permanece en modo
+demostración y no persiste cambios.
 
 Las restricciones del frontend no sustituyen la autorización del backend:
 los futuros endpoints deben aplicar sus propios controles de roles.

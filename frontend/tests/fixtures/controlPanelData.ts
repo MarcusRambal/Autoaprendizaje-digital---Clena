@@ -10,20 +10,20 @@ const topics = [
   'Tecnología para niños', 'Tecnología para adultos'
 ];
 
-export const categories: Category[] = topics.map((title, index) => ({ id: index + 1, title }));
+export const categories: Category[] = topics.map((title, index) => ({ id: String(index + 1), title }));
 
-export const guides: Guide[] = categories.flatMap(category =>
+export const guides: Guide[] = categories.flatMap((category, categoryIndex) =>
   Array.from({ length: 8 }, (_, index) => ({
-    id: (category.id - 1) * 8 + index + 1,
+    id: categoryIndex * 8 + index + 1,
     title: `${category.title}: guía práctica ${index + 1}`,
     category: category.title,
     file: `guia${index % 3 + 1}.pdf`
   }))
 );
 
-export const quizzes: Quiz[] = categories.flatMap(category =>
+export const quizzes: Quiz[] = categories.flatMap((category, categoryIndex) =>
   Array.from({ length: 4 }, (_, index) => ({
-    id: (category.id - 1) * 4 + index + 1,
+    id: categoryIndex * 4 + index + 1,
     name: `${category.title}: evaluación ${index + 1}`,
     category: category.title,
     questions: Array.from({ length: 5 }, (_, questionIndex) => ({
