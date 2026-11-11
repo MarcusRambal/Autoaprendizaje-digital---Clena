@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { listCategories } from '../../../../services/categoriesApi';
 import {
@@ -32,7 +32,9 @@ export const Guides = () => {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [queryInput, setQueryInput] = useState('');
   const [query, setQuery] = useState('');
+  const [categoryInput, setCategoryInput] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -125,18 +127,14 @@ export const Guides = () => {
     };
   }, [selectedGuide]);
 
-  const updateQuery = (value: string) => {
-    setQuery(value);
+  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setQuery(queryInput.trim());
+    setCategoryId(categoryInput);
     setPage(1);
     setIsLoading(true);
     setError(null);
-  };
-
-  const updateCategory = (value: string) => {
-    setCategoryId(value);
-    setPage(1);
-    setIsLoading(true);
-    setError(null);
+    setGuideReload(current => current + 1);
   };
 
   const retryCategories = () => {
@@ -207,25 +205,26 @@ export const Guides = () => {
     <section className="public-page guides-page" aria-labelledby="guides-title">
       <header className="guides-catalog-header">
         <h1 id="guides-title">Guías de aprendizaje</h1>
-        <div className="guides-filters">
-          <label className="visually-hidden" htmlFor="guide-search">Buscar guías por nombre</label>
+        <form className="guides-filters" onSubmit={applyFilters}>
+          <label className="visually-hidden" htmlFor="guide-search">Buscar guías por nombre o categoría</label>
           <input
             id="guide-search"
             type="search"
-            placeholder="Búsqueda por nombre"
-            value={query}
-            onChange={event => updateQuery(event.target.value)}
+            placeholder="Buscar por nombre o categoría"
+            value={queryInput}
+            onChange={event => setQueryInput(event.target.value)}
           />
           <label className="visually-hidden" htmlFor="guide-category">Filtrar guías por categoría</label>
           <select
             id="guide-category"
-            value={categoryId}
-            onChange={event => updateCategory(event.target.value)}
+            value={categoryInput}
+            onChange={event => setCategoryInput(event.target.value)}
           >
             <option value="">Todas las categorías</option>
             {categories.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
           </select>
-        </div>
+          <button type="submit" className="public-button">Buscar</button>
+        </form>
       </header>
 
       {categoriesLoading && <p role="status">Cargando categorías…</p>}

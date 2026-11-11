@@ -23,8 +23,9 @@
 .guides-filters {
   display: grid;
   width: min(100%, 34rem);
-  grid-template-columns: minmax(0, 1.5fr) minmax(10rem, 1fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(9rem, 1fr) auto;
   gap: 0.75rem;
+  margin: 0;
 }
 
 .guides-filters input,
@@ -166,6 +167,7 @@
 @media (max-width: 42rem) {
   .guides-catalog-header { align-items: stretch; }
   .guides-filters { width: 100%; grid-template-columns: minmax(0, 1fr); }
+  .guides-filters > button { width: 100%; }
   .guides-catalog { grid-template-columns: minmax(0, 1fr); }
   .guide-card { min-height: 9rem; }
   .guide-detail-actions { width: 100%; align-items: stretch; }
