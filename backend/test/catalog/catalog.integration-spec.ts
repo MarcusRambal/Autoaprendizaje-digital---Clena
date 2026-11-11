@@ -275,9 +275,9 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     await guides.setPublication(id, 'PUBLISHED');
     await expect(guides.findById(id)).resolves.toMatchObject({ id });
     expect(await listIds('PUBLISHED')).toContain(id);
-    await expect(
-      guides.setPublication(randomUUID(), 'DRAFT'),
-    ).resolves.toEqual({ kind: 'not-found' });
+    await expect(guides.setPublication(randomUUID(), 'DRAFT')).resolves.toEqual(
+      { kind: 'not-found' },
+    );
   });
 
   it('reports a missing category without creating anything', async () => {
