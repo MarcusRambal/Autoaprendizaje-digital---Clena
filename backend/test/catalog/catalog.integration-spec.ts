@@ -275,9 +275,9 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
     await guides.setPublication(id, 'PUBLISHED');
     await expect(guides.findById(id)).resolves.toMatchObject({ id });
     expect(await listIds('PUBLISHED')).toContain(id);
-    await expect(guides.setPublication(randomUUID(), 'DRAFT')).resolves.toEqual(
-      { kind: 'not-found' },
-    );
+    await expect(
+      guides.setPublication(randomUUID(), 'DRAFT'),
+    ).resolves.toEqual({ kind: 'not-found' });
   });
 
   it('reports a missing category without creating anything', async () => {
@@ -332,18 +332,24 @@ describe('PrismaGuideRepository (PostgreSQL)', () => {
       page: 1,
       pageSize: 10,
       categoryId: otherCategoryId,
+      // The public catalog asks for PUBLISHED only; staff reads omit the filter.
+      publicationState: 'PUBLISHED',
       order: 'desc',
     });
     const asc = await guides.list({
       page: 1,
       pageSize: 10,
       categoryId: otherCategoryId,
+      // The public catalog asks for PUBLISHED only; staff reads omit the filter.
+      publicationState: 'PUBLISHED',
       order: 'asc',
     });
     const secondPage = await guides.list({
       page: 2,
       pageSize: 2,
       categoryId: otherCategoryId,
+      // The public catalog asks for PUBLISHED only; staff reads omit the filter.
+      publicationState: 'PUBLISHED',
       order: 'desc',
     });
 
