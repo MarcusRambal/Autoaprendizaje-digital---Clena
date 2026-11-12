@@ -49,3 +49,55 @@
   min-height: 40px;
   padding: 8px 16px;
 }
+
+.stats-range-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.stats-range-field {
+  display: grid;
+  gap: 4px;
+}
+
+.stats-range-field label {
+  font-weight: 700;
+}
+
+.stats-range-form input,
+.stats-range-form button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.stats-range-form button {
+  border: 0;
+  border-radius: 6px;
+  background: #652e4e;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stats-error {
+  color: #a32121;
+}
+
+.stats-table-scroll {
+  overflow-x: auto;
+}
+
+.stats-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.stats-data-table th,
+.stats-data-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #dfe3e8;
+}

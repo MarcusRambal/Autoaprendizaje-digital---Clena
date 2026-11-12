@@ -5,6 +5,7 @@ import {
   getPublicGuidePdf,
   listPublicGuides,
 } from '../../../../services/guidesApi';
+import { trackGuideView } from '../../../../services/statsApi';
 import type { Category, Guide } from '../../../../types/contracts';
 import { Pagination } from '../../../features/content-management/Pagination';
 import './Guides.css';
@@ -29,6 +30,7 @@ export const Guides = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedGuide = getSelectedGuide(location.state);
+  const selectedGuideId = selectedGuide ? String(selectedGuide.id) : null;
   const [guides, setGuides] = useState<Guide[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -46,6 +48,13 @@ export const Guides = () => {
   const [guideReload, setGuideReload] = useState(0);
   const [pdf, setPdf] = useState<{ id: string; url: string } | null>(null);
   const [pdfError, setPdfError] = useState<{ id: string; message: string } | null>(null);
+
+  useEffect(() => {
+    if (!selectedGuideId) return;
+    void trackGuideView(selectedGuideId).catch((reason: unknown) => {
+      console.warn('No se pudo registrar la vista de la guía.', reason);
+    });
+  }, [selectedGuideId]);
 
   useEffect(() => {
     let active = true;

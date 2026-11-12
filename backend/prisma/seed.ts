@@ -430,6 +430,7 @@ async function main(): Promise<void> {
   }
 
   const categoriesBySlug = new Map<string, { id: string }>();
+  const guidesBySlug = new Map<string, { id: string }>();
 
   for (const category of categories) {
     const savedCategory = await prisma.category.upsert({
@@ -458,6 +459,7 @@ async function main(): Promise<void> {
       create: data,
       select: { id: true },
     });
+    guidesBySlug.set(guideData.slug, guide);
 
     for (const [index, [title, instructions]] of steps.entries()) {
       const orderNumber = index + 1;
@@ -487,6 +489,34 @@ async function main(): Promise<void> {
       create: { guideId: guide.id, ...file },
     });
   }
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const totalGuideViews = 65;
+  const totalViewWeight = (guides.length * (guides.length + 1)) / 2;
+  const guideViews = guides.flatMap(({ slug }, guideIndex) => {
+    const guide = guidesBySlug.get(slug);
+    if (!guide) throw new Error(`The seed guide ${slug} was not created.`);
+    const cumulativeWeight =
+      ((guideIndex + 1) * (2 * guides.length - guideIndex)) / 2;
+    const previousCumulativeWeight =
+      (guideIndex * (2 * guides.length - guideIndex + 1)) / 2;
+    const count =
+      Math.floor((totalGuideViews * cumulativeWeight) / totalViewWeight) -
+      Math.floor(
+        (totalGuideViews * previousCumulativeWeight) / totalViewWeight,
+      );
+    return Array.from({ length: count }, (_, viewIndex) => {
+      const sequence = guideIndex * 100 + viewIndex + 1;
+      const dayOffset = (guideIndex * 7 + viewIndex * 3) % 30;
+      return {
+        id: `00000000-0000-4000-8000-${String(sequence).padStart(12, '0')}`,
+        guideId: guide.id,
+        viewedAt: new Date(Date.now() - dayOffset * dayMs),
+      };
+    });
+  });
+  await prisma.guideView.deleteMany();
+  await prisma.guideView.createMany({ data: guideViews });
 
   for (const { categorySlug, questions, ...activityData } of activities) {
     const category = categoriesBySlug.get(categorySlug);
