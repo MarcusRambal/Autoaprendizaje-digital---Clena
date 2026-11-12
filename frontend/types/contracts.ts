@@ -25,12 +25,15 @@ export interface QuizQuestion {
   description: string;
   options: string[];
   correctOptionIndex: number;
+  immediateFeedback?: string;
 }
 
 export interface Quiz {
-  id: number;
+  id: number | string;
   name: string;
+  description?: string;
   category: string;
+  categoryId?: string;
   questions: QuizQuestion[];
 }
 

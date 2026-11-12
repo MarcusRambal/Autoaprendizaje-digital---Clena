@@ -5,6 +5,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { GuidesModule } from './modules/guides/guides.module';
 import { UsersModule } from './modules/users/users.module';
 import { HelpRequestsModule } from './modules/help-requests/help-requests.module';
+import { LessonsModule } from './modules/lessons/lessons.module';
 import { ConfigModule } from './shared/config/config.module';
 import { LoggerModule } from './shared/logging/logger.module';
 
@@ -17,6 +18,7 @@ import { LoggerModule } from './shared/logging/logger.module';
     CategoriesModule,
     GuidesModule,
     HelpRequestsModule,
+    LessonsModule,
     UsersModule,
   ],
 })

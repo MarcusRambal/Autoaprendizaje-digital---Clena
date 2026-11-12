@@ -1,14 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { matchesSearch } from '../../../features/content-management/searchContent';
-import { mockPublicLearningService, usePublicRequest } from '../../../../services/publicLearning';
+import { usePublicRequest } from '../../../../services/publicLearning';
 import type { PublicLesson } from '../../../../services/publicLearning';
+import { getPublicLessons } from '../../../../services/publicLessonApi';
 import './Quiz.css';
 
-const getSelectedLessonId = (state: unknown): number | undefined => {
+const getSelectedLessonId = (state: unknown): number | string | undefined => {
   if (!state || typeof state !== 'object' || !('selectedLessonId' in state)) return undefined;
   const { selectedLessonId } = state;
-  return typeof selectedLessonId === 'number' ? selectedLessonId : undefined;
+  return typeof selectedLessonId === 'number' || typeof selectedLessonId === 'string'
+    ? selectedLessonId
+    : undefined;
 };
 
 const LessonPlayer = ({ lesson, onBack }: { lesson: PublicLesson; onBack: () => void }) => {
@@ -155,7 +158,7 @@ const LessonPlayer = ({ lesson, onBack }: { lesson: PublicLesson; onBack: () => 
 export const Quiz = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { data: lessons, isLoading, error } = usePublicRequest(mockPublicLearningService.getLessons);
+  const { data: lessons, isLoading, error } = usePublicRequest(getPublicLessons);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const selectedLessonId = getSelectedLessonId(location.state);
@@ -166,7 +169,7 @@ export const Quiz = () => {
     && matchesSearch(query, lesson.title, lesson.description, lesson.category)
   ), [category, lessons, query]);
 
-  const openLesson = (lesson: { id: number }) => {
+  const openLesson = (lesson: PublicLesson) => {
     navigate(location.pathname, { state: { selectedLessonId: lesson.id } });
   };
 
@@ -205,7 +208,7 @@ export const Quiz = () => {
         </div>
       </header>
 
-      <p className="public-demo-note" role="note">Preguntas y respuestas de demostración. Las respuestas y el progreso no se guardan.</p>
+      <p className="public-demo-note" role="note">Lecciones publicadas por el equipo de Staff. El progreso todavía no se guarda.</p>
       {isLoading && <p role="status">Cargando lecciones…</p>}
       {error && <p className="public-error" role="alert">{error}</p>}
 

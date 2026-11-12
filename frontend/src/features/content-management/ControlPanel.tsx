@@ -9,6 +9,14 @@ import {
   setManagedGuidePublication,
   updateManagedGuide,
 } from '../../../services/guidesApi';
+import {
+  apiErrorMessage,
+  createLesson,
+  deleteLesson,
+  listStaffLessons,
+  updateLesson,
+  type LessonInput,
+} from '../../../services/staffContentApi';
 import { EditCategoriesPanel } from './EditCategoriesPanel';
 import { EditGuidesPanel } from './EditGuidesPanel';
 import { EditQuizPanel } from './EditQuizPanel';
@@ -69,10 +77,14 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
   const usesBackendCategories =
     (mode === 'categories' || mode === 'content') && initialData === undefined;
   const usesBackendGuides = mode === 'content' && initialData === undefined;
+  const usesBackendLessons = mode === 'content' && initialData === undefined;
   const [activeSection, setActiveSection] = useState<'categories' | 'guides' | 'quizzes'>(mode === 'categories' ? 'categories' : 'guides');
   const [categories, setCategories] = useState<Category[]>(initialData?.categories ?? (usesBackendCategories ? [] : initialCategories));
   const [guides, setGuides] = useState<Guide[]>(initialData?.guides ?? (usesBackendGuides ? [] : initialGuides));
   const [quizzes, setQuizzes] = useState<Quiz[]>(initialData?.quizzes ?? []);
+  const [lessonsLoading, setLessonsLoading] = useState(usesBackendLessons);
+  const [lessonsError, setLessonsError] = useState<string | null>(null);
+  const [lessonsReload, setLessonsReload] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoriesLoading, setCategoriesLoading] = useState(usesBackendCategories);
@@ -91,7 +103,7 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
   const [publicationError, setPublicationError] = useState<string | null>(null);
   const [publishingGuideId, setPublishingGuideId] = useState<Guide['id'] | null>(null);
   const [publishedGuides, setPublishedGuides] = useState<Guide['id'][]>([]);
-  const [publishedQuizzes, setPublishedQuizzes] = useState<number[]>([]);
+  const [publishedQuizzes, setPublishedQuizzes] = useState<Quiz['id'][]>([]);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
   const filteredQuizzes = quizzes.filter(quiz => matchesSearch(searchQuery, quiz.name, quiz.category));
   const guidePublicationPages = usePagination(filteredGuides, searchQuery);
@@ -211,6 +223,24 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
     };
   }, [guideReload, publicationGuidePage, searchQuery, usesBackendGuides]);
 
+  useEffect(() => {
+    if (!usesBackendLessons) return;
+    let active = true;
+    listStaffLessons()
+      .then(items => {
+        if (active) setQuizzes(items);
+      })
+      .catch((reason: unknown) => {
+        if (active) setLessonsError(apiErrorMessage(reason));
+      })
+      .finally(() => {
+        if (active) setLessonsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [lessonsReload, usesBackendLessons]);
+
   const applySearch = (query: string) => {
     setSearchQuery(query.trim());
     if (usesBackendGuides) {
@@ -240,6 +270,12 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
     setPublicationGuidesLoading(true);
     setPublicationGuidesError(null);
     setGuideReload(current => current + 1);
+  };
+
+  const reloadLessons = () => {
+    setLessonsLoading(true);
+    setLessonsError(null);
+    setLessonsReload(current => current + 1);
   };
 
   const handleCreateCategory = async (title: string) => {
@@ -391,17 +427,58 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
     }
   };
 
-  const handleCreateQuiz = (quiz: Omit<Quiz, 'id'>) => {
+  const toLessonInput = (quiz: Omit<Quiz, 'id'>): LessonInput => {
+    if (!quiz.categoryId) {
+      throw new Error('Selecciona una categoría válida para la lección.');
+    }
+    return {
+      title: quiz.name,
+      description: quiz.description?.trim() ?? '',
+      categoryId: quiz.categoryId,
+      questions: quiz.questions.map(question => ({
+        prompt: question.description,
+        choices: question.options,
+        correctOptionIndex: question.correctOptionIndex,
+        immediateFeedback: question.immediateFeedback ?? '',
+      })),
+    };
+  };
+
+  const handleCreateQuiz = async (quiz: Omit<Quiz, 'id'>) => {
+    if (usesBackendLessons) {
+      const created = await createLesson(toLessonInput(quiz));
+      setQuizzes(current => [...current, created]);
+      return;
+    }
     setQuizzes(current => [...current, { ...quiz, id: nextId(current) }]);
   };
 
-  const handleSaveQuiz = (updatedQuiz: Quiz) => {
+  const handleSaveQuiz = async (updatedQuiz: Quiz) => {
+    if (usesBackendLessons) {
+      if (typeof updatedQuiz.id !== 'string') {
+        throw new Error('No se pudo identificar la lección que quieres editar.');
+      }
+      const saved = await updateLesson(
+        updatedQuiz.id,
+        toLessonInput(updatedQuiz),
+      );
+      setQuizzes(current =>
+        current.map(quiz => quiz.id === saved.id ? saved : quiz)
+      );
+      return;
+    }
     setQuizzes(current =>
       current.map(quiz => quiz.id === updatedQuiz.id ? updatedQuiz : quiz)
     );
   };
 
-  const handleDeleteQuiz = (quizId: number) => {
+  const handleDeleteQuiz = async (quizId: Quiz['id']) => {
+    if (usesBackendLessons) {
+      if (typeof quizId !== 'string') {
+        throw new Error('No se pudo identificar la lección que quieres eliminar.');
+      }
+      await deleteLesson(quizId);
+    }
     setQuizzes(current => current.filter(quiz => quiz.id !== quizId));
     setPublishedQuizzes(current => current.filter(id => id !== quizId));
   };
@@ -558,15 +635,27 @@ export const ControlPanel = ({ initialData, mode = 'all' }: ControlPanelProps) =
           )}
         </div>}
         {mode !== 'categories' && <div hidden={activeSection !== 'quizzes'}>
-          <EditQuizPanel
-            categories={categories}
-            quizzes={quizzes}
-            searchQuery={searchQuery}
-            onCreate={handleCreateQuiz}
-            onSave={handleSaveQuiz}
-            onDelete={handleDeleteQuiz}
-          />
-          {mode === 'content' && (
+          {usesBackendLessons && lessonsLoading && <p role="status">Cargando lecciones…</p>}
+          {usesBackendLessons && lessonsError && (
+            <div role="alert">
+              <p>{lessonsError}</p>
+              <button type="button" onClick={reloadLessons}>Reintentar</button>
+            </div>
+          )}
+          {(!usesBackendLessons || (!lessonsLoading && !lessonsError)) && (
+            <EditQuizPanel
+              categories={categories}
+              quizzes={quizzes}
+              searchQuery={searchQuery}
+              onCreate={handleCreateQuiz}
+              onSave={handleSaveQuiz}
+              onDelete={handleDeleteQuiz}
+            />
+          )}
+          {mode === 'content' && usesBackendLessons && (
+            <p>Las lecciones nuevas se publican automáticamente en el catálogo.</p>
+          )}
+          {mode === 'content' && !usesBackendLessons && (
             <section className="guide-publication-panel" aria-labelledby="quiz-publication-title">
               <h2 id="quiz-publication-title">Estado de publicación de lecciones</h2>
               <p>Estos cambios son locales y no publican contenido en el catálogo.</p>

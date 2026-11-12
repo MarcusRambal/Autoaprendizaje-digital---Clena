@@ -25,11 +25,13 @@ export const quizzes: Quiz[] = categories.flatMap((category, categoryIndex) =>
   Array.from({ length: 4 }, (_, index) => ({
     id: categoryIndex * 4 + index + 1,
     name: `${category.title}: evaluación ${index + 1}`,
+    description: `Evaluación sobre ${category.title}`,
     category: category.title,
     questions: Array.from({ length: 5 }, (_, questionIndex) => ({
       description: `Pregunta ${questionIndex + 1} sobre ${category.title}`,
       options: ['Primera respuesta', 'Segunda respuesta', 'Tercera respuesta', 'Cuarta respuesta'],
-      correctOptionIndex: questionIndex % 4
+      correctOptionIndex: questionIndex % 4,
+      immediateFeedback: 'Revisa la explicación de esta respuesta.'
     }))
   }))
 );

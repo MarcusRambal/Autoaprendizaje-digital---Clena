@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 
 export interface PublicGuide {
-  id: number;
+  id: number | string;
   title: string;
   description: string;
   category: string;
   file: string;
+  fileUrl?: string | null;
 }
 
 export interface PublicLessonQuestion {
@@ -16,7 +17,7 @@ export interface PublicLessonQuestion {
 }
 
 export interface PublicLesson {
-  id: number;
+  id: number | string;
   title: string;
   description: string;
   category: string;
