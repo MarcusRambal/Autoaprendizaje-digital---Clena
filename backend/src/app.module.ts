@@ -6,6 +6,7 @@ import { GuidesModule } from './modules/guides/guides.module';
 import { UsersModule } from './modules/users/users.module';
 import { HelpRequestsModule } from './modules/help-requests/help-requests.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { ConfigModule } from './shared/config/config.module';
 import { LoggerModule } from './shared/logging/logger.module';
 
@@ -20,6 +21,7 @@ import { LoggerModule } from './shared/logging/logger.module';
     HelpRequestsModule,
     LessonsModule,
     UsersModule,
+    StatsModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -6,10 +7,13 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Post,
   Query,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -19,8 +23,14 @@ import {
 import { AuthUserRole } from '../../auth/domain/auth-user';
 import { Authorize } from '../../auth/presentation/authorize.decorator';
 import { AuthenticatedUser } from '../../auth/presentation/roles.guard';
+import { CreateUserUseCase } from '../application/create-user.use-case';
 import { DeleteUserAccountUseCase } from '../application/delete-user-account.use-case';
 import { ListUsersUseCase } from '../application/list-users.use-case';
+import {
+  CreateUserDto,
+  CreateUserResponseDto,
+  toCreateUserResponse,
+} from './dto/create-user.dto';
 import {
   ListUsersQueryDto,
   toUserPageResponse,
@@ -39,7 +49,19 @@ export class UsersController {
   constructor(
     private readonly listUsers: ListUsersUseCase,
     private readonly deleteAccount: DeleteUserAccountUseCase,
+    private readonly createUser: CreateUserUseCase,
   ) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @Authorize('ADMIN')
+  @ApiOperation({ summary: 'Create a staff or public user account (admin)' })
+  @ApiCreatedResponse({ type: CreateUserResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid user input' })
+  @ApiConflictResponse({ description: 'Email already registered' })
+  async create(@Body() body: CreateUserDto): Promise<CreateUserResponseDto> {
+    return toCreateUserResponse(await this.createUser.execute(body));
+  }
 
   @Get()
   @Authorize('ADMIN')

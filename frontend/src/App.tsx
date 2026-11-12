@@ -91,6 +91,16 @@ const router = createBrowserRouter([
 
   // --- Rutas del personal de contenido ---
   {
+    element: <ProtectedRoute allowedRoles={['staff', 'admin']} />,
+    children: [
+      {
+        path: '/Staff/Stats',
+        element: <MainLayout />,
+        children: [{ index: true, element: <StatsDashboard /> }],
+      },
+    ],
+  },
+  {
     element: <ProtectedRoute allowedRoles={['staff']} />,
     children: [
       {
@@ -100,7 +110,6 @@ const router = createBrowserRouter([
           { index: true, element: <StaffDashboard /> },
           { path: 'Content', element: <ControlPanel mode="content" /> },
           { path: 'Requests', element: <HelpRequestManager /> },
-          { path: 'Statistics', element: <StatsDashboard /> },
           { path: 'Privacy', element: <PrivacyPage /> },
         ],
       },
@@ -108,7 +117,8 @@ const router = createBrowserRouter([
   },
 
   { path: '/Admin/Requests', element: <Navigate to="/Staff/Requests" replace /> },
-  { path: '/Admin/Statistics', element: <Navigate to="/Staff/Statistics" replace /> },
+  { path: '/Admin/Statistics', element: <Navigate to="/Staff/Stats" replace /> },
+  { path: '/Staff/Statistics', element: <Navigate to="/Staff/Stats" replace /> },
   // --- Catch-All (Ruta 404 para cualquier URL no coincidente) ---
   {
     path: '*',

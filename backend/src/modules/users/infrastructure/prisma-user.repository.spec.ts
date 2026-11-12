@@ -50,6 +50,64 @@ describe('PrismaUserRepository', () => {
     });
   });
 
+  it('creates users without selecting credential fields', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      email: 'person@example.com',
+      role: 'STAFF',
+      status: 'ACTIVE',
+    });
+    const prisma = {
+      user: { create },
+    } as unknown as PrismaService;
+    const repository = new PrismaUserRepository(prisma);
+
+    await expect(
+      repository.createWithRole({
+        email: 'person@example.com',
+        passwordHash: 'hashed-password',
+        role: 'STAFF',
+      }),
+    ).resolves.toEqual({
+      kind: 'created',
+      user: {
+        id: 'user-1',
+        email: 'person@example.com',
+        role: 'STAFF',
+        status: 'ACTIVE',
+      },
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        email: 'person@example.com',
+        passwordHash: 'hashed-password',
+        role: 'STAFF',
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+      },
+    });
+  });
+
+  it('maps Prisma unique-constraint errors to duplicate results', async () => {
+    const create = jest.fn().mockRejectedValue({ code: 'P2002' });
+    const prisma = {
+      user: { create },
+    } as unknown as PrismaService;
+    const repository = new PrismaUserRepository(prisma);
+
+    await expect(
+      repository.createWithRole({
+        email: 'person@example.com',
+        passwordHash: 'hashed-password',
+        role: 'PUBLIC_USER',
+      }),
+    ).resolves.toEqual({ kind: 'duplicate' });
+  });
+
   it.each(['DISABLED', 'ARCHIVED'] as const)(
     'revokes active sessions in the same transaction when status becomes %s',
     async (status) => {

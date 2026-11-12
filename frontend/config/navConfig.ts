@@ -10,6 +10,7 @@ export const NAV_LINKS: Record<AppRole, NavLinkItem[]> = {
     { label: 'Inicio', path: '/Admin' },
     { label: 'Categorías', path: '/Admin/ControlPanel' },
     { label: 'Usuarios', path: '/Admin/Users' },
+    { label: 'Estadísticas', path: '/Staff/Stats' },
     { label: 'Privacidad', path: '/Admin/Privacy' },
     { label: 'Auditoría', path: '/Admin/Audit' },
     { label: 'Respaldos', path: '/Admin/Backups' },
@@ -18,7 +19,7 @@ export const NAV_LINKS: Record<AppRole, NavLinkItem[]> = {
     { label: 'Inicio', path: '/Staff' },
     { label: 'Guías y quizzes', path: '/Staff/Content' },
     { label: 'Solicitudes', path: '/Staff/Requests' },
-    { label: 'Estadísticas', path: '/Staff/Statistics' },
+    { label: 'Estadísticas', path: '/Staff/Stats' },
     { label: 'Privacidad', path: '/Staff/Privacy' },
   ],
   student: [
