@@ -9,6 +9,7 @@ import { UpdateLessonUseCase } from './application/update-lesson.use-case';
 import type { LessonRepository } from './domain/lesson.repository';
 import { PrismaLessonRepository } from './infrastructure/prisma-lesson.repository';
 import { LessonsController } from './presentation/lessons.controller';
+import { PublicLessonsController } from './presentation/public-lessons.controller';
 
 const LESSON_REPOSITORY = Symbol('LESSON_REPOSITORY');
 
@@ -20,7 +21,7 @@ const useCase = <T>(UseCase: new (repository: LessonRepository) => T) => ({
 
 @Module({
   imports: [AuthModule, DatabaseModule, JwtModule.register({})],
-  controllers: [LessonsController],
+  controllers: [LessonsController, PublicLessonsController],
   providers: [
     PrismaLessonRepository,
     { provide: LESSON_REPOSITORY, useExisting: PrismaLessonRepository },

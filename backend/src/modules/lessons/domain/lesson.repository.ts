@@ -1,5 +1,5 @@
 import { PageRequest, SortOrder } from '../../../shared/primitives/pagination';
-import { Lesson, LessonContentInput } from './lesson';
+import { Lesson, LessonContentInput, LessonPublicationState } from './lesson';
 
 export interface LessonPage {
   items: Lesson[];
@@ -8,6 +8,7 @@ export interface LessonPage {
 
 export interface ListLessonsQuery extends PageRequest {
   order: SortOrder;
+  publicationState?: LessonPublicationState;
 }
 
 export type CreateLessonResult =

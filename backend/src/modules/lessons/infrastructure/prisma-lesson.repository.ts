@@ -45,6 +45,7 @@ export class PrismaLessonRepository implements LessonRepository {
             slug,
             description: input.description,
             categoryId: input.categoryId,
+            publicationState: 'PUBLISHED',
             questions: {
               create: this.toQuestionData(input.questions),
             },
@@ -65,9 +66,13 @@ export class PrismaLessonRepository implements LessonRepository {
   }
 
   async list(query: ListLessonsQuery): Promise<LessonPage> {
+    const where: Prisma.ActivityWhereInput = query.publicationState
+      ? { publicationState: query.publicationState }
+      : {};
     const [total, rows] = await this.prisma.$transaction([
-      this.prisma.activity.count(),
+      this.prisma.activity.count({ where }),
       this.prisma.activity.findMany({
+        where,
         include: lessonInclude,
         orderBy: [{ createdAt: query.order }, { id: query.order }],
         skip: (query.page - 1) * query.pageSize,

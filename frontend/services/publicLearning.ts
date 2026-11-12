@@ -17,7 +17,7 @@ export interface PublicLessonQuestion {
 }
 
 export interface PublicLesson {
-  id: number;
+  id: number | string;
   title: string;
   description: string;
   category: string;

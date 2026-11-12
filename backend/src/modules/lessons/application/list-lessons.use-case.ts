@@ -4,13 +4,14 @@ import {
   Page,
   SortOrder,
 } from '../../../shared/primitives/pagination';
-import { Lesson } from '../domain/lesson';
+import { Lesson, LessonPublicationState } from '../domain/lesson';
 import { LessonRepository } from '../domain/lesson.repository';
 
 export interface ListLessonsInput {
   page?: number;
   pageSize?: number;
   order?: SortOrder;
+  publicationState?: LessonPublicationState;
 }
 
 export class ListLessonsUseCase {
@@ -21,6 +22,7 @@ export class ListLessonsUseCase {
     const { items, total } = await this.repository.list({
       ...request,
       order: input.order ?? 'desc',
+      publicationState: input.publicationState,
     });
     return buildPage(items, total, request);
   }
