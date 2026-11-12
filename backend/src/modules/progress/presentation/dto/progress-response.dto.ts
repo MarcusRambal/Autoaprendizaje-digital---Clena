@@ -13,6 +13,20 @@ export class ProgressSectionDto {
 
   @ApiProperty({ minimum: 0, maximum: 100 })
   percentage!: number;
+
+  @ApiProperty({ type: () => [ProgressActivityDto] })
+  activities!: ProgressActivityDto[];
+}
+
+export class ProgressActivityDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  completed!: boolean;
 }
 
 export class MyProgressResponseDto {
@@ -28,6 +42,11 @@ function toSectionDto(section: ProgressSection): ProgressSectionDto {
     completed: section.completed,
     total: section.total,
     percentage: section.percentage,
+    activities: section.activities.map((activity) => ({
+      id: activity.id,
+      title: activity.title,
+      completed: activity.completed,
+    })),
   };
 }
 

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import {
-  ProgressCounts,
+  ProgressActivities,
   ProgressRepository,
   TrackProgressResult,
 } from '../domain/progress.repository';
@@ -10,38 +10,46 @@ import {
 export class PrismaProgressRepository implements ProgressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getCounts(userId: string): Promise<ProgressCounts> {
-    const [totalGuides, readGuides, totalLessons, completedLessons] =
-      await Promise.all([
-        this.prisma.guide.count({
-          where: { publicationState: 'PUBLISHED' },
-        }),
-        this.prisma.guideProgress.findMany({
-          where: {
-            userId,
-            guide: { publicationState: 'PUBLISHED' },
+  async getActivities(userId: string): Promise<ProgressActivities> {
+    const [guides, lessons] = await Promise.all([
+      this.prisma.guide.findMany({
+        where: { publicationState: 'PUBLISHED' },
+        orderBy: [{ title: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          title: true,
+          progress: {
+            where: { userId },
+            select: { id: true },
+            take: 1,
           },
-          select: { guideId: true },
-        }),
-        this.prisma.activity.count({
-          where: { publicationState: 'PUBLISHED' },
-        }),
-        this.prisma.activityProgress.findMany({
-          where: {
-            userId,
-            status: 'COMPLETED',
-            activity: { publicationState: 'PUBLISHED' },
+        },
+      }),
+      this.prisma.activity.findMany({
+        where: { publicationState: 'PUBLISHED' },
+        orderBy: [{ title: 'asc' }, { id: 'asc' }],
+        select: {
+          id: true,
+          title: true,
+          progress: {
+            where: { userId, status: 'COMPLETED' },
+            select: { id: true },
+            take: 1,
           },
-          select: { activityId: true },
-          distinct: ['activityId'],
-        }),
-      ]);
-
+        },
+      }),
+    ]);
     return {
-      completedGuides: readGuides.length,
-      totalGuides,
-      completedLessons: completedLessons.length,
-      totalLessons,
+      guides: guides.map(({ id, title, progress }) => ({
+        id,
+        title,
+        completed: progress.length > 0,
+      })),
+      lessons: lessons.map(({ id, title, progress }) => ({
+        id,
+        title,
+        completed: progress.length > 0,
+      })),
     };
   }
 

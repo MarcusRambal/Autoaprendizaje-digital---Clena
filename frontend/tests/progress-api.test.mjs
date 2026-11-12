@@ -16,15 +16,47 @@ test("consulta y registra el progreso con las rutas autenticadas esperadas", asy
     });
     if (init?.method === "POST") return new Response(null, { status: 204 });
     return Response.json({
-      guides: { completed: 1, total: 2, percentage: 50 },
-      lessons: { completed: 2, total: 4, percentage: 50 },
+      guides: {
+        completed: 1,
+        total: 2,
+        percentage: 50,
+        activities: [
+          { id: "guide-1", title: "Guía completada", completed: true },
+          { id: "guide-2", title: "Guía pendiente", completed: false },
+        ],
+      },
+      lessons: {
+        completed: 2,
+        total: 4,
+        percentage: 50,
+        activities: [
+          { id: "lesson-1", title: "Lección completada", completed: true },
+          { id: "lesson-2", title: "Lección pendiente", completed: false },
+        ],
+      },
     });
   };
 
   try {
     assert.deepEqual(await getMyProgress(), {
-      guides: { completed: 1, total: 2, percentage: 50 },
-      lessons: { completed: 2, total: 4, percentage: 50 },
+      guides: {
+        completed: 1,
+        total: 2,
+        percentage: 50,
+        activities: [
+          { id: "guide-1", title: "Guía completada", completed: true },
+          { id: "guide-2", title: "Guía pendiente", completed: false },
+        ],
+      },
+      lessons: {
+        completed: 2,
+        total: 4,
+        percentage: 50,
+        activities: [
+          { id: "lesson-1", title: "Lección completada", completed: true },
+          { id: "lesson-2", title: "Lección pendiente", completed: false },
+        ],
+      },
     });
     await markGuideRead("guide-id");
     await markLessonCompleted("lesson-id");

@@ -1,9 +1,13 @@
-import { ProgressRepository } from '../domain/progress.repository';
+import {
+  ProgressActivity,
+  ProgressRepository,
+} from '../domain/progress.repository';
 
 export interface ProgressSection {
   completed: number;
   total: number;
   percentage: number;
+  activities: ProgressActivity[];
 }
 
 export interface MyProgress {
@@ -11,11 +15,14 @@ export interface MyProgress {
   lessons: ProgressSection;
 }
 
-function toSection(completed: number, total: number): ProgressSection {
+function toSection(activities: ProgressActivity[]): ProgressSection {
+  const completed = activities.filter((activity) => activity.completed).length;
+  const total = activities.length;
   return {
     completed,
     total,
     percentage: total === 0 ? 0 : Math.round((completed / total) * 100),
+    activities,
   };
 }
 
@@ -23,10 +30,10 @@ export class GetMyProgressUseCase {
   constructor(private readonly repository: ProgressRepository) {}
 
   async execute(userId: string): Promise<MyProgress> {
-    const counts = await this.repository.getCounts(userId);
+    const activities = await this.repository.getActivities(userId);
     return {
-      guides: toSection(counts.completedGuides, counts.totalGuides),
-      lessons: toSection(counts.completedLessons, counts.totalLessons),
+      guides: toSection(activities.guides),
+      lessons: toSection(activities.lessons),
     };
   }
 }

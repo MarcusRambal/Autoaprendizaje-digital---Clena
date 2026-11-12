@@ -4,6 +4,13 @@ export interface ProgressSection {
   completed: number;
   total: number;
   percentage: number;
+  activities: ProgressActivity[];
+}
+
+export interface ProgressActivity {
+  id: string;
+  title: string;
+  completed: boolean;
 }
 
 export interface MyProgress {
@@ -16,9 +23,12 @@ export function getMyProgress(): Promise<MyProgress> {
 }
 
 export function markGuideRead(guideId: string): Promise<void> {
-  return apiClient<void>(`/progress/guides/${encodeURIComponent(guideId)}/read`, {
-    method: "POST",
-  });
+  return apiClient<void>(
+    `/progress/guides/${encodeURIComponent(guideId)}/read`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function markLessonCompleted(lessonId: number | string): Promise<void> {

@@ -10,9 +10,16 @@
 }
 
 .progress-header h1,
-.progress-header p { margin: 0; }
-.progress-header h1 { color: #211820; font-size: clamp(2rem, 4vw, 3rem); }
-.progress-header > p:last-child { color: #51434c; }
+.progress-header p {
+  margin: 0;
+}
+.progress-header h1 {
+  color: #211820;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+.progress-header > p:last-child {
+  color: #51434c;
+}
 
 .progress-sections {
   display: grid;
@@ -34,10 +41,25 @@
   color: #211820;
 }
 
-.progress-card--lessons { border-top-color: #b48108; }
-.progress-card-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
-.progress-card h2 { margin: 0; color: #211820; font-size: 1.35rem; }
-.progress-card-heading strong { color: #652e4e; font-size: 1.5rem; }
+.progress-card--lessons {
+  border-top-color: #b48108;
+}
+.progress-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.progress-card h2 {
+  margin: 0;
+  color: #211820;
+  font-size: 1.35rem;
+}
+.progress-card-heading strong {
+  color: #652e4e;
+  font-size: 1.5rem;
+}
 
 .progress-card progress {
   display: block;
@@ -50,19 +72,82 @@
   background: #e8e1e5;
 }
 
-.progress-card progress::-webkit-progress-bar { border-radius: 999px; background: #e8e1e5; }
-.progress-card--guides progress::-webkit-progress-value { border-radius: 999px; background: #df8329; }
-.progress-card--lessons progress::-webkit-progress-value { border-radius: 999px; background: #b48108; }
-.progress-card--guides progress::-moz-progress-bar { border-radius: 999px; background: #df8329; }
-.progress-card--lessons progress::-moz-progress-bar { border-radius: 999px; background: #b48108; }
-.progress-card p { margin: 0; color: #51434c; line-height: 1.5; }
-.progress-note { margin: 0; color: #51434c; font-size: 0.95rem; }
+.progress-card progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: #e8e1e5;
+}
+.progress-card--guides progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #df8329;
+}
+.progress-card--lessons progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: #b48108;
+}
+.progress-card--guides progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #df8329;
+}
+.progress-card--lessons progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: #b48108;
+}
+.progress-card p {
+  margin: 0;
+  color: #51434c;
+  line-height: 1.5;
+}
+.progress-note {
+  margin: 0;
+  color: #51434c;
+  font-size: 0.95rem;
+}
+
+.progress-activity-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid #e4d9df;
+}
+
+.progress-activity-groups section {
+  min-width: 0;
+}
+.progress-activity-groups h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.progress-activity-groups ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+.progress-activity-groups li {
+  margin-top: 0.35rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.progress-activity-groups section > p {
+  font-size: 0.9rem;
+}
 
 @media (max-width: 42rem) {
-  .progress-sections { grid-template-columns: minmax(0, 1fr); }
+  .progress-sections {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 30rem) {
+  .progress-activity-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (forced-colors: active) {
-  .progress-card { border: 1px solid CanvasText; }
-  .progress-card progress { border: 1px solid CanvasText; }
+  .progress-card {
+    border: 1px solid CanvasText;
+  }
+  .progress-card progress {
+    border: 1px solid CanvasText;
+  }
 }
