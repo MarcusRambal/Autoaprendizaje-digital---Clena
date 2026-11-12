@@ -13,11 +13,20 @@ export interface Credentials {
 
 export class AuthError extends Error {
   readonly status?: number;
+  readonly statusCode?: number;
+  readonly code?: string;
 
-  constructor(message: string, status?: number) {
+  constructor(
+    message: string,
+    status?: number,
+    code?: string,
+    statusCode = status,
+  ) {
     super(message);
     this.name = "AuthError";
     this.status = status;
+    this.statusCode = statusCode;
+    this.code = code;
   }
 }
 

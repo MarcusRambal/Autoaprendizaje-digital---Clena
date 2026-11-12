@@ -1,16 +1,70 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createUser,
   deleteMyAccount,
   deleteUserAccount,
   listUserAccounts,
   USER_PAGE_SIZE,
 } from "../services/usersApi.ts";
+import { AuthError } from "../services/authApi.ts";
 import { tokenManager } from "../services/tokenManager.ts";
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status });
 }
+
+test("crea cuentas con POST y propaga los errores de dominio del backend", async (t) => {
+  tokenManager.setToken(null);
+  let duplicate = false;
+  let request;
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    request = { url, options };
+    if (duplicate) {
+      return jsonResponse({
+        statusCode: 409,
+        code: "EMAIL_ALREADY_REGISTERED",
+        message: "Email already registered",
+        timestamp: "2026-11-12T00:00:00.000Z",
+        path: "/api/v1/users",
+      }, 409);
+    }
+    return jsonResponse({
+      id: "user-uuid",
+      email: "person@example.com",
+      role: "STAFF",
+      status: "ACTIVE",
+    }, 201);
+  });
+
+  const input = {
+    email: "person@example.com",
+    password: "secure-password",
+    role: "STAFF",
+  };
+  assert.deepEqual(await createUser(input), {
+    id: "user-uuid",
+    email: "person@example.com",
+    role: "STAFF",
+    status: "ACTIVE",
+  });
+  assert.equal(request.url, "/api/v1/users");
+  assert.equal(request.options.method, "POST");
+  assert.equal(
+    new Headers(request.options.headers).get("Content-Type"),
+    "application/json",
+  );
+  assert.deepEqual(JSON.parse(request.options.body), input);
+
+  duplicate = true;
+  await assert.rejects(createUser(input), (error) => {
+    return (
+      error instanceof AuthError &&
+      error.statusCode === 409 &&
+      error.code === "EMAIL_ALREADY_REGISTERED"
+    );
+  });
+});
 
 test("consulta cuentas con búsqueda por correo, rol y seis resultados por página", async (t) => {
   tokenManager.setToken(null);

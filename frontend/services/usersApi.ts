@@ -2,6 +2,20 @@ import { AuthError, type BackendRole } from "./authApi.ts";
 import { apiClient } from "./apiClient.ts";
 
 export type UserAccountStatus = "ACTIVE" | "DISABLED" | "ARCHIVED";
+export type CreatableUserRole = "STAFF" | "PUBLIC_USER";
+
+export interface CreateUserInput {
+  email: string;
+  password: string;
+  role: CreatableUserRole;
+}
+
+export interface CreatedUser {
+  id: string;
+  email: string;
+  role: CreatableUserRole;
+  status: string;
+}
 
 export interface UserAccount {
   id: string;
@@ -26,6 +40,14 @@ export interface UserAccountFilters {
 }
 
 export const USER_PAGE_SIZE = 6;
+
+export function createUser(input: CreateUserInput): Promise<CreatedUser> {
+  return apiClient<CreatedUser>("/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
 
 function userError(error: unknown, action: "list" | "delete"): Error {
   const status = error instanceof AuthError ? error.status : undefined;

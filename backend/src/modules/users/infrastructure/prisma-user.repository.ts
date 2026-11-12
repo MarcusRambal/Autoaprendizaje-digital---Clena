@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { User, UserRepository, UserStatus } from '../domain/user.repository';
 import {
+  CreateAccountResult,
+  CreatedUser,
   DeleteAccountResult,
   UserAccountRepository,
 } from '../domain/user-account.repository';
@@ -29,6 +31,37 @@ export class PrismaUserRepository
   async findById(id: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? this.toUser(user) : null;
+  }
+
+  async createWithRole(input: {
+    email: string;
+    passwordHash: string;
+    role: 'STAFF' | 'PUBLIC_USER';
+  }): Promise<CreateAccountResult> {
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: input.email,
+          passwordHash: input.passwordHash,
+          role: input.role,
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          status: true,
+        },
+      });
+      return {
+        kind: 'created',
+        user: { ...this.toUser(user), role: input.role } satisfies CreatedUser,
+      };
+    } catch (error) {
+      if (this.isPrismaError(error, 'P2002')) {
+        return { kind: 'duplicate' };
+      }
+      throw error;
+    }
   }
 
   async list(query: ListUsersQuery): Promise<UserPage> {

@@ -1,4 +1,5 @@
 export type UserRole = 'ADMIN' | 'STAFF' | 'PUBLIC_USER';
+export type CreatableUserRole = Exclude<UserRole, 'ADMIN'>;
 export type UserStatus = 'ACTIVE' | 'DISABLED' | 'ARCHIVED';
 
 export interface User {

@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { passwordError } from '../../../../services/authApi';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
+  createUser,
   deleteUserAccount,
   listUserAccounts,
+  type CreatableUserRole,
   type UserAccount,
   type UserAccountFilters,
 } from '../../../../services/usersApi';
@@ -28,13 +29,56 @@ function formatCreatedAt(value: string): string {
   );
 }
 
+function getCreateUserError(error: unknown): {
+  message: string;
+  field?: 'email' | 'password' | 'role';
+} {
+  const details =
+    error && typeof error === 'object'
+      ? (error as Record<string, unknown>)
+      : {};
+  const statusCode =
+    typeof details.statusCode === 'number'
+      ? details.statusCode
+      : typeof details.status === 'number'
+        ? details.status
+        : undefined;
+  const code = typeof details.code === 'string' ? details.code : undefined;
+
+  if (statusCode === 409 && code === 'EMAIL_ALREADY_REGISTERED') {
+    return { message: 'Ya existe una cuenta con ese correo.', field: 'email' };
+  }
+  if (statusCode === 400 && code === 'INVALID_ROLE') {
+    return { message: 'El rol seleccionado no es válido.', field: 'role' };
+  }
+  if (statusCode === 400 && code === 'WEAK_PASSWORD') {
+    return {
+      message: 'La contraseña debe tener al menos 8 caracteres y máximo 72 bytes.',
+      field: 'password',
+    };
+  }
+  if (statusCode === 400 && code === 'INVALID_AUTH_INPUT') {
+    return { message: 'Revisa el correo y la contraseña.', field: 'email' };
+  }
+  if (statusCode === 401) {
+    return { message: 'Tu sesión expiró. Vuelve a iniciar sesión.' };
+  }
+  if (statusCode === 403) {
+    return { message: 'Solo un administrador puede crear usuarios.' };
+  }
+  return { message: 'No se pudo crear el usuario.' };
+}
+
 export function AdminUsers() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'PUBLIC_USER' | 'STAFF'>('PUBLIC_USER');
+  const [role, setRole] = useState<CreatableUserRole>('PUBLIC_USER');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ email: string; role: 'PUBLIC_USER' | 'STAFF' }[]>([]);
+  const [creating, setCreating] = useState(false);
+  const emailInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const roleInput = useRef<HTMLSelectElement>(null);
 
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -147,25 +191,34 @@ export function AdminUsers() {
     }
   };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSuccess(null);
-    const problem = passwordError(password);
-    const normalizedEmail = email.trim().toLowerCase();
-    if (problem) {
-      setError(problem);
-      return;
-    }
-    if (created.some(item => item.email === normalizedEmail)) {
-      setError('Este correo ya está en la lista de demostración.');
-      return;
-    }
-    setCreated(current => [...current, { email: normalizedEmail, role }]);
-    setSuccess(`Se agregó ${normalizedEmail} a la lista de demostración. No se creó una cuenta real.`);
+    if (creating) return;
+    setCreating(true);
     setError(null);
-    setEmail('');
-    setPassword('');
-    setRole('PUBLIC_USER');
+    setSuccess(null);
+    try {
+      const createdUser = await createUser({
+        email: email.trim().toLowerCase(),
+        password,
+        role,
+      });
+      setSuccess(`Usuario creado: ${createdUser.email}`);
+      setEmail('');
+      setPassword('');
+      setRole('PUBLIC_USER');
+      setListError(null);
+      setListLoading(true);
+      setReloadList(current => current + 1);
+    } catch (reason: unknown) {
+      const failure = getCreateUserError(reason);
+      setError(failure.message);
+      if (failure.field === 'email') emailInput.current?.focus();
+      if (failure.field === 'password') passwordInput.current?.focus();
+      if (failure.field === 'role') roleInput.current?.focus();
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -275,34 +328,22 @@ export function AdminUsers() {
       </section>
 
       <section className="user-create-section" aria-labelledby="user-create-title">
-        <h2 id="user-create-title">Preparar usuario de demostración</h2>
-        <p role="status">
-          Este formulario no crea cuentas en el servidor. La lista se borra al salir
-          de esta página y las contraseñas no se almacenan.
-        </p>
+        <h2 id="user-create-title">Crear cuenta de usuario</h2>
         <form className="admin-form" onSubmit={submit}>
           <label htmlFor="account-email">Correo electrónico</label>
-          <input id="account-email" type="email" autoComplete="off" maxLength={254} required value={email} onChange={(event) => setEmail(event.target.value)} />
+          <input ref={emailInput} id="account-email" aria-label="Correo electrónico" type="email" autoComplete="off" maxLength={254} required value={email} onChange={(event) => setEmail(event.target.value)} />
           <label htmlFor="account-password">Contraseña inicial</label>
-          <input id="account-password" type="password" autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby="account-password-help" />
+          <input ref={passwordInput} id="account-password" aria-label="Contraseña" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby="account-password-help" />
           <small id="account-password-help">Mínimo 8 caracteres y máximo 72 bytes. Entrégala de forma segura.</small>
           <label htmlFor="account-role">Rol</label>
-          <select id="account-role" value={role} onChange={event => setRole(event.target.value === 'STAFF' ? 'STAFF' : 'PUBLIC_USER')}>
+          <select ref={roleInput} id="account-role" value={role} onChange={event => setRole(event.target.value === 'STAFF' ? 'STAFF' : 'PUBLIC_USER')}>
             <option value="PUBLIC_USER">Usuario público</option>
-            <option value="STAFF">Personal</option>
+            <option value="STAFF">Staff</option>
           </select>
           {error && <p className="admin-form-error" role="alert">{error}</p>}
           {success && <p className="admin-form-success" role="status">{success}</p>}
-          <button type="submit">Agregar a demostración</button>
+          <button type="submit" disabled={creating}>{creating ? 'Creando…' : 'Crear usuario'}</button>
         </form>
-        {created.length > 0 && (
-          <section className="privacy-section" aria-labelledby="demo-users-title">
-            <h3 id="demo-users-title">Usuarios de demostración</h3>
-            <ul className="admin-demo-users">
-              {created.map(item => <li key={item.email}>{item.email} — {item.role === 'STAFF' ? 'Personal' : 'Usuario público'}</li>)}
-            </ul>
-          </section>
-        )}
       </section>
       {pendingDeleteUser && (
         <ConfirmDialog

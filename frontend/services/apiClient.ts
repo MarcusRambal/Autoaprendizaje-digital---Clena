@@ -38,21 +38,34 @@ function requestUrl(endpoint: string): string {
 
 async function responseError(response: Response): Promise<AuthError> {
   const data: unknown = await response.json().catch(() => null);
-  if (data && typeof data === "object" && "message" in data) {
-    const message = data.message;
-    if (typeof message === "string") {
-      return new AuthError(message, response.status);
-    }
-    if (
-      Array.isArray(message) &&
-      message.every((item) => typeof item === "string")
-    ) {
-      return new AuthError(message.join(", "), response.status);
-    }
+  const body =
+    data && typeof data === "object"
+      ? (data as Record<string, unknown>)
+      : undefined;
+  const code = typeof body?.code === "string" ? body.code : undefined;
+  const statusCode =
+    typeof body?.statusCode === "number" ? body.statusCode : response.status;
+  const message = body?.message;
+
+  if (typeof message === "string") {
+    return new AuthError(message, response.status, code, statusCode);
+  }
+  if (
+    Array.isArray(message) &&
+    message.every((item) => typeof item === "string")
+  ) {
+    return new AuthError(
+      message.join(", "),
+      response.status,
+      code,
+      statusCode,
+    );
   }
   return new AuthError(
     `La solicitud falló (${response.status}).`,
     response.status,
+    code,
+    statusCode,
   );
 }
 
