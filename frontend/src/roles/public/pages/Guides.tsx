@@ -1,19 +1,22 @@
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { matchesSearch } from '../../../features/content-management/searchContent';
-import { mockPublicLearningService, usePublicRequest, type PublicGuide } from '../../../../services/publicLearning';
+import { usePublicRequest, type PublicGuide } from '../../../../services/publicLearning';
+import { getPublicGuides } from '../../../../services/publicGuideApi';
 import './Guides.css';
 
-const getSelectedGuideId = (state: unknown): number | undefined => {
+const getSelectedGuideId = (state: unknown): number | string | undefined => {
   if (!state || typeof state !== 'object' || !('selectedGuideId' in state)) return undefined;
   const { selectedGuideId } = state;
-  return typeof selectedGuideId === 'number' ? selectedGuideId : undefined;
+  return typeof selectedGuideId === 'number' || typeof selectedGuideId === 'string'
+    ? selectedGuideId
+    : undefined;
 };
 
 export const Guides = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { data: guides, isLoading, error } = usePublicRequest(mockPublicLearningService.getGuides);
+  const { data: guides, isLoading, error } = usePublicRequest(getPublicGuides);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const selectedGuideId = getSelectedGuideId(location.state);
@@ -29,7 +32,7 @@ export const Guides = () => {
   };
 
   if (selectedGuide) {
-    const pdfUrl = `/${encodeURIComponent(selectedGuide.file)}`;
+    const pdfUrl = selectedGuide.fileUrl;
     return (
       <section className="public-page guides-page" aria-labelledby="selected-guide-title">
         <header className="guide-detail-header">
@@ -45,16 +48,26 @@ export const Guides = () => {
               >
                 Volver a las guías
               </button>
-              <a className="public-button" href={pdfUrl} download={selectedGuide.file}>Descargar PDF</a>
-              <a className="guide-open-link" href={pdfUrl} target="_blank" rel="noopener noreferrer">Abrir PDF en otra pestaña</a>
+              {pdfUrl && (
+                <>
+                  <a className="public-button" href={pdfUrl} download={selectedGuide.file || undefined}>
+                    Descargar PDF
+                  </a>
+                  <a className="guide-open-link" href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                    Abrir PDF en otra pestaña
+                  </a>
+                </>
+              )}
           </div>
         </header>
-        <p className="guide-description">{selectedGuide.description}</p>
-        <iframe
-          className="guide-pdf-viewer"
-          src={pdfUrl}
-          title={`Guía en PDF: ${selectedGuide.title}`}
-        />
+        {selectedGuide.description && <p className="guide-description">{selectedGuide.description}</p>}
+        {pdfUrl ? (
+          <iframe
+            className="guide-pdf-viewer"
+            src={pdfUrl}
+            title={`Guía en PDF: ${selectedGuide.title}`}
+          />
+        ) : <p role="status">Esta guía todavía no tiene un PDF disponible.</p>}
       </section>
     );
   }
@@ -83,8 +96,6 @@ export const Guides = () => {
           </select>
         </div>
       </header>
-      <p className="public-demo-note" role="note">Contenido de demostración.</p>
-
       {isLoading && <p role="status">Cargando guías…</p>}
       {error && <p className="public-error" role="alert">{error}</p>}
 
@@ -98,7 +109,7 @@ export const Guides = () => {
               onClick={() => openGuide(guide)}
             >
               <strong>{guide.title}</strong>
-              <span>{guide.description}</span>
+              <span>{guide.category}</span>
             </button>
           ))}
         </div>
