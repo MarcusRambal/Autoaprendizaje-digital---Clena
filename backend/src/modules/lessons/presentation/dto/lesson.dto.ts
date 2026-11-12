@@ -96,6 +96,88 @@ export class LessonContentDto {
 
 export class ListLessonsQueryDto extends PaginationQueryDto {}
 
+export class CheckLessonAnswerDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  questionId!: string;
+
+  @ApiProperty({ minimum: 0, maximum: 3 })
+  @IsInt()
+  @Min(0)
+  @Max(3)
+  selectedOptionIndex!: number;
+}
+
+export class CheckLessonAnswerResponseDto {
+  @ApiProperty()
+  correct!: boolean;
+
+  @ApiProperty()
+  immediateFeedback!: string;
+}
+
+export class PublicLessonQuestionResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ minimum: 1 })
+  orderNumber!: number;
+
+  @ApiProperty()
+  prompt!: string;
+
+  @ApiProperty({ type: [String] })
+  choices!: string[];
+}
+
+export class PublicLessonResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty({ nullable: true })
+  category!: string | null;
+
+  @ApiProperty({ type: [PublicLessonQuestionResponseDto] })
+  questions!: PublicLessonQuestionResponseDto[];
+}
+
+export class PublicLessonSummaryResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty({ nullable: true })
+  category!: string | null;
+}
+
+export class PublicLessonPageResponseDto {
+  @ApiProperty({ type: [PublicLessonSummaryResponseDto] })
+  items!: PublicLessonSummaryResponseDto[];
+
+  @ApiProperty({ example: 1 })
+  page!: number;
+
+  @ApiProperty({ example: 20 })
+  pageSize!: number;
+
+  @ApiProperty({ example: 3 })
+  total!: number;
+
+  @ApiProperty({ example: 1 })
+  totalPages!: number;
+}
+
 export class LessonQuestionResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -180,4 +262,35 @@ export function toLessonPageResponse(
   page: Page<Lesson>,
 ): LessonPageResponseDto {
   return { ...page, items: page.items.map(toLessonResponse) };
+}
+
+export function toPublicLessonResponse(
+  lesson: Lesson,
+): PublicLessonResponseDto {
+  return {
+    id: lesson.id,
+    title: lesson.title,
+    description: lesson.description,
+    category: lesson.categoryTitle,
+    questions: lesson.questions.map((question) => ({
+      id: question.id,
+      orderNumber: question.orderNumber,
+      prompt: question.prompt,
+      choices: question.choices,
+    })),
+  };
+}
+
+export function toPublicLessonPageResponse(
+  page: Page<Lesson>,
+): PublicLessonPageResponseDto {
+  return {
+    ...page,
+    items: page.items.map((lesson) => ({
+      id: lesson.id,
+      title: lesson.title,
+      description: lesson.description,
+      category: lesson.categoryTitle,
+    })),
+  };
 }

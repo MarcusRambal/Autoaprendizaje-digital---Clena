@@ -44,8 +44,10 @@ requiere una cuenta de usuario público. Los temas de seguridad digital se
 incluyen en las guías.
 
 El catálogo público de guías consulta `/api/v1/guides` y muestra seis guías por
-página. El catálogo de lecciones y el progreso siguen usando datos de demostración en
-`services/publicLearning.ts`; el progreso no se guarda. El formulario de ayuda
+página. El catálogo y la práctica de lecciones consultan la API pública: los
+datos de preguntas no incluyen la respuesta correcta y esta se valida mediante
+`POST /api/v1/lessons/:id/check-answer`. El progreso todavía no se guarda. El
+formulario de ayuda
 usa `/api/v1/help-requests` para que un usuario autenticado envíe solicitudes y
 consulte su propio historial y estado; las visitas sin sesión deben iniciar
 sesión para usar esa función. En el panel del personal, la gestión de

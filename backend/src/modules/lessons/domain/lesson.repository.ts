@@ -25,6 +25,7 @@ export type DeleteLessonResult = 'deleted' | 'not-found' | 'has-progress';
 export interface LessonRepository {
   create(input: LessonContentInput): Promise<CreateLessonResult>;
   list(query: ListLessonsQuery): Promise<LessonPage>;
+  findPublishedById(id: string): Promise<Lesson | null>;
   update(id: string, input: LessonContentInput): Promise<UpdateLessonResult>;
   delete(id: string): Promise<DeleteLessonResult>;
 }

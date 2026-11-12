@@ -2,7 +2,9 @@ import { ApplicationError } from '../../../shared/errors/application-error';
 
 export type LessonApplicationErrorCode =
   | 'INVALID_LESSON'
+  | 'INVALID_ANSWER'
   | 'LESSON_NOT_FOUND'
+  | 'QUESTION_NOT_FOUND'
   | 'CATEGORY_NOT_FOUND'
   | 'LESSON_HAS_PROGRESS'
   | 'LESSON_QUESTIONS_LOCKED';
