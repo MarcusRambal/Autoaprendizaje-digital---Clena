@@ -5,9 +5,11 @@ import {
   getPublicGuidePdf,
   listPublicGuides,
 } from '../../../../services/guidesApi';
+import { markGuideRead } from '../../../../services/progressApi';
 import { trackGuideView } from '../../../../services/statsApi';
 import type { Category, Guide } from '../../../../types/contracts';
 import { Pagination } from '../../../features/content-management/Pagination';
+import { useAuth } from '../../../../services/authState';
 import './Guides.css';
 
 function isGuide(value: unknown): value is Guide {
@@ -29,6 +31,7 @@ const getSelectedGuide = (state: unknown): Guide | null => {
 export const Guides = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const selectedGuide = getSelectedGuide(location.state);
   const selectedGuideId = selectedGuide ? String(selectedGuide.id) : null;
   const [guides, setGuides] = useState<Guide[]>([]);
@@ -48,6 +51,7 @@ export const Guides = () => {
   const [guideReload, setGuideReload] = useState(0);
   const [pdf, setPdf] = useState<{ id: string; url: string } | null>(null);
   const [pdfError, setPdfError] = useState<{ id: string; message: string } | null>(null);
+  const [progressError, setProgressError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedGuideId) return;
@@ -55,6 +59,30 @@ export const Guides = () => {
       console.warn('No se pudo registrar la vista de la guía.', reason);
     });
   }, [selectedGuideId]);
+
+  useEffect(() => {
+    if (
+      !selectedGuideId ||
+      !isAuthenticated ||
+      user?.userRole !== 'student'
+    ) {
+      return;
+    }
+
+    let active = true;
+    markGuideRead(selectedGuideId).catch((reason: unknown) => {
+      if (active) {
+        setProgressError(
+          reason instanceof Error
+            ? reason.message
+            : 'No se pudo guardar el progreso de la guía.',
+        );
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, selectedGuideId, user?.userRole]);
 
   useEffect(() => {
     let active = true;
@@ -160,6 +188,7 @@ export const Guides = () => {
 
   const openGuide = (guide: Guide) => {
     setPdfError(null);
+    setProgressError(null);
     navigate(location.pathname, { state: { selectedGuide: guide } });
   };
 
@@ -196,6 +225,7 @@ export const Guides = () => {
           </div>
         </header>
         <p className="guide-description">Material de aprendizaje de la categoría {selectedGuide.category}.</p>
+        {progressError && <p className="public-error" role="alert">{progressError}</p>}
         {activePdfError && <p className="public-error" role="alert">{activePdfError}</p>}
         {!activePdf && !activePdfError && selectedGuide.fileUrl && <p role="status">Cargando archivo PDF…</p>}
         {!selectedGuide.fileUrl && <p role="status">Esta guía no tiene un archivo PDF disponible.</p>}

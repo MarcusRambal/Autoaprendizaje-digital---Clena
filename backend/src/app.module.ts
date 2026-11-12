@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { HelpRequestsModule } from './modules/help-requests/help-requests.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { StatsModule } from './modules/stats/stats.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { ConfigModule } from './shared/config/config.module';
 import { LoggerModule } from './shared/logging/logger.module';
 
@@ -22,6 +23,7 @@ import { LoggerModule } from './shared/logging/logger.module';
     LessonsModule,
     UsersModule,
     StatsModule,
+    ProgressModule,
   ],
 })
 export class AppModule {}

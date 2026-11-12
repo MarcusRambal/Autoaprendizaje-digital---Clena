@@ -53,6 +53,7 @@ model User {
   createdAt                DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                DateTime           @updatedAt @db.Timestamptz(6)
   activityProgress         ActivityProgress[]
+  guideProgress            GuideProgress[]
   refreshSessions          RefreshSession[]
   helpRequests             HelpRequest[]      @relation("HelpRequestRequester")
   attendedHelpRequests     HelpRequest[]      @relation("HelpRequestAttendant")
@@ -81,6 +82,7 @@ model Guide {
   category         Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   steps            GuideStep[]
   file             GuideFile?
+  progress         GuideProgress[]
   helpRequests     HelpRequest[]
   views            GuideView[]
   createdAt        DateTime         @default(now()) @db.Timestamptz(6)
@@ -102,6 +104,19 @@ model GuideView {
   @@index([guideId])
   @@index([viewedAt])
   @@index([guideId, viewedAt])
+}
+
+model GuideProgress {
+  id      String   @id @default(uuid()) @db.Uuid
+  userId  String   @db.Uuid
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  guideId String   @db.Uuid
+  guide   Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  readAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([userId, guideId])
+  @@index([userId])
+  @@index([guideId])
 }
 
 // PDF de una guia. Vive en su propia tabla para que listar guias nunca cargue

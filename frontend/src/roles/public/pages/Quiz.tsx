@@ -12,6 +12,8 @@ import {
   getPublicLesson,
   getPublicLessons,
 } from "../../../../services/publicLessonApi";
+import { markLessonCompleted } from "../../../../services/progressApi";
+import { useAuth } from "../../../../services/authState";
 import "./Quiz.css";
 
 const getSelectedLessonId = (state: unknown): number | string | undefined => {
@@ -31,6 +33,7 @@ const LessonPlayer = ({
   lesson: PublicLesson;
   onBack: () => void;
 }) => {
+  const { isAuthenticated, user } = useAuth();
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Array<number | null>>(() =>
     Array(lesson.questions.length).fill(null),
@@ -39,6 +42,8 @@ const LessonPlayer = ({
     Array<PublicLessonAnswerResult | null>
   >(() => Array(lesson.questions.length).fill(null));
   const [answerError, setAnswerError] = useState<string | null>(null);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressSaved, setProgressSaved] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const currentQuestion = lesson.questions[questionIndex];
   const selectedAnswer = answers[questionIndex] ?? null;
@@ -68,17 +73,36 @@ const LessonPlayer = ({
 
     setIsChecking(true);
     setAnswerError(null);
+    setProgressError(null);
     try {
       const result = await checkPublicLessonAnswer(
         lesson.id,
         currentQuestion.id,
         selectedAnswer,
       );
-      setCheckedAnswers((current) =>
-        current.map((checked, index) =>
-          index === questionIndex ? result : checked,
-        ),
+      const updatedCheckedAnswers = checkedAnswers.map((checked, index) =>
+        index === questionIndex ? result : checked,
       );
+      setCheckedAnswers(updatedCheckedAnswers);
+      if (
+        result.correct &&
+        updatedCheckedAnswers.length > 0 &&
+        updatedCheckedAnswers.every((answer) => answer?.correct) &&
+        isAuthenticated &&
+        user?.userRole === "student" &&
+        !progressSaved
+      ) {
+        try {
+          await markLessonCompleted(lesson.id);
+          setProgressSaved(true);
+        } catch (error) {
+          setProgressError(
+            error instanceof Error
+              ? error.message
+              : "No se pudo guardar el progreso de la lección.",
+          );
+        }
+      }
     } catch (error) {
       setAnswerError(
         error instanceof Error
@@ -201,6 +225,12 @@ const LessonPlayer = ({
           </p>
         )}
         {isChecking && <p role="status">Comprobando respuesta…</p>}
+        {progressError && (
+          <p className="public-error" role="alert">{progressError}</p>
+        )}
+        {progressSaved && (
+          <p role="status">Lección completada. Tu progreso se guardó.</p>
+        )}
 
         <div className="lesson-quiz-controls">
           <div className="lesson-question-navigation">
@@ -359,10 +389,6 @@ export const Quiz = () => {
         </div>
       </header>
 
-      <p className="public-demo-note" role="note">
-        Lecciones publicadas por el equipo de Staff. El progreso todavía no se
-        guarda.
-      </p>
       {isLoading && <p role="status">Cargando lecciones…</p>}
       {error && (
         <p className="public-error" role="alert">
