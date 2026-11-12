@@ -1,8 +1,29 @@
-import { usePublicRequest, mockPublicLearningService } from '../../../../services/publicLearning';
+import { usePublicRequest } from '../../../../services/publicLearning';
+import { getMyProgress } from '../../../../services/progressApi';
 import './Progress.css';
 
 export const Progress = () => {
-  const { data: progressSections, isLoading, error } = usePublicRequest(mockPublicLearningService.getProgress);
+  const { data: progress, isLoading, error } = usePublicRequest(getMyProgress);
+  const progressSections = progress
+    ? [
+        {
+          title: 'Guías',
+          label: 'guías',
+          completed: progress.guides.completed,
+          total: progress.guides.total,
+          value: progress.guides.percentage,
+          tone: 'guides' as const,
+        },
+        {
+          title: 'Lecciones',
+          label: 'lecciones',
+          completed: progress.lessons.completed,
+          total: progress.lessons.total,
+          value: progress.lessons.percentage,
+          tone: 'lessons' as const,
+        },
+      ]
+    : null;
 
   return (
     <section className="public-page progress-page" aria-labelledby="progress-title">
@@ -11,7 +32,6 @@ export const Progress = () => {
         <h1 id="progress-title">Mi progreso</h1>
         <p>Un resumen de lo que has recorrido en CLENA.</p>
       </header>
-      <p className="public-demo-note" role="note">Datos de demostración. Tu avance real todavía no se guarda.</p>
       {isLoading && <p role="status">Cargando progreso…</p>}
       {error && <p className="public-error" role="alert">{error}</p>}
       {!isLoading && !error && progressSections && (
@@ -25,7 +45,7 @@ export const Progress = () => {
               <progress value={section.value} max="100" aria-label={`${section.value}% completado de ${section.label}`}>
                 {section.value}%
               </progress>
-              <p>Has completado el {section.value}% de {section.label}.</p>
+              <p>Has completado {section.completed} de {section.total} {section.label}.</p>
             </article>
           ))}
         </div>

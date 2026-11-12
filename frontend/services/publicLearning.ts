@@ -32,13 +32,6 @@ export interface PublicLessonAnswerResult {
   immediateFeedback: string;
 }
 
-export interface PublicProgressSection {
-  title: string;
-  label: string;
-  value: number;
-  tone: "guides" | "lessons";
-}
-
 export interface HelpRequestInput {
   name: string;
   subject: string;
@@ -47,7 +40,6 @@ export interface HelpRequestInput {
 
 export interface PublicLearningService {
   getGuides(): Promise<PublicGuide[]>;
-  getProgress(): Promise<PublicProgressSection[]>;
   submitHelpRequest(request: HelpRequestInput): Promise<{ submitted: boolean }>;
 }
 
@@ -77,17 +69,9 @@ const guides: PublicGuide[] = [
   },
 ];
 
-const progress: PublicProgressSection[] = [
-  { title: "Guías", label: "tus guías", value: 40, tone: "guides" },
-  { title: "Lecciones", label: "tus lecciones", value: 40, tone: "lessons" },
-];
-
 export const mockPublicLearningService: PublicLearningService = {
   async getGuides() {
     return guides;
-  },
-  async getProgress() {
-    return progress;
   },
   async submitHelpRequest() {
     return { submitted: false };
