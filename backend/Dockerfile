@@ -11,7 +11,7 @@ RUN npm ci
 
 COPY . .
 RUN chmod +x ./docker-entrypoint.sh \
-    && DATABASE_URL=postgresql://build:build@localhost:5432/build npx prisma generate \
+    && DATABASE_URL=postgresql://localhost:5432/build npx prisma generate \
     && npm run build
 
 ENV NODE_ENV=development
