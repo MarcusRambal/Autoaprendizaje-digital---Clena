@@ -56,10 +56,10 @@ async function responseError(response: Response): Promise<AuthError> {
   );
 }
 
-export async function apiClient<T>(
+async function apiResponse(
   endpoint: string,
   options: RequestInit = {},
-): Promise<T> {
+): Promise<Response> {
   const url = requestUrl(endpoint);
   const requestToken = tokenManager.getToken();
   const requestTokenVersion = tokenManager.getTokenVersion();
@@ -105,6 +105,14 @@ export async function apiClient<T>(
   }
 
   if (!response.ok) throw await responseError(response);
+  return response;
+}
+
+export async function apiClient<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await apiResponse(endpoint, options);
   if (response.status === 204) return undefined as T;
 
   try {
@@ -116,4 +124,12 @@ export async function apiClient<T>(
       response.status,
     );
   }
+}
+
+export async function apiBlobClient(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<Blob> {
+  const response = await apiResponse(endpoint, options);
+  return response.blob();
 }

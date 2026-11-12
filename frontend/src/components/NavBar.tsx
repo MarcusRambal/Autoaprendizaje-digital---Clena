@@ -5,9 +5,10 @@ import { GUEST_LINKS, NAV_LINKS } from '../../config/navConfig';
 import { useAuth } from '../../services/authState';
 
 export const NavBar = () => {
-  const { user, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
 
+  const isLoggedIn = isLoading || isAuthenticated || Boolean(user);
   const userRole = user?.userRole;
   const currentLinks = userRole ? NAV_LINKS[userRole] : GUEST_LINKS;
 
@@ -19,7 +20,7 @@ export const NavBar = () => {
   return (
     <nav className="navbar" aria-label="Navegación principal">
       <div className="navBar-logo">
-        <Link to="/">Clena</Link>
+        {isLoggedIn ? <span>Clena</span> : <Link to="/">Clena</Link>}
       </div>
 
       <ul className="nav-links">

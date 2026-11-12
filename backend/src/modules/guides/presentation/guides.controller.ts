@@ -34,6 +34,8 @@ import { GetGuideFileUseCase } from '../application/get-guide-file.use-case';
 import { GetGuideUseCase } from '../application/get-guide.use-case';
 import { GuideFileInput } from '../application/guide-input';
 import { ListGuidesUseCase } from '../application/list-guides.use-case';
+import { ListManagedGuidesUseCase } from '../application/list-managed-guides.use-case';
+import { SetGuidePublicationUseCase } from '../application/set-guide-publication.use-case';
 import { UpdateGuideUseCase } from '../application/update-guide.use-case';
 import { GUIDE_FILE_MAX_BYTES } from '../domain/guide';
 import {
@@ -41,6 +43,8 @@ import {
   GuidePageResponseDto,
   GuideResponseDto,
   ListGuidesQueryDto,
+  ListManagedGuidesQueryDto,
+  SetGuidePublicationDto,
   toGuidePageResponse,
   toGuideResponse,
   UpdateGuideDto,
@@ -64,6 +68,18 @@ function toFileInput(file?: UploadedPdf): GuideFileInput | undefined {
         content: file.buffer,
       }
     : undefined;
+}
+
+function toStreamableFile(file: {
+  fileName: string;
+  contentType: string;
+  content: Uint8Array;
+}): StreamableFile {
+  return new StreamableFile(file.content, {
+    type: file.contentType,
+    disposition: `inline; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
+    length: file.content.length,
+  });
 }
 
 const createBody = {
@@ -99,6 +115,8 @@ export class GuidesController {
   constructor(
     private readonly createGuide: CreateGuideUseCase,
     private readonly listGuides: ListGuidesUseCase,
+    private readonly listManagedGuides: ListManagedGuidesUseCase,
+    private readonly setPublication: SetGuidePublicationUseCase,
     private readonly getGuide: GetGuideUseCase,
     private readonly getGuideFile: GetGuideFileUseCase,
     private readonly updateGuide: UpdateGuideUseCase,
@@ -109,7 +127,7 @@ export class GuidesController {
   @ApiOperation({
     summary: 'List guides',
     description:
-      'Public. Paginated, newest first by default, optionally filtered by category.',
+      'Public. Paginated, newest first by default, optionally filtered by category and by part of the title (search ignores case and Spanish accent marks).',
   })
   @ApiOkResponse({ type: GuidePageResponseDto })
   async list(
@@ -118,8 +136,53 @@ export class GuidesController {
     return toGuidePageResponse(await this.listGuides.execute(query));
   }
 
+  // The "manage" routes come before ":id" so that "manage" is not read as an id.
+  @Get('manage')
+  @Authorize('STAFF', 'ADMIN')
+  @ApiOperation({
+    summary: 'List every guide, drafts included (staff or admin)',
+    description:
+      'Paginated, newest first by default. Filters: categoryId, search (part of the title; ignores case and Spanish accent marks) and publicationState.',
+  })
+  @ApiOkResponse({ type: GuidePageResponseDto })
+  async listForStaff(
+    @Query() query: ListManagedGuidesQueryDto,
+  ): Promise<GuidePageResponseDto> {
+    return toGuidePageResponse(await this.listManagedGuides.execute(query));
+  }
+
+  @Get('manage/:id')
+  @Authorize('STAFF', 'ADMIN')
+  @ApiOperation({ summary: 'Get one guide in any state (staff or admin)' })
+  @ApiOkResponse({ type: GuideResponseDto })
+  @ApiNotFoundResponse({ description: 'Guide not found' })
+  async getForStaff(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<GuideResponseDto> {
+    return toGuideResponse(
+      await this.getGuide.execute(id, { includeUnpublished: true }),
+    );
+  }
+
+  @Get('manage/:id/file')
+  @Authorize('STAFF', 'ADMIN')
+  @Header('X-Content-Type-Options', 'nosniff')
+  @ApiOperation({
+    summary: 'Open the PDF of a guide in any state (staff or admin)',
+  })
+  @ApiProduces('application/pdf')
+  @ApiOkResponse({ description: 'The PDF document' })
+  @ApiNotFoundResponse({ description: 'Guide not found or without PDF' })
+  async fileForStaff(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<StreamableFile> {
+    return toStreamableFile(
+      await this.getGuideFile.execute(id, { includeUnpublished: true }),
+    );
+  }
+
   @Get(':id')
-  @ApiOperation({ summary: 'Get one guide' })
+  @ApiOperation({ summary: 'Get one published guide' })
   @ApiOkResponse({ type: GuideResponseDto })
   @ApiNotFoundResponse({ description: 'Guide not found' })
   async get(
@@ -137,12 +200,7 @@ export class GuidesController {
   async file(
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<StreamableFile> {
-    const file = await this.getGuideFile.execute(id);
-    return new StreamableFile(file.content, {
-      type: file.contentType,
-      disposition: `inline; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
-      length: file.content.length,
-    });
+    return toStreamableFile(await this.getGuideFile.execute(id));
   }
 
   @Post()
@@ -190,6 +248,24 @@ export class GuidesController {
         categoryId: body.categoryId,
         file: toFileInput(file),
       }),
+    );
+  }
+
+  @Patch(':id/publication')
+  @Authorize('STAFF', 'ADMIN')
+  @ApiOperation({
+    summary: 'Publish or unpublish a guide (staff or admin)',
+    description:
+      'published=true makes the guide visible in the public catalog; published=false hides it again.',
+  })
+  @ApiOkResponse({ type: GuideResponseDto })
+  @ApiNotFoundResponse({ description: 'Guide not found' })
+  async publication(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: SetGuidePublicationDto,
+  ): Promise<GuideResponseDto> {
+    return toGuideResponse(
+      await this.setPublication.execute({ id, published: body.published }),
     );
   }
 

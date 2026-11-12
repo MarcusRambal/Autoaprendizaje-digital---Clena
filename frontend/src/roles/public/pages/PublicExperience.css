@@ -59,7 +59,7 @@
   font-size: 1rem;
 }
 
-.public-layout .navBar-logo a {
+.public-layout .navBar-logo :is(a, span) {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;

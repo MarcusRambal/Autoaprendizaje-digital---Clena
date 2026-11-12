@@ -10,7 +10,7 @@ const topics = [
   'Tecnología para niños', 'Tecnología para adultos'
 ];
 
-export const categories: Category[] = topics.map((title, index) => ({ id: index + 1, title }));
+export const categories: Category[] = topics.map((title, index) => ({ id: String(index + 1), title }));
 
 export const guides: Guide[] = categories.flatMap((category, categoryIndex) =>
   Array.from({ length: 8 }, (_, index) => ({

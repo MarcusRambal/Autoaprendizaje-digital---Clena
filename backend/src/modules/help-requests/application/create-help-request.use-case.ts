@@ -1,4 +1,5 @@
 import {
+  DESCRIPTION_MAX_LENGTH,
   HelpRequest,
   REQUESTER_NAME_MAX_LENGTH,
   TOPIC_MAX_LENGTH,
@@ -8,8 +9,11 @@ import { HelpRequestRepository } from '../domain/help-request.repository';
 import { HelpRequestApplicationError } from './help-request-application.error';
 
 export interface CreateHelpRequestInput {
+  /** Account that asked for help; null when the staff registers it for someone. */
+  requesterId: string | null;
   requesterName: string;
   topic: string;
+  description: string;
 }
 
 export class CreateHelpRequestUseCase {
@@ -18,6 +22,7 @@ export class CreateHelpRequestUseCase {
   async execute(input: CreateHelpRequestInput): Promise<HelpRequest> {
     const requesterName = input.requesterName.trim();
     const topic = input.topic.trim();
+    const description = input.description.trim();
 
     if (
       requesterName.length < 1 ||
@@ -37,6 +42,19 @@ export class CreateHelpRequestUseCase {
       );
     }
 
-    return await this.repository.create({ requesterName, topic });
+    if (description.length < 1 || description.length > DESCRIPTION_MAX_LENGTH) {
+      throw new HelpRequestApplicationError(
+        400,
+        'INVALID_HELP_REQUEST',
+        `Description is required and must have at most ${DESCRIPTION_MAX_LENGTH} characters`,
+      );
+    }
+
+    return await this.repository.create({
+      requesterId: input.requesterId,
+      requesterName,
+      topic,
+      description,
+    });
   }
 }

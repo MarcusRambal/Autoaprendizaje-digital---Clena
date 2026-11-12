@@ -88,7 +88,7 @@ const QuizForm = ({ quiz, quizzes, categories, onSave, onCancel }: QuizFormProps
       description: question.description.trim(),
       options: question.options.map(option => option.trim()),
       correctOptionIndex: question.correctOptionIndex,
-      immediateFeedback: question.immediateFeedback.trim()
+      immediateFeedback: (question.immediateFeedback ?? '').trim()
     }));
 
     const invalidQuestionIndex = cleanedQuestions.findIndex(question => !isValidQuestion(question));

@@ -40,6 +40,8 @@ test('distingue la ñ de la n y admite texto Unicode descompuesto', () => {
 
 test('pagina los resultados filtrados en grupos de seis y ajusta páginas fuera de rango', () => {
   assert.equal(PAGE_SIZE, 6);
+  assert.equal(getPage(categories, 1).items.length, 6);
+  assert.equal(getPage(categories, 5).items.length, 2);
   const filtered = guides.filter(guide => matchesSearch('navegacion web', guide.title, guide.category));
   assert.equal(getPage(filtered, 1).items.length, 6);
   assert.equal(getPage(filtered, 2).items.length, 2);

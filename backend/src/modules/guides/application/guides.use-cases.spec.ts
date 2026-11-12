@@ -3,7 +3,9 @@ import {
   CreateGuideResult,
   GuideChanges,
   GuideRepository,
+  GuideReadOptions,
   NewGuide,
+  SetPublicationResult,
   UpdateGuideResult,
 } from '../domain/guide.repository';
 import { CreateGuideUseCase } from './create-guide.use-case';
@@ -11,11 +13,14 @@ import { DeleteGuideUseCase } from './delete-guide.use-case';
 import { GetGuideFileUseCase } from './get-guide-file.use-case';
 import { GetGuideUseCase } from './get-guide.use-case';
 import { ListGuidesUseCase } from './list-guides.use-case';
+import { ListManagedGuidesUseCase } from './list-managed-guides.use-case';
+import { SetGuidePublicationUseCase } from './set-guide-publication.use-case';
 import { UpdateGuideUseCase } from './update-guide.use-case';
 
 const guide: Guide = {
   id: 'guide-1',
   title: 'Cómo crear una cuenta',
+  publicationState: 'PUBLISHED',
   categoryId: 'cat-1',
   categoryTitle: 'Correo electrónico',
   fileName: 'guia.pdf',
@@ -262,6 +267,111 @@ describe('GetGuideFileUseCase', () => {
   });
 });
 
+describe('GetGuideUseCase visibility', () => {
+  it('forwards the staff visibility option to the repository', async () => {
+    const received: Array<GuideReadOptions | undefined> = [];
+    const useCase = new GetGuideUseCase(
+      repositoryWith({
+        findById: (_id, options) => {
+          received.push(options);
+          return Promise.resolve(guide);
+        },
+      }),
+    );
+
+    await useCase.execute('guide-1');
+    await useCase.execute('guide-1', { includeUnpublished: true });
+
+    expect(received).toEqual([undefined, { includeUnpublished: true }]);
+  });
+});
+
+describe('ListManagedGuidesUseCase', () => {
+  const setup = () => {
+    const queries: unknown[] = [];
+    const useCase = new ListManagedGuidesUseCase(
+      repositoryWith({
+        list: (query) => {
+          queries.push(query);
+          return Promise.resolve({ items: [guide], total: 41 });
+        },
+      }),
+    );
+    return { useCase, queries };
+  };
+
+  it('lists every state, newest first, unless a state is chosen', async () => {
+    const { useCase, queries } = setup();
+
+    const result = await useCase.execute({ pageSize: 20 });
+    await useCase.execute({ publicationState: 'DRAFT', search: '  correo ' });
+
+    expect(queries).toEqual([
+      {
+        page: 1,
+        pageSize: 20,
+        categoryId: undefined,
+        search: undefined,
+        publicationState: undefined,
+        order: 'desc',
+      },
+      {
+        page: 1,
+        pageSize: 20,
+        categoryId: undefined,
+        search: 'correo',
+        publicationState: 'DRAFT',
+        order: 'desc',
+      },
+    ]);
+    expect(result).toEqual({
+      items: [guide],
+      page: 1,
+      pageSize: 20,
+      total: 41,
+      totalPages: 3,
+    });
+  });
+});
+
+describe('SetGuidePublicationUseCase', () => {
+  const setup = (result: SetPublicationResult) => {
+    const received: Array<{ id: string; state: string }> = [];
+    const useCase = new SetGuidePublicationUseCase(
+      repositoryWith({
+        setPublication: (id, state) => {
+          received.push({ id, state });
+          return Promise.resolve(result);
+        },
+      }),
+    );
+    return { useCase, received };
+  };
+
+  it('publishes and unpublishes a guide', async () => {
+    const draft: Guide = { ...guide, publicationState: 'DRAFT' };
+    const { useCase, received } = setup({ kind: 'updated', guide: draft });
+
+    await expect(
+      useCase.execute({ id: 'guide-1', published: false }),
+    ).resolves.toEqual(draft);
+    await useCase.execute({ id: 'guide-1', published: true });
+
+    expect(received).toEqual([
+      { id: 'guide-1', state: 'DRAFT' },
+      { id: 'guide-1', state: 'PUBLISHED' },
+    ]);
+  });
+
+  it('fails with 404 when the guide does not exist', async () => {
+    const { useCase } = setup({ kind: 'not-found' });
+
+    await expect(
+      useCase.execute({ id: 'x', published: true }),
+    ).rejects.toMatchObject({ statusCode: 404, code: 'GUIDE_NOT_FOUND' });
+  });
+});
+
 describe('ListGuidesUseCase', () => {
   it('lists newest first with a normalized page and the category filter', async () => {
     const queries: unknown[] = [];
@@ -277,7 +387,13 @@ describe('ListGuidesUseCase', () => {
     const result = await useCase.execute({ categoryId: 'cat-1', pageSize: 20 });
 
     expect(queries).toEqual([
-      { page: 1, pageSize: 20, categoryId: 'cat-1', order: 'desc' },
+      {
+        page: 1,
+        pageSize: 20,
+        categoryId: 'cat-1',
+        publicationState: 'PUBLISHED',
+        order: 'desc',
+      },
     ]);
     expect(result).toEqual({
       items: [guide],
@@ -286,6 +402,28 @@ describe('ListGuidesUseCase', () => {
       total: 41,
       totalPages: 3,
     });
+  });
+
+  it('passes a trimmed title search to the repository', async () => {
+    const queries: Array<{ search?: string }> = [];
+    const useCase = new ListGuidesUseCase(
+      repositoryWith({
+        list: (query) => {
+          queries.push(query);
+          return Promise.resolve({ items: [guide], total: 1 });
+        },
+      }),
+    );
+
+    await useCase.execute({ search: '  CORREO  ' });
+    await useCase.execute({ search: '   ' });
+    await useCase.execute({});
+
+    expect(queries.map((query) => query.search)).toEqual([
+      'CORREO',
+      undefined,
+      undefined,
+    ]);
   });
 
   it('honors an ascending order', async () => {

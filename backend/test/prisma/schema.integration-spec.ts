@@ -1,5 +1,5 @@
 import { compare } from 'bcrypt';
-import { resolveDemoAccounts } from '../../prisma/demo-accounts';
+import { resolveRequiredDemoAccounts } from '../../prisma/demo-accounts';
 import { PrismaClient } from '@prisma/client';
 
 const expectedEnums: Record<string, string[]> = {
@@ -134,9 +134,9 @@ describe('PostgreSQL schema and demo seed', () => {
     }
   });
 
-  it('contains the four demo categories, guides with steps, help requests, and activity questions', async () => {
+  it('contains the demo categories, at least ten guides and lessons, and help requests', async () => {
     expect(await prisma.category.count()).toBe(4);
-    expect(await prisma.guide.count()).toBe(5);
+    expect(await prisma.guide.count()).toBe(10);
     expect(
       await prisma.guide.count({ where: { slug: 'crear-cuenta-de-correo' } }),
     ).toBe(1);
@@ -154,7 +154,7 @@ describe('PostgreSQL schema and demo seed', () => {
         })
       ).map(({ status }) => status),
     ).toEqual(expect.arrayContaining(['PENDING', 'IN_PROGRESS', 'ATTENDED']));
-    expect(await prisma.guideFile.count()).toBe(5);
+    expect(await prisma.guideFile.count()).toBe(10);
     const sampleFile = await prisma.guideFile.findFirstOrThrow();
     expect(Buffer.from(sampleFile.content).subarray(0, 5).toString()).toBe(
       '%PDF-',
@@ -164,6 +164,7 @@ describe('PostgreSQL schema and demo seed', () => {
         where: { slug: 'repaso-correo-electronico' },
       }),
     ).toBe(1);
+    expect(await prisma.activity.count()).toBe(10);
     expect(
       await prisma.activityQuestion.count({
         where: { activity: { slug: 'repaso-correo-electronico' } },
@@ -182,12 +183,9 @@ describe('PostgreSQL schema and demo seed', () => {
     ]);
   });
 
-  it('creates the demo accounts only when their seed credentials are supplied', async () => {
-    const accounts = resolveDemoAccounts(process.env);
-    if (!accounts.some((account) => account.role === 'ADMIN')) {
-      expect(await prisma.user.count({ where: { role: 'ADMIN' } })).toBe(0);
-    }
-
+  it('creates one demo account for each role from the required seed credentials', async () => {
+    const accounts = resolveRequiredDemoAccounts(process.env);
+    expect(accounts).toHaveLength(3);
     for (const account of accounts) {
       const user = await prisma.user.findUnique({
         where: { email: account.email },

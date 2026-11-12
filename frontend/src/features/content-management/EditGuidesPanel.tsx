@@ -4,15 +4,23 @@ import type { Category, Guide } from '../../../types/contracts';
 import { matchesSearch } from './searchContent';
 import { Pagination } from './Pagination';
 import { usePagination } from './usePagination';
-import { apiErrorMessage } from '../../../services/staffContentApi';
+import { getManagedGuidePdf } from '../../../services/guidesApi';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 type ViewState = 'guideView' | 'createView' | 'editView' | 'deleteView';
-const MAX_PDF_BYTES = 10 * 1024 * 1024;
+
+interface GuidePagination {
+  page: number;
+  totalPages: number;
+  setPage: (page: number) => void;
+}
 
 interface EditGuidesPanelProps {
   categories: Category[];
   guides: Guide[];
   searchQuery: string;
+  totalGuides?: number;
+  serverPagination?: GuidePagination;
   onCreate: (guide: Omit<Guide, 'id'>) => void | Promise<void>;
   onSave: (guide: Guide) => void | Promise<void>;
   onDelete: (guideId: Guide['id']) => void | Promise<void>;
@@ -27,35 +35,30 @@ interface EditGuideRowProps {
 }
 
 const getGuideFileName = (file: Guide['file']) =>
-  typeof file === 'string' ? file : file.name;
+  file instanceof File ? file.name : file ?? 'Sin archivo adjunto';
 
 const normalizeTitle = (title: string) => title.toLowerCase().replace(/\s+/g, '');
 const isPdf = (file: File) =>
   file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-const validatePdf = (file: File) => {
-  if (!isPdf(file)) return 'Solo se admiten archivos en formato .pdf.';
-  if (file.size > MAX_PDF_BYTES) return 'El archivo PDF no puede superar los 10 MB.';
-  return null;
-};
 
 const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRowProps) => {
   const [draftTitle, setDraftTitle] = useState(guide.title);
-  const [draftCategoryId, setDraftCategoryId] = useState(String(
-    guide.categoryId ?? categories.find(category => category.title === guide.category)?.id ?? ''
-  ));
+  const [draftCategoryId, setDraftCategoryId] = useState(
+    guide.categoryId ?? categories.find(category => category.title === guide.category)?.id ?? '',
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     const trimmedTitle = draftTitle.trim();
-    const category = categories.find(item => String(item.id) === draftCategoryId);
 
     if (!trimmedTitle) {
       setError('El título de la guía no puede estar vacío.');
       return;
     }
 
+    const category = categories.find(item => item.id === draftCategoryId);
     if (!category) {
       setError('Debes seleccionar una categoría válida.');
       return;
@@ -70,18 +73,18 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
       return;
     }
 
-    setSaving(true);
     setError(null);
+    setSaving(true);
     try {
       await onSave({
         ...guide,
         title: trimmedTitle,
         category: category.title,
         categoryId: category.id,
-        file: selectedFile ?? guide.file
+        file: selectedFile ?? guide.file,
       });
-    } catch (saveError) {
-      setError(apiErrorMessage(saveError));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo guardar la guía.');
     } finally {
       setSaving(false);
     }
@@ -89,7 +92,7 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
 
   const isChanged =
     draftTitle.trim() !== guide.title ||
-    draftCategoryId !== String(guide.categoryId ?? categories.find(category => category.title === guide.category)?.id ?? '') ||
+    draftCategoryId !== (guide.categoryId ?? categories.find(category => category.title === guide.category)?.id) ||
     selectedFile !== null;
 
   return (
@@ -100,6 +103,7 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
           <input
             type="text"
             value={draftTitle}
+            maxLength={120}
             aria-label={`Título de ${guide.title}`}
             onChange={event => {
               setDraftTitle(event.target.value);
@@ -120,7 +124,7 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
             }}
           >
             {categories.map(category => (
-              <option key={category.id} value={String(category.id)}>{category.title}</option>
+              <option key={category.id} value={category.id}>{category.title}</option>
             ))}
           </select>
         </label>
@@ -133,9 +137,14 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
             onChange={event => {
               const file = event.target.files?.[0];
               if (!file) return;
-              const fileError = validatePdf(file);
-              if (fileError) {
-                setError(fileError);
+              if (!isPdf(file)) {
+                setError('Solo se admiten archivos en formato .pdf');
+                setSelectedFile(null);
+                event.target.value = '';
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) {
+                setError('El archivo PDF no puede superar los 10 MB.');
                 setSelectedFile(null);
                 event.target.value = '';
                 return;
@@ -150,7 +159,7 @@ const EditGuideRow = ({ guide, guides, categories, hidden, onSave }: EditGuideRo
         </label>
         {error && <span className="error-text" role="alert">{error}</span>}
       </div>
-      <button type="button" onClick={() => void handleSave()} disabled={!isChanged || saving}>
+      <button type="button" onClick={handleSave} disabled={!isChanged || saving}>
         {saving ? 'Guardando…' : 'Guardar'}
       </button>
     </li>
@@ -161,46 +170,54 @@ export const EditGuidesPanel = ({
   categories,
   guides,
   searchQuery,
+  totalGuides,
+  serverPagination,
   onCreate,
   onSave,
   onDelete
 }: EditGuidesPanelProps) => {
   const [viewState, setViewState] = useState<ViewState>('guideView');
   const [selectedGuide, setSelectedGuide] = useState<{ guide: Guide; url: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
-  const [newCategoryId, setNewCategoryId] = useState('');
+  const [newCategory, setNewCategory] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingGuideId, setDeletingGuideId] = useState<Guide['id'] | null>(null);
+  const [pendingDeleteGuide, setPendingDeleteGuide] = useState<Guide | null>(null);
   const filteredGuides = guides.filter(guide => matchesSearch(searchQuery, guide.title, guide.category));
-  const pagination = usePagination(filteredGuides, `${viewState}:${searchQuery}`);
-  const visibleGuideIds = new Set(pagination.items.map(guide => guide.id));
+  const localPagination = usePagination(filteredGuides, `${viewState}:${searchQuery}`);
+  const pagination = serverPagination ?? localPagination;
+  const pageGuides = serverPagination ? filteredGuides : localPagination.items;
+  const visibleGuideIds = new Set(pageGuides.map(guide => guide.id));
+  const displayedGuideCount = totalGuides ?? guides.length;
   const selectedGuideMatches = selectedGuide !== null &&
     filteredGuides.some(guide => guide.id === selectedGuide.guide.id);
 
   const handleCreateGuide = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = newTitle.trim();
-    const category = categories.find(item => String(item.id) === newCategoryId);
 
     if (!trimmedTitle) {
       setCreateError('El título no puede estar vacío.');
       return;
     }
 
+    const category = categories.find(item => item.id === newCategory);
     if (!category) {
       setCreateError('Selecciona una categoría válida para la guía.');
       return;
     }
 
-    if (!newFile) {
+    if (!newFile || !isPdf(newFile)) {
       setCreateError('Debes adjuntar un archivo en formato .pdf.');
       return;
     }
-    const fileError = validatePdf(newFile);
-    if (fileError) {
-      setCreateError(fileError);
+    if (newFile.size > 10 * 1024 * 1024) {
+      setCreateError('El archivo PDF no puede superar los 10 MB.');
       return;
     }
 
@@ -213,32 +230,50 @@ export const EditGuidesPanel = ({
       return;
     }
 
-    setSaving(true);
+    setCreating(true);
+    setCreateError(null);
     try {
       await onCreate({
         title: trimmedTitle,
         category: category.title,
         categoryId: category.id,
-        file: newFile
+        file: newFile,
       });
       setNewTitle('');
-      setNewCategoryId('');
+      setNewCategory('');
       setNewFile(null);
-      setCreateError(null);
       const fileInput = document.getElementById('new-guide-file');
       if (fileInput instanceof HTMLInputElement) fileInput.value = '';
-    } catch (error) {
-      setCreateError(apiErrorMessage(error));
+    } catch (reason) {
+      setCreateError(reason instanceof Error ? reason.message : 'No se pudo crear la guía.');
     } finally {
-      setSaving(false);
+      setCreating(false);
     }
   };
 
-  const handleOpenGuide = (guide: Guide) => {
-    const url = guide.file instanceof File
-      ? URL.createObjectURL(guide.file)
-      : guide.fileUrl ?? `/${encodeURIComponent(guide.file)}`;
-    setSelectedGuide({ guide, url });
+  const handleOpenGuide = async (guide: Guide) => {
+    setPreviewError(null);
+    if (guide.file instanceof File) {
+      setSelectedGuide({ guide, url: URL.createObjectURL(guide.file) });
+      return;
+    }
+    if (guide.fileUrl && typeof guide.id === 'string') {
+      setPreviewLoading(true);
+      try {
+        const file = await getManagedGuidePdf(guide.id);
+        setSelectedGuide({ guide, url: URL.createObjectURL(file) });
+      } catch (reason) {
+        setPreviewError(reason instanceof Error ? reason.message : 'No se pudo abrir el archivo PDF de la guía.');
+      } finally {
+        setPreviewLoading(false);
+      }
+      return;
+    }
+    if (typeof guide.file === 'string') {
+      setSelectedGuide({ guide, url: `/${encodeURIComponent(guide.file)}` });
+      return;
+    }
+    setPreviewError('Esta guía no tiene un archivo PDF disponible.');
   };
 
   useEffect(() => {
@@ -246,20 +281,30 @@ export const EditGuidesPanel = ({
     return () => URL.revokeObjectURL(selectedGuide.url);
   }, [selectedGuide]);
 
-  const handleDeleteGuide = async (guideId: Guide['id']) => {
-    setActionError(null);
+  const handleDeleteGuide = (guide: Guide) => {
+    setDeleteError(null);
+    setPendingDeleteGuide(guide);
+  };
+
+  const confirmDeleteGuide = async () => {
+    const guide = pendingDeleteGuide;
+    if (!guide || deletingGuideId !== null) return;
+    setDeletingGuideId(guide.id);
+    setDeleteError(null);
     try {
-      await onDelete(guideId);
-      setSelectedGuide(current => current?.guide.id === guideId ? null : current);
-    } catch (error) {
-      setActionError(apiErrorMessage(error));
+      await onDelete(guide.id);
+      setSelectedGuide(current => current?.guide.id === guide.id ? null : current);
+      setPendingDeleteGuide(null);
+    } catch (reason) {
+      setDeleteError(reason instanceof Error ? reason.message : 'No se pudo eliminar la guía.');
+    } finally {
+      setDeletingGuideId(null);
     }
   };
 
   return (
     <section className="edit-panel guide-management" aria-labelledby="guides-management-title">
       <h2 id="guides-management-title">Gestión de guías</h2>
-      {actionError && <p className="error-text" role="alert">{actionError}</p>}
 
       <div className="viewCreateEditGuides">
         <div className="viewButton" role="group" aria-label="Acciones de guías">
@@ -279,7 +324,7 @@ export const EditGuidesPanel = ({
             aria-controls="guide-management-panel"
             onClick={() => {
               setNewTitle('');
-              setNewCategoryId('');
+              setNewCategory('');
               setNewFile(null);
               setCreateError(null);
               setViewState('createView');
@@ -308,19 +353,21 @@ export const EditGuidesPanel = ({
         </div>
 
         <div id="guide-management-panel" className="guide-management-panel">
+        {!pendingDeleteGuide && deleteError && <p className="error-text" role="alert">{deleteError}</p>}
         {viewState === 'guideView' && (
           <div className={`guide-view-layout ${selectedGuideMatches ? 'has-preview' : ''}`}>
             <div className="guide-list">
               <h3>Todas las guías</h3>
-            {guides.length > 0 ? (
+            {pageGuides.length > 0 ? (
               <ul className="category-view-list">
-                {pagination.items.map(guide => (
+                {pageGuides.map(guide => (
                   <li key={guide.id}>
                     <button
                       className="guide-preview-button"
                       type="button"
                       aria-pressed={selectedGuide?.guide.id === guide.id}
                       onClick={() => handleOpenGuide(guide)}
+                      disabled={guide.file === null}
                     >
                       <strong>{guide.title}</strong>
                       <span className="guide-preview-category">{guide.category}</span>
@@ -329,8 +376,9 @@ export const EditGuidesPanel = ({
                   </li>
                 ))}
               </ul>
-            ) : <p role="status">No hay guías creadas.</p>}
-            {guides.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
+            ) : <p role="status">{searchQuery ? 'No se encontraron guías para esta búsqueda.' : 'No hay guías creadas.'}</p>}
+            {previewLoading && <p role="status">Cargando archivo PDF…</p>}
+            {previewError && <p className="error-text" role="alert">{previewError}</p>}
             <Pagination {...pagination} label="Páginas de guías" />
             </div>
             {selectedGuide && (
@@ -361,6 +409,7 @@ export const EditGuidesPanel = ({
                     id="new-guide-title"
                     type="text"
                     placeholder="Título de la guía"
+                    maxLength={120}
                     required
                     value={newTitle}
                     onChange={event => {
@@ -372,17 +421,17 @@ export const EditGuidesPanel = ({
                   <label htmlFor="new-guide-category">Categoría</label>
                   <select
                     id="new-guide-category"
-                    value={newCategoryId}
+                    value={newCategory}
                     required
                     onChange={event => {
-                      setNewCategoryId(event.target.value);
+                      setNewCategory(event.target.value);
                       setCreateError(null);
                     }}
-                    className={createError && !newCategoryId ? 'input-error' : ''}
+                    className={createError && !newCategory ? 'input-error' : ''}
                   >
                     <option value="">Selecciona una categoría</option>
                     {categories.map(category => (
-                      <option key={category.id} value={String(category.id)}>{category.title}</option>
+                      <option key={category.id} value={category.id}>{category.title}</option>
                     ))}
                   </select>
                   <label htmlFor="new-guide-file">Archivo PDF</label>
@@ -394,9 +443,8 @@ export const EditGuidesPanel = ({
                     onChange={event => {
                       const file = event.target.files?.[0];
                       if (!file) return;
-                      const fileError = validatePdf(file);
-                      if (fileError) {
-                        setCreateError(fileError);
+                      if (!isPdf(file)) {
+                        setCreateError('Solo se admiten archivos en formato .pdf');
                         setNewFile(null);
                         event.target.value = '';
                         return;
@@ -409,7 +457,9 @@ export const EditGuidesPanel = ({
                   {newFile && <span className="file-info">{newFile.name}</span>}
                   {createError && <span className="error-text" role="alert">{createError}</span>}
                 </div>
-                <button type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Crear guía'}</button>
+                <button type="submit" disabled={creating}>
+                  {creating ? 'Creando…' : 'Crear guía'}
+                </button>
               </form>
             ) : <p role="status">Crea una categoría antes de agregar guías.</p>}
           </div>
@@ -428,13 +478,13 @@ export const EditGuidesPanel = ({
                     categories={categories}
                     hidden={!visibleGuideIds.has(guide.id)}
                     onSave={async updatedGuide => {
-                    await onSave(updatedGuide);
-                    setSelectedGuide(null);
+                      await onSave(updatedGuide);
+                      setSelectedGuide(null);
                     }}
                   />
                 ))}
               </ul>
-            ) : <p>{guides.length === 0 ? 'No hay guías para editar.' : 'Crea una categoría para editar las guías.'}</p>}
+            ) : <p role="status">{displayedGuideCount === 0 ? (searchQuery ? 'No se encontraron guías para esta búsqueda.' : 'No hay guías para editar.') : 'Crea una categoría para editar las guías.'}</p>}
             {guides.length > 0 && categories.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
             <Pagination {...pagination} label="Páginas de guías para editar" />
           </div>
@@ -445,23 +495,46 @@ export const EditGuidesPanel = ({
             <h3>Eliminar guías</h3>
             {guides.length > 0 ? (
               <ul className="category-view-list">
-                {pagination.items.map(guide => (
+                {pageGuides.map(guide => (
                   <li key={guide.id}>
                     <span className="guide-delete-details">
                       <strong>{guide.title}</strong>
                       <small>{guide.category}</small>
                     </span>
-                    <button type="button" aria-label={`Eliminar guía ${guide.title}`} onClick={() => void handleDeleteGuide(guide.id)}>Eliminar</button>
+                    <button
+                      type="button"
+                      aria-label={`Eliminar guía ${guide.title}`}
+                      onClick={() => handleDeleteGuide(guide)}
+                      disabled={deletingGuideId !== null}
+                    >
+                      {deletingGuideId === guide.id ? 'Eliminando…' : 'Eliminar'}
+                    </button>
                   </li>
                 ))}
               </ul>
-            ) : <p role="status">No hay guías para eliminar.</p>}
+            ) : <p role="status">{searchQuery ? 'No se encontraron guías para esta búsqueda.' : 'No hay guías para eliminar.'}</p>}
             {guides.length > 0 && filteredGuides.length === 0 && <p role="status">No se encontraron guías para esta búsqueda.</p>}
             <Pagination {...pagination} label="Páginas de guías para eliminar" />
           </div>
         )}
         </div>
       </div>
+      {pendingDeleteGuide && (
+        <ConfirmDialog
+          title="¿Eliminar esta guía?"
+          description={`Se eliminarán la guía "${pendingDeleteGuide.title}" y su archivo PDF. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar guía"
+          pendingLabel="Eliminando guía…"
+          isConfirming={deletingGuideId === pendingDeleteGuide.id}
+          error={deleteError}
+          onCancel={() => {
+            if (deletingGuideId !== null) return;
+            setPendingDeleteGuide(null);
+            setDeleteError(null);
+          }}
+          onConfirm={() => void confirmDeleteGuide()}
+        />
+      )}
     </section>
   );
 };

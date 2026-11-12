@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../shared/database/prisma.service';
 import { User, UserRepository, UserStatus } from '../domain/user.repository';
 import {
@@ -6,19 +7,64 @@ import {
   UserAccountRepository,
 } from '../domain/user-account.repository';
 import {
+  ListUsersQuery,
+  UserListRepository,
+  UserPage,
+} from '../domain/user-list.repository';
+import {
   UserStatusChangeResult,
   UserStatusRepository,
 } from '../domain/user-status.repository';
 
 @Injectable()
 export class PrismaUserRepository
-  implements UserRepository, UserStatusRepository, UserAccountRepository
+  implements
+    UserRepository,
+    UserStatusRepository,
+    UserAccountRepository,
+    UserListRepository
 {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<User | null> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? this.toUser(user) : null;
+  }
+
+  async list(query: ListUsersQuery): Promise<UserPage> {
+    const where: Prisma.UserWhereInput = {
+      ...(query.role ? { role: query.role } : {}),
+      ...(query.search
+        ? { email: { contains: query.search, mode: 'insensitive' as const } }
+        : {}),
+    };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        // Explicit select: the password hash must never leave the repository.
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+        orderBy: [{ email: query.order }, { id: query.order }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+    ]);
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        email: row.email,
+        role: row.role,
+        status: row.status,
+        createdAt: row.createdAt,
+      })),
+      total,
+    };
   }
 
   async updateStatus(

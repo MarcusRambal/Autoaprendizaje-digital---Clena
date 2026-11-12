@@ -32,7 +32,7 @@ export const StaffDashboard = () => (
     </nav>
 
     <p className="staff-dashboard-note" role="status">
-      Las solicitudes y estadísticas aún muestran datos de demostración.
+      Las estadísticas aún muestran datos de demostración.
     </p>
   </section>
 );

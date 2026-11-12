@@ -41,8 +41,107 @@
 .help-form textarea { min-height: 10rem; resize: vertical; }
 .help-form :focus-visible { outline: 3px solid #a34a00; outline-offset: 3px; }
 .help-disclaimer, .help-status, .help-emergency { margin: 0; color: #51434c; font-size: 0.95rem; }
-.help-status { padding: 0.85rem 1rem; border-left: 4px solid #b48108; border-radius: 0.35rem; background: #faf4e5; color: #30242b; }
+.help-status { padding: 0.85rem 1rem; border-left: 4px solid #348453; border-radius: 0.35rem; background: #f2faf4; color: #214f32; }
+.help-status--error { border-color: #b42318; background: #fff1f0; color: #b42318; }
+.help-status--error p { margin: 0 0 0.5rem; }
+.help-status--error button { min-height: 2.5rem; }
 .help-emergency { padding-top: 0.25rem; }
+
+.help-requests {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.help-requests h2,
+.help-request-card h3 {
+  margin: 0;
+  color: #211820;
+}
+
+.help-request-count {
+  margin: 0;
+  color: #51434c;
+}
+
+.help-request-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help-request-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  border: 1px solid #e4d9df;
+  border-radius: 0.65rem;
+  background: #fff;
+}
+
+.help-request-card__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.help-request-card > p {
+  margin: 0;
+  color: #51434c;
+  white-space: pre-wrap;
+}
+
+.help-request-card time {
+  color: #51434c;
+  font-size: 0.9rem;
+}
+
+.help-request-status {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.help-request-status--pending { background: #fff3d4; color: #704b00; }
+.help-request-status--in-progress { background: #e8f1ff; color: #174a87; }
+.help-request-status--attended { background: #e7f6eb; color: #216037; }
+.help-request-status--cancelled { background: #f2edf0; color: #51434c; }
+
+.help-page .content-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.help-page .content-pagination button {
+  min-height: 2.8rem;
+  padding: 0.55rem 0.9rem;
+  border: 2px solid #652e4e;
+  border-radius: 0.5rem;
+  background: #652e4e;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-page .content-pagination button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.help-page .content-pagination span {
+  color: #211820;
+  font-weight: 700;
+}
 
 @media (max-width: 42rem) {
   .help-header { align-items: stretch; }

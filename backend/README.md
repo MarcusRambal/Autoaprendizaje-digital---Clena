@@ -43,8 +43,9 @@ PostgreSQL port on `localhost:${POSTGRES_HOST_PORT:-5433}`. Check `/health` for
 service health and open `/docs` for the Swagger API reference.
 The container applies Prisma migrations before starting. In development it
 also seeds demo content when `SEED_DEMO_DATA=true` (the default). Demo
-accounts are created only for the roles whose email and password are both set
-(see "Demo accounts" below).
+content includes at least 10 guides and 10 lessons. Configure all three demo
+account email/password pairs before starting the stack with seeding enabled;
+the seed fails early if any role is missing (see "Demo accounts" below).
 
 Stop the services with `docker compose down`. The named `postgres-data` volume
 is preserved, so database content is available on the next startup. Do not use
@@ -80,18 +81,19 @@ Use the repository-root `.env.example` as the template for the single root
 | `AUTH_THROTTLE_TTL`   | No              | `60000`                                     | Authentication request window in milliseconds                                       |
 | `AUTH_THROTTLE_LIMIT` | No              | `5`                                         | Requests allowed per client during the window                                       |
 | `TRUSTED_PROXY_IPS`   | No              | Empty                                       | Comma-separated trusted proxy IPs/CIDRs                                             |
-| `SEED_DEMO_DATA`      | No              | `true` in Compose development               | Seed demo categories, guide, and activity at startup                                |
-| `SEED_ADMIN_EMAIL`    | No              | Empty                                       | Optional admin seed email; must be set with password                                |
-| `SEED_ADMIN_PASSWORD` | No              | Empty                                       | Optional admin seed password; must be set with email                                |
-| `SEED_STAFF_EMAIL`    | No              | Empty                                       | Optional staff seed email; must be set with password                                |
-| `SEED_STAFF_PASSWORD` | No              | Empty                                       | Optional staff seed password; must be set with email                                |
-| `SEED_USER_EMAIL`     | No              | Empty                                       | Optional public user seed email; must be set with password                          |
-| `SEED_USER_PASSWORD`  | No              | Empty                                       | Optional public user seed password; must be set with email                          |
+| `SEED_DEMO_DATA`      | No              | `true` in Compose development               | Seed demo categories, at least 10 guides and 10 lessons, and three demo accounts    |
+| `SEED_ADMIN_EMAIL`    | Yes for seeding | Empty                                       | Unique local admin email                                                            |
+| `SEED_ADMIN_PASSWORD` | Yes for seeding | Empty                                       | Admin password, 8 to 72 UTF-8 bytes                                                 |
+| `SEED_STAFF_EMAIL`    | Yes for seeding | Empty                                       | Unique local staff email                                                           |
+| `SEED_STAFF_PASSWORD` | Yes for seeding | Empty                                       | Staff password, 8 to 72 UTF-8 bytes                                                |
+| `SEED_USER_EMAIL`     | Yes for seeding | Empty                                       | Unique local public user email                                                     |
+| `SEED_USER_PASSWORD`  | Yes for seeding | Empty                                       | Public user password, 8 to 72 UTF-8 bytes                                          |
 
 ### Demo accounts
 
-To demonstrate every role, set the pairs of variables in the root `.env` before
-the first start (the values below are only an example, choose your own):
+The seed requires all three account pairs. Set them in the root `.env` before
+running `npm run db:seed` or starting Compose with `SEED_DEMO_DATA=true` (the
+values below are examples; replace them with unique local-only credentials):
 
 ```
 SEED_ADMIN_EMAIL=admin@clena.test
@@ -103,9 +105,10 @@ SEED_USER_PASSWORD=<your user password>
 ```
 
 Each account needs its own email and a password of 8 to 72 UTF-8 bytes, the
-same rules as the registration form. The seed creates the accounts with the
-privacy notice already accepted, refreshes their password and role when it runs
-again, and logs the emails (never the passwords). It never runs in production.
+same rules as the registration form. The seed creates one account for each
+role with the privacy notice already accepted, refreshes their password and
+role when it runs again, and logs the emails (never the passwords). It never
+runs in production.
 
 Set `TRUSTED_PROXY_IPS` only to immediate trusted proxies. Forwarding headers
 are ignored for untrusted peers; with no trusted proxy list, no proxy is trusted.

@@ -1,4 +1,7 @@
-import { resolveDemoAccounts } from '../../prisma/demo-accounts';
+import {
+  resolveDemoAccounts,
+  resolveRequiredDemoAccounts,
+} from '../../prisma/demo-accounts';
 
 const full = {
   SEED_ADMIN_EMAIL: 'Admin@Demo.test ',
@@ -15,6 +18,24 @@ describe('resolveDemoAccounts', () => {
     expect(
       resolveDemoAccounts({ SEED_ADMIN_EMAIL: '', SEED_ADMIN_PASSWORD: '' }),
     ).toEqual([]);
+  });
+
+  describe('resolveRequiredDemoAccounts', () => {
+    it('requires credentials for all three account roles', () => {
+      expect(() => resolveRequiredDemoAccounts({})).toThrow(
+        'The seed requires credentials for ADMIN, STAFF, and PUBLIC_USER.',
+      );
+      expect(() =>
+        resolveRequiredDemoAccounts({
+          SEED_ADMIN_EMAIL: 'admin@demo.test',
+          SEED_ADMIN_PASSWORD: 'admin-password-1',
+        }),
+      ).toThrow('SEED_STAFF_EMAIL and SEED_STAFF_PASSWORD');
+    });
+
+    it('returns all configured demo roles', () => {
+      expect(resolveRequiredDemoAccounts(full)).toHaveLength(3);
+    });
   });
 
   it('maps each pair of variables to its role and normalizes the email', () => {

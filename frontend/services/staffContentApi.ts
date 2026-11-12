@@ -120,6 +120,11 @@ export async function listStaffContent(): Promise<{
   };
 }
 
+export async function listStaffLessons(): Promise<Quiz[]> {
+  const lessons = await getAllPages<ApiLesson>("/lessons");
+  return lessons.map(mapLesson);
+}
+
 export async function createGuide(input: {
   title: string;
   categoryId: string;

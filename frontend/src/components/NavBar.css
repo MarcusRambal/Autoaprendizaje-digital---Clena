@@ -1,5 +1,5 @@
 .navbar { display: flex; min-height: 4.4rem; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; padding: 0.35rem clamp(1.25rem, 5.8vw, 5rem); background: #652e4e; color: white; font-size: clamp(1rem, 1.8vw, 1.6rem); }
-.navBar-logo a { display: inline-flex; min-height: 3rem; align-items: center; color: white; font-size: inherit; font-weight: 400; text-decoration: none; }
+.navBar-logo :is(a, span) { display: inline-flex; min-height: 3rem; align-items: center; color: white; font-size: inherit; font-weight: 400; text-decoration: none; }
 .nav-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
 .nav-links a, .login-link { display: inline-flex; min-height: 3rem; align-items: center; color: white; font-weight: 400; text-decoration: none; }
 .nav-links a[aria-current="page"], .nav-links a:hover { color: #f1b633; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.25em; }

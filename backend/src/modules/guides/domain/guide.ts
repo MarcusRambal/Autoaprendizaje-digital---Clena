@@ -1,6 +1,16 @@
+export type GuidePublicationState = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+/** States the staff can move a guide to from the panel. */
+export type ManagedPublicationState = Exclude<
+  GuidePublicationState,
+  'ARCHIVED'
+>;
+
 export interface Guide {
   id: string;
   title: string;
+  /** Only PUBLISHED guides are visible to the public. */
+  publicationState: GuidePublicationState;
   categoryId: string;
   categoryTitle: string;
   /** Original name of the attached PDF, or null when the guide has none. */

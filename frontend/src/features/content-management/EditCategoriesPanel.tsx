@@ -2,35 +2,41 @@ import './EditCategoriesPanel.css';
 import { useState, type FormEvent } from 'react';
 import type { Category } from '../../../types/contracts';
 import { matchesSearch } from './searchContent';
+import { Pagination } from './Pagination';
+import { usePagination } from './usePagination';
 
 type ViewState = 'createView' | 'editView' | 'deleteView';
 
 interface EditCategoriesPanelProps {
   categories: Category[];
   searchQuery: string;
-  onCreate: (title: string) => void;
-  onSave: (category: Category) => void;
-  onDelete: (categoryId: number | string) => string | null;
+  onCreate: (title: string) => void | Promise<void>;
+  onSave: (category: Category) => void | Promise<void>;
+  onDelete: (categoryId: Category['id']) => string | null | Promise<string | null>;
 }
 
 interface EditCategoryRowProps {
   category: Category;
   categories: Category[];
-  hidden: boolean;
-  onSave: (updatedCategory: Category) => void;
+  onSave: (updatedCategory: Category) => void | Promise<void>;
 }
 
 const normalizeTitle = (title: string) => title.toLowerCase().replace(/\s+/g, '');
 
-const EditCategoryRow = ({ category, categories, hidden, onSave }: EditCategoryRowProps) => {
+const EditCategoryRow = ({ category, categories, onSave }: EditCategoryRowProps) => {
   const [draftTitle, setDraftTitle] = useState(category.title);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const trimmedTitle = draftTitle.trim();
 
     if (!trimmedTitle) {
       setError('El nombre no puede estar vacío.');
+      return;
+    }
+    if (trimmedTitle.length > 80) {
+      setError('El nombre no puede tener más de 80 caracteres.');
       return;
     }
 
@@ -44,16 +50,24 @@ const EditCategoryRow = ({ category, categories, hidden, onSave }: EditCategoryR
     }
 
     setError(null);
-    onSave({ ...category, title: trimmedTitle });
+    setSaving(true);
+    try {
+      await onSave({ ...category, title: trimmedTitle });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo guardar la categoría.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isChanged = draftTitle.trim() !== category.title;
 
   return (
-    <li className="edit-category-item" hidden={hidden}>
+    <li className="edit-category-item">
       <div className="input-group">
         <input
           type="text"
+          maxLength={80}
           value={draftTitle}
           aria-label={`Nombre de ${category.title}`}
           onChange={event => {
@@ -64,7 +78,9 @@ const EditCategoryRow = ({ category, categories, hidden, onSave }: EditCategoryR
         />
         {error && <span className="error-text" role="alert">{error}</span>}
       </div>
-      <button type="button" onClick={handleSave} disabled={!isChanged}>Guardar</button>
+      <button type="button" onClick={handleSave} disabled={!isChanged || saving}>
+        {saving ? 'Guardando…' : 'Guardar'}
+      </button>
     </li>
   );
 };
@@ -80,14 +96,23 @@ export const EditCategoriesPanel = ({
   const [newCategoryTitle, setNewCategoryTitle] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<Category['id'] | null>(null);
   const filteredCategories = categories.filter(category => matchesSearch(searchQuery, category.title));
+  const createdCategoryPages = usePagination(filteredCategories, `created:${searchQuery}`);
+  const editCategoryPages = usePagination(filteredCategories, `edit:${searchQuery}`);
+  const deleteCategoryPages = usePagination(filteredCategories, `delete:${searchQuery}`);
 
-  const handleCreateCategory = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedTitle = newCategoryTitle.trim();
 
     if (!trimmedTitle) {
       setCreateError('El nombre no puede estar vacío.');
+      return;
+    }
+    if (trimmedTitle.length > 80) {
+      setCreateError('El nombre no puede tener más de 80 caracteres.');
       return;
     }
 
@@ -100,13 +125,28 @@ export const EditCategoriesPanel = ({
       return;
     }
 
-    onCreate(trimmedTitle);
-    setNewCategoryTitle('');
+    setCreating(true);
     setCreateError(null);
+    try {
+      await onCreate(trimmedTitle);
+      setNewCategoryTitle('');
+    } catch (reason) {
+      setCreateError(reason instanceof Error ? reason.message : 'No se pudo crear la categoría.');
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const handleDeleteCategory = (categoryId: number | string) => {
-    setDeleteError(onDelete(categoryId));
+  const handleDeleteCategory = async (categoryId: Category['id']) => {
+    setDeletingCategoryId(categoryId);
+    setDeleteError(null);
+    try {
+      setDeleteError(await onDelete(categoryId));
+    } catch (reason) {
+      setDeleteError(reason instanceof Error ? reason.message : 'No se pudo eliminar la categoría.');
+    } finally {
+      setDeletingCategoryId(null);
+    }
   };
 
   return (
@@ -154,6 +194,7 @@ export const EditCategoriesPanel = ({
                 <input
                   id="new-category-title"
                   type="text"
+                  maxLength={80}
                   placeholder="Nombre de la categoría"
                   value={newCategoryTitle}
                   onChange={event => {
@@ -164,14 +205,17 @@ export const EditCategoriesPanel = ({
                 />
                 {createError && <span className="error-text" role="alert">{createError}</span>}
               </div>
-              <button type="submit">Crear</button>
+              <button type="submit" disabled={creating}>
+                {creating ? 'Creando…' : 'Crear'}
+              </button>
             </form>
 
             <div className="category-view-container">
               <h3>Categorías Creadas</h3>
               <ul className="category-view-list">
-                {filteredCategories.map(category => <li key={category.id}>{category.title}</li>)}
+                {createdCategoryPages.items.map(category => <li key={category.id}>{category.title}</li>)}
               </ul>
+              <Pagination {...createdCategoryPages} label="Páginas de categorías creadas" />
               {categories.length === 0 && <p>No hay categorías creadas.</p>}
               {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
             </div>
@@ -183,17 +227,17 @@ export const EditCategoriesPanel = ({
             <h3 className="edit-category-title">Editar Categorías</h3>
             {categories.length > 0 ? (
               <ul className="edit-category-list">
-                {categories.map(category => (
+                {editCategoryPages.items.map(category => (
                   <EditCategoryRow
                     key={`${category.id}-${category.title}`}
                     category={category}
                     categories={categories}
-                    hidden={!matchesSearch(searchQuery, category.title)}
                     onSave={onSave}
                   />
                 ))}
               </ul>
             ) : <p>No hay categorías para editar.</p>}
+            <Pagination {...editCategoryPages} label="Páginas de categorías para editar" />
             {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
           </div>
         )}
@@ -204,16 +248,17 @@ export const EditCategoriesPanel = ({
             {deleteError && <p className="error-text" role="alert">{deleteError}</p>}
             {categories.length > 0 ? (
               <ul className="delete-category-list">
-                {filteredCategories.map(category => (
+                {deleteCategoryPages.items.map(category => (
                   <li className="delete-category-item" key={category.id}>
                     {category.title}{' '}
-                    <button type="button" aria-label={`Eliminar categoría ${category.title}`} onClick={() => handleDeleteCategory(category.id)}>
-                      Eliminar
+                    <button type="button" aria-label={`Eliminar categoría ${category.title}`} onClick={() => handleDeleteCategory(category.id)} disabled={deletingCategoryId === category.id}>
+                      {deletingCategoryId === category.id ? 'Eliminando…' : 'Eliminar'}
                     </button>
                   </li>
                 ))}
               </ul>
             ) : <p>No hay categorías para eliminar.</p>}
+            <Pagination {...deleteCategoryPages} label="Páginas de categorías para eliminar" />
             {categories.length > 0 && filteredCategories.length === 0 && <p role="status">No se encontraron categorías para esta búsqueda.</p>}
           </div>
         )}
