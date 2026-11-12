@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { DatabaseModule } from '../../shared/database/database.module';
 import { AuthModule } from '../auth/auth.module';
+import { CheckLessonAnswerUseCase } from './application/check-lesson-answer.use-case';
 import { CreateLessonUseCase } from './application/create-lesson.use-case';
 import { DeleteLessonUseCase } from './application/delete-lesson.use-case';
+import { GetPublicLessonUseCase } from './application/get-public-lesson.use-case';
 import { ListLessonsUseCase } from './application/list-lessons.use-case';
 import { UpdateLessonUseCase } from './application/update-lesson.use-case';
 import type { LessonRepository } from './domain/lesson.repository';
@@ -29,6 +31,8 @@ const useCase = <T>(UseCase: new (repository: LessonRepository) => T) => ({
     useCase(ListLessonsUseCase),
     useCase(UpdateLessonUseCase),
     useCase(DeleteLessonUseCase),
+    useCase(GetPublicLessonUseCase),
+    useCase(CheckLessonAnswerUseCase),
   ],
 })
 export class LessonsModule {}

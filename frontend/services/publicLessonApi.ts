@@ -1,5 +1,9 @@
-import { apiClient } from './apiClient.ts';
-import type { PublicLesson } from './publicLearning';
+import { apiClient } from "./apiClient.ts";
+import type {
+  PublicLesson,
+  PublicLessonAnswerResult,
+  PublicLessonSummary,
+} from "./publicLearning";
 
 interface PageResponse<T> {
   items: T[];
@@ -9,49 +13,84 @@ interface PageResponse<T> {
   totalPages: number;
 }
 
-interface ApiLessonQuestion {
-  prompt: string;
-  choices: string[];
-  correctOptionIndex: number;
-  immediateFeedback: string;
-}
-
-interface ApiLesson {
+interface ApiLessonSummary {
   id: string;
   title: string;
   description: string;
   category: string | null;
+}
+
+interface ApiLessonQuestion {
+  id: string;
+  orderNumber: number;
+  prompt: string;
+  choices: string[];
+}
+
+interface ApiLesson extends ApiLessonSummary {
   questions: ApiLessonQuestion[];
 }
 
-export function mapPublicLesson(lesson: ApiLesson): PublicLesson {
+export function mapPublicLessonSummary(
+  lesson: ApiLessonSummary,
+): PublicLessonSummary {
   return {
     id: lesson.id,
     title: lesson.title,
     description: lesson.description,
-    category: lesson.category ?? '',
-    questions: lesson.questions.map(question => ({
-      prompt: question.prompt,
-      options: question.choices,
-      correctIndex: question.correctOptionIndex,
-      explanation: question.immediateFeedback
-    }))
+    category: lesson.category ?? "",
   };
 }
 
-export async function getPublicLessons(): Promise<PublicLesson[]> {
+export function mapPublicLesson(lesson: ApiLesson): PublicLesson {
+  return {
+    ...mapPublicLessonSummary(lesson),
+    questions: lesson.questions.map((question) => ({
+      id: question.id,
+      orderNumber: question.orderNumber,
+      prompt: question.prompt,
+      options: question.choices,
+    })),
+  };
+}
+
+export async function getPublicLessons(): Promise<PublicLessonSummary[]> {
   const pageSize = 100;
-  const firstPage = await apiClient<PageResponse<ApiLesson>>(
-    `/public/lessons?page=1&pageSize=${pageSize}`
+  const firstPage = await apiClient<PageResponse<ApiLessonSummary>>(
+    `/public/lessons?page=1&pageSize=${pageSize}`,
   );
-  const lessons = firstPage.items.map(mapPublicLesson);
+  const lessons = firstPage.items.map(mapPublicLessonSummary);
 
   for (let page = 2; page <= firstPage.totalPages; page += 1) {
-    const result = await apiClient<PageResponse<ApiLesson>>(
-      `/public/lessons?page=${page}&pageSize=${pageSize}`
+    const result = await apiClient<PageResponse<ApiLessonSummary>>(
+      `/public/lessons?page=${page}&pageSize=${pageSize}`,
     );
-    lessons.push(...result.items.map(mapPublicLesson));
+    lessons.push(...result.items.map(mapPublicLessonSummary));
   }
 
   return lessons;
+}
+
+export async function getPublicLesson(
+  lessonId: number | string,
+): Promise<PublicLesson> {
+  const lesson = await apiClient<ApiLesson>(
+    `/lessons/${encodeURIComponent(lessonId)}/public`,
+  );
+  return mapPublicLesson(lesson);
+}
+
+export function checkPublicLessonAnswer(
+  lessonId: number | string,
+  questionId: string,
+  selectedOptionIndex: number,
+): Promise<PublicLessonAnswerResult> {
+  return apiClient<PublicLessonAnswerResult>(
+    `/lessons/${encodeURIComponent(lessonId)}/check-answer`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionId, selectedOptionIndex }),
+    },
+  );
 }

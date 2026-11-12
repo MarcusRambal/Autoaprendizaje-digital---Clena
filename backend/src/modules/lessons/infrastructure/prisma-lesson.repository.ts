@@ -82,6 +82,14 @@ export class PrismaLessonRepository implements LessonRepository {
     return { items: rows.map((row) => this.toLesson(row)), total };
   }
 
+  async findPublishedById(id: string): Promise<Lesson | null> {
+    const row = await this.prisma.activity.findFirst({
+      where: { id, publicationState: 'PUBLISHED' },
+      include: lessonInclude,
+    });
+    return row ? this.toLesson(row) : null;
+  }
+
   async update(
     id: string,
     input: LessonContentInput,
