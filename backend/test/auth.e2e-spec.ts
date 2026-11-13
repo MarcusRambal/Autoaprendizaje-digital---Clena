@@ -264,11 +264,7 @@ describe('Auth endpoints (e2e)', () => {
   it('registers a public user and stores the refresh token in an HTTP-only cookie', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: ' New.User@Example.com ',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: ' New.User@Example.com ', password: 'strong-password' })
       .expect(201)
       .expect((response) => {
         const body = authResponseBody(response);
@@ -295,7 +291,6 @@ describe('Auth endpoints (e2e)', () => {
       .send({
         email: 'role@example.com',
         password: 'strong-password',
-        privacyAccepted: true,
         role: 'ADMIN',
       })
       .expect(400);
@@ -310,30 +305,10 @@ describe('Auth endpoints (e2e)', () => {
       .expect(400);
   });
 
-  it('requires explicit acceptance of the privacy notice to register', async () => {
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: 'no-consent@example.com', password: 'strong-password' })
-      .expect(400);
-
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'rejected-consent@example.com',
-        password: 'strong-password',
-        privacyAccepted: false,
-      })
-      .expect(400);
-  });
-
   it('rejects malformed registration and login and requires a refresh cookie', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'not-an-email',
-        password: 'short',
-        privacyAccepted: true,
-      })
+      .send({ email: 'not-an-email', password: 'short' })
       .expect(400);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -354,11 +329,7 @@ describe('Auth endpoints (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'ascii-limit@example.com',
-        password: ascii72,
-        privacyAccepted: true,
-      })
+      .send({ email: 'ascii-limit@example.com', password: ascii72 })
       .expect(201);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -366,11 +337,7 @@ describe('Auth endpoints (e2e)', () => {
       .expect(200);
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'ascii-long@example.com',
-        password: ascii73,
-        privacyAccepted: true,
-      })
+      .send({ email: 'ascii-long@example.com', password: ascii73 })
       .expect(400);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -379,11 +346,7 @@ describe('Auth endpoints (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'multibyte-limit@example.com',
-        password: multibyte72,
-        privacyAccepted: true,
-      })
+      .send({ email: 'multibyte-limit@example.com', password: multibyte72 })
       .expect(201);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -391,11 +354,7 @@ describe('Auth endpoints (e2e)', () => {
       .expect(200);
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'multibyte-long@example.com',
-        password: multibyte73,
-        privacyAccepted: true,
-      })
+      .send({ email: 'multibyte-long@example.com', password: multibyte73 })
       .expect(400);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -406,11 +365,7 @@ describe('Auth endpoints (e2e)', () => {
   it('normalizes email and rejects duplicate registrations with 409', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: ' Duplicate@Example.com ',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: ' Duplicate@Example.com ', password: 'strong-password' })
       .expect(201)
       .expect((response) => {
         const body = authResponseBody(response);
@@ -419,22 +374,14 @@ describe('Auth endpoints (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'duplicate@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'duplicate@example.com', password: 'strong-password' })
       .expect(409);
   });
 
   it('returns an access token and cookie for valid login and a generic 401 for invalid credentials', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'login@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'login@example.com', password: 'strong-password' })
       .expect(201);
 
     await request(app.getHttpServer())
@@ -463,11 +410,7 @@ describe('Auth endpoints (e2e)', () => {
   it('rotates refresh tokens and revokes the family after replay', async () => {
     const registration = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'refresh@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'refresh@example.com', password: 'strong-password' })
       .expect(201);
     const oldCookie = refreshCookie(registration);
     const rotated = await request(app.getHttpServer())
@@ -491,11 +434,7 @@ describe('Auth endpoints (e2e)', () => {
   it('logs out only the presented device family and remains idempotent', async () => {
     const registration = await request(app.getHttpServer())
       .post('/api/v1/auth/register')
-      .send({
-        email: 'logout@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'logout@example.com', password: 'strong-password' })
       .expect(201);
     const firstDeviceCookie = refreshCookie(registration);
     const secondLogin = await request(app.getHttpServer())
@@ -543,7 +482,6 @@ describe('Auth endpoints (e2e)', () => {
     const payload = {
       email: 'throttle@example.com',
       password: 'strong-password',
-      privacyAccepted: true,
     };
     await request(throttleApp.getHttpServer())
       .post('/api/v1/auth/register')
@@ -563,39 +501,23 @@ describe('Auth endpoints (e2e)', () => {
     await request(trustedProxyApp.getHttpServer())
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', '198.51.100.10')
-      .send({
-        email: 'forwarded1@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'forwarded1@example.com', password: 'strong-password' })
       .expect(201);
     await request(trustedProxyApp.getHttpServer())
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', '198.51.100.11')
-      .send({
-        email: 'forwarded2@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'forwarded2@example.com', password: 'strong-password' })
       .expect(201);
 
     await request(untrustedProxyApp.getHttpServer())
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', '198.51.100.20')
-      .send({
-        email: 'spoofed1@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'spoofed1@example.com', password: 'strong-password' })
       .expect(201);
     await request(untrustedProxyApp.getHttpServer())
       .post('/api/v1/auth/register')
       .set('X-Forwarded-For', '198.51.100.21')
-      .send({
-        email: 'spoofed2@example.com',
-        password: 'strong-password',
-        privacyAccepted: true,
-      })
+      .send({ email: 'spoofed2@example.com', password: 'strong-password' })
       .expect(429);
   });
 

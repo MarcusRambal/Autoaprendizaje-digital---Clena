@@ -54,16 +54,13 @@ describe('RegisterUseCase', () => {
     const result = await useCase.execute({
       email: '  Person@Example.COM  ',
       password: 'strong-password',
-      privacyAccepted: true,
     });
 
     expect(created[0]).toMatchObject({
       email: 'person@example.com',
       passwordHash: 'hashed:strong-password',
       role: 'PUBLIC_USER',
-      privacyNoticeVersion: 'v1',
     });
-    expect(created[0].privacyAcceptedAt).toBeInstanceOf(Date);
     expect(result).toEqual({
       id: 'user-1',
       email: 'person@example.com',
@@ -77,21 +74,13 @@ describe('RegisterUseCase', () => {
     const { useCase, created } = setup();
 
     await expect(
-      useCase.execute({
-        email: '  ',
-        password: 'secret',
-        privacyAccepted: true,
-      }),
+      useCase.execute({ email: '  ', password: 'secret' }),
     ).rejects.toMatchObject({
       statusCode: 400,
       code: 'INVALID_AUTH_INPUT',
     });
     await expect(
-      useCase.execute({
-        email: 'person@example.com',
-        password: '',
-        privacyAccepted: true,
-      }),
+      useCase.execute({ email: 'person@example.com', password: '' }),
     ).rejects.toMatchObject({
       statusCode: 400,
       code: 'WEAK_PASSWORD',
@@ -106,7 +95,6 @@ describe('RegisterUseCase', () => {
       useCase.execute({
         email: ' PERSON@example.com ',
         password: 'strong-password',
-        privacyAccepted: true,
         role: 'ADMIN',
       } as never),
     ).rejects.toMatchObject({
@@ -123,27 +111,10 @@ describe('RegisterUseCase', () => {
       useCase.execute({
         email: 'person@example.com',
         password: 'strong-password',
-        privacyAccepted: true,
       }),
     ).rejects.toMatchObject({
       statusCode: 409,
       code: 'EMAIL_ALREADY_REGISTERED',
     });
-  });
-
-  it('rejects registration unless the privacy notice was explicitly accepted', async () => {
-    const { useCase, created } = setup();
-
-    await expect(
-      useCase.execute({
-        email: 'person@example.com',
-        password: 'strong-password',
-        privacyAccepted: false,
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      code: 'INVALID_AUTH_INPUT',
-    });
-    expect(created).toHaveLength(0);
   });
 });

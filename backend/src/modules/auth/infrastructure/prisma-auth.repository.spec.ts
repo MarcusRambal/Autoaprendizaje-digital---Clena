@@ -74,8 +74,6 @@ describe('PrismaAuthRepository', () => {
         email: 'person@example.com',
         passwordHash: 'stored-hash',
         role: 'PUBLIC_USER',
-        privacyAcceptedAt: new Date('2026-11-13T00:00:00.000Z'),
-        privacyNoticeVersion: 'v1',
       }),
     ).resolves.toEqual({ kind: 'duplicate' });
     expect(userDelegate.create).toHaveBeenCalledWith({
@@ -83,8 +81,6 @@ describe('PrismaAuthRepository', () => {
         email: 'person@example.com',
         passwordHash: 'stored-hash',
         role: 'PUBLIC_USER',
-        privacyAcceptedAt: new Date('2026-11-13T00:00:00.000Z'),
-        privacyNoticeVersion: 'v1',
       },
     });
   });
