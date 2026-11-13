@@ -29,6 +29,8 @@ export interface AuthRepository {
     email: string;
     passwordHash: string;
     role: 'PUBLIC_USER';
+    privacyAcceptedAt: Date;
+    privacyNoticeVersion: string;
   }): Promise<CreateAuthUserResult>;
   createRefreshSession(session: NewAuthSession): Promise<boolean>;
   /**

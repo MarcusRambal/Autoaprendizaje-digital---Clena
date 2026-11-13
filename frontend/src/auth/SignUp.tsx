@@ -37,7 +37,11 @@ export const SignUp = () => {
     setError(null);
     setPending(true);
     try {
-      const role = await register({ email: email.trim(), password });
+      const role = await register({
+        email: email.trim(),
+        password,
+        privacyAccepted: true,
+      });
       setPassword('');
       setConfirmation('');
       navigate(homePathForRole(role), { replace: true });
@@ -117,7 +121,7 @@ export const SignUp = () => {
               <input type="checkbox" checked={consent} onChange={event => { setConsent(event.target.checked); setError(null); }} />
               Acepto el tratamiento de mis datos para administrar mi cuenta y mi progreso.
             </label>
-            <p className="auth-note">La aceptación se comprueba en esta pantalla, pero todavía no se registra en el servidor.</p>
+            <p className="auth-note">Al crear tu cuenta, guardaremos la fecha y la versión del aviso que aceptaste.</p>
             <div className="auth-actions">
               <button className="auth-secondary" type="button" disabled={pending} onClick={() => { setError(null); setStep(2); }}>Atrás</button>
               <button className="auth-primary" type="button" disabled={pending} onClick={finish}>{pending ? 'Creando cuenta…' : 'Crear cuenta e iniciar sesión'}</button>

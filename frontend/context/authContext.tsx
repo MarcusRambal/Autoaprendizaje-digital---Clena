@@ -14,6 +14,7 @@ import {
   AuthError,
   type AuthSession,
   type Credentials,
+  type RegistrationCredentials,
 } from "../services/authApi";
 import { refreshSession } from "../services/apiClient";
 import { AuthContext, type AuthContextType } from "../services/authState";
@@ -150,7 +151,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         : null,
       token: session?.accessToken ?? null,
       login: (credentials) => authenticate("login", credentials),
-      register: (credentials) => authenticate("register", credentials),
+      register: (credentials: RegistrationCredentials) =>
+        authenticate("register", credentials),
       clearSession,
       logout,
       isAuthenticated: session !== null,

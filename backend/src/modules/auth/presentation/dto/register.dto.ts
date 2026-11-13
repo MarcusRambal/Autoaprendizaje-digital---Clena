@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  Equals,
+  IsBoolean,
+  IsEmail,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { MaxUtf8Bytes } from './max-utf8-bytes.validator';
 
 export class RegisterDto {
@@ -21,4 +28,12 @@ export class RegisterDto {
   @MinLength(8)
   @MaxUtf8Bytes(72)
   password!: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Required confirmation of the current privacy notice',
+  })
+  @IsBoolean()
+  @Equals(true)
+  privacyAccepted!: true;
 }

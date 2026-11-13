@@ -1,11 +1,11 @@
 import { createContext, useContext } from 'react';
-import type { AppRole, Credentials } from './authApi';
+import type { AppRole, Credentials, RegistrationCredentials } from './authApi';
 
 export interface AuthContextType {
   user: { id: string; email: string; userRole: AppRole } | null;
   token: string | null;
   login: (credentials: Credentials) => Promise<AppRole>;
-  register: (credentials: Credentials) => Promise<AppRole>;
+  register: (credentials: RegistrationCredentials) => Promise<AppRole>;
   clearSession: () => void;
   logout: () => void;
   isAuthenticated: boolean;
