@@ -12,6 +12,10 @@ RUN npm ci
 COPY . .
 RUN chmod +x ./docker-entrypoint.sh \
     && DATABASE_URL=postgresql://localhost:5432/build npx prisma generate \
+    && engine_dir="node_modules/prisma/engines/$(node -p "require('@prisma/engines-version').enginesVersion")" \
+    && mkdir -p "$engine_dir" \
+    && cp node_modules/@prisma/engines/libquery_engine-*.so.node "$engine_dir/" \
+    && chown -R node:node node_modules/prisma/engines \
     && npm run build
 
 ENV NODE_ENV=development

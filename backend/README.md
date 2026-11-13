@@ -4,11 +4,13 @@ NestJS API for the CLENA digital self-learning application.
 
 ## Local development with Compose
 
-The repository-root `.env` is the canonical environment file. Copy
-`.env.example` to `.env` once and fill in the local secrets. It is ignored by
-Git. NestJS and Prisma load it when commands are run from `backend/`; Vite
-loads only `VITE_` variables from it. Compose loads it automatically from the
-repository root.
+The Compose stack has working local-development defaults, so a fresh clone can
+start without creating an environment file. Compose automatically reads a
+root `.env` if one exists, but does not read `.env.example` directly. Copy
+`.env.example` to `.env` only when you want to override the defaults. These
+credentials are for local development only and must not be used in production.
+NestJS and Prisma also load the root `.env` when commands are run from
+`backend/`; Vite loads only `VITE_` variables from it.
 
 To run PostgreSQL and Nginx in Docker while running NestJS and Vite on the host:
 
@@ -32,20 +34,34 @@ overrides it with the internal `postgres:5432` address.
 
 ### Full Compose stack
 
-From the repository root, start the API and PostgreSQL:
+From the repository root, start the complete stack:
 
 ```bash
-docker compose up --build --wait
+docker compose up
 ```
 
-Compose publishes the API on `http://localhost:${HOST_PORT:-3000}` and the
-PostgreSQL port on `localhost:${POSTGRES_HOST_PORT:-5433}`. Check `/health` for
-service health and open `/docs` for the Swagger API reference.
+Compose builds and starts PostgreSQL, the API, frontend, Nginx, and Prisma
+Studio. Open `http://localhost` for the frontend,
+`http://localhost:3000/health` for the API health check,
+`http://localhost:3000/docs` for Swagger, and `http://localhost:5555` for
+Prisma Studio. The database is also available on `localhost:5433`.
 The container applies Prisma migrations before starting. In development it
-also seeds demo content when `SEED_DEMO_DATA=true` (the default). Demo
-content includes at least 10 guides and 10 lessons. Configure all three demo
-account email/password pairs before starting the stack with seeding enabled;
-the seed fails early if any role is missing (see "Demo accounts" below).
+also seeds demo content and three demo accounts. The default credentials are
+listed under "Demo accounts" below.
+
+Studio starts with the rest of the Compose stack, after the API and its
+migrations are healthy. It connects to the Compose PostgreSQL database, and its
+port is bound to the local machine only. Set `PRISMA_STUDIO_HOST_PORT` in the
+root `.env` to use a different local port.
+
+After starting the stack, verify that Studio can query the database with:
+
+```bash
+node backend/test/prisma-studio-smoke.test.cjs
+```
+
+For a custom Studio port, pass its URL as an argument, for example
+`node backend/test/prisma-studio-smoke.test.cjs http://127.0.0.1:15555`.
 
 Stop the services with `docker compose down`. The named `postgres-data` volume
 is preserved, so database content is available on the next startup. Do not use
@@ -68,13 +84,16 @@ Use the repository-root `.env.example` as the template for the single root
 | Variable              | Required        | Default                                     | Description                                                                         |
 | --------------------- | --------------- | ------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `DATABASE_URL`        | Yes             | `localhost:5433` for host-based development | PostgreSQL connection URL                                                           |
-| `POSTGRES_PASSWORD`   | Yes for Compose | None; set in root `.env`                    | PostgreSQL password                                                                 |
+| `POSTGRES_PASSWORD`   | No              | `clena_local_only`                          | Local-only PostgreSQL password; Compose builds the container URL from this          |
 | `POSTGRES_HOST_PORT`  | No              | `5433`                                      | Host port mapped to PostgreSQL (5432 inside Compose)                                |
 | `HOST_PORT`           | No              | `3000`                                      | Host port mapped to the API                                                         |
+| `PRISMA_STUDIO_HOST_PORT` | No           | `5555`                                      | Local port for the Prisma Studio service                                            |
+| `NGINX_HOST_PORT`     | No              | `80`                                        | Local port for the frontend and reverse proxy                                       |
+| `FRONTEND_URL`        | No              | `http://localhost`                          | Frontend origin allowed by CORS; use `http://localhost:5173` for local Vite          |
 | `PORT`                | No              | `3000`                                      | API container/listening port                                                        |
 | `NODE_ENV`            | No              | `development`                               | `development`, `test`, or `production`                                              |
-| `JWT_ACCESS_SECRET`   | Yes             | Development placeholder                     | Access-token signing key, at least 32 characters                                    |
-| `JWT_REFRESH_SECRET`  | Yes             | Different development placeholder           | Refresh-token signing key, at least 32 characters and different from the access key |
+| `JWT_ACCESS_SECRET`   | No              | Local development key                       | Access-token signing key, at least 32 characters; replace outside local development |
+| `JWT_REFRESH_SECRET`  | No              | Different local development key             | Refresh-token signing key; replace outside local development                        |
 | `JWT_ACCESS_TTL`      | No              | `15m`                                       | Access-token lifetime (`ms`, `s`, `m`, `h`, or `d`)                                 |
 | `JWT_REFRESH_TTL`     | No              | `7d`                                        | Refresh-token lifetime (`ms`, `s`, `m`, `h`, or `d`)                                |
 | `BCRYPT_SALT_ROUNDS`  | No              | `12`                                        | Password hash cost, from 10 through 15                                              |
@@ -82,33 +101,30 @@ Use the repository-root `.env.example` as the template for the single root
 | `AUTH_THROTTLE_LIMIT` | No              | `5`                                         | Requests allowed per client during the window                                       |
 | `TRUSTED_PROXY_IPS`   | No              | Empty                                       | Comma-separated trusted proxy IPs/CIDRs                                             |
 | `SEED_DEMO_DATA`      | No              | `true` in Compose development               | Seed demo categories, at least 10 guides and 10 lessons, and three demo accounts    |
-| `SEED_ADMIN_EMAIL`    | Yes for seeding | Empty                                       | Unique local admin email                                                            |
-| `SEED_ADMIN_PASSWORD` | Yes for seeding | Empty                                       | Admin password, 8 to 72 UTF-8 bytes                                                 |
-| `SEED_STAFF_EMAIL`    | Yes for seeding | Empty                                       | Unique local staff email                                                           |
-| `SEED_STAFF_PASSWORD` | Yes for seeding | Empty                                       | Staff password, 8 to 72 UTF-8 bytes                                                |
-| `SEED_USER_EMAIL`     | Yes for seeding | Empty                                       | Unique local public user email                                                     |
-| `SEED_USER_PASSWORD`  | Yes for seeding | Empty                                       | Public user password, 8 to 72 UTF-8 bytes                                          |
+| `SEED_ADMIN_EMAIL`    | No              | `admin@clena.test`                          | Local demo admin email                                                             |
+| `SEED_ADMIN_PASSWORD` | No              | `clena-demo-admin-only`                     | Local demo admin password                                                          |
+| `SEED_STAFF_EMAIL`    | No              | `staff@clena.test`                          | Local demo staff email                                                             |
+| `SEED_STAFF_PASSWORD` | No              | `clena-demo-staff-only`                     | Local demo staff password                                                          |
+| `SEED_USER_EMAIL`     | No              | `usuario@clena.test`                        | Local demo public-user email                                                       |
+| `SEED_USER_PASSWORD`  | No              | `clena-demo-user-only`                      | Local demo public-user password                                                    |
 
 ### Demo accounts
 
-The seed requires all three account pairs. Set them in the root `.env` before
-running `npm run db:seed` or starting Compose with `SEED_DEMO_DATA=true` (the
-values below are examples; replace them with unique local-only credentials):
+The Compose defaults create all three local-only demo accounts automatically.
+Use these credentials to sign in:
 
 ```
 SEED_ADMIN_EMAIL=admin@clena.test
-SEED_ADMIN_PASSWORD=<your admin password>
+SEED_ADMIN_PASSWORD=clena-demo-admin-only
 SEED_STAFF_EMAIL=staff@clena.test
-SEED_STAFF_PASSWORD=<your staff password>
+SEED_STAFF_PASSWORD=clena-demo-staff-only
 SEED_USER_EMAIL=usuario@clena.test
-SEED_USER_PASSWORD=<your user password>
+SEED_USER_PASSWORD=clena-demo-user-only
 ```
 
-Each account needs its own email and a password of 8 to 72 UTF-8 bytes, the
-same rules as the registration form. The seed creates one account for each
-role with the privacy notice already accepted, refreshes their password and
-role when it runs again, and logs the emails (never the passwords). It never
-runs in production.
+These accounts and credentials are only for local development. The seed
+refreshes their password and role when it runs again and never runs in
+production. Override them in a local `.env` if needed.
 
 Set `TRUSTED_PROXY_IPS` only to immediate trusted proxies. Forwarding headers
 are ignored for untrusted peers; with no trusted proxy list, no proxy is trusted.
