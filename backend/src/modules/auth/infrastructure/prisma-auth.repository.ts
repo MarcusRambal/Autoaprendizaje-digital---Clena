@@ -28,8 +28,6 @@ export class PrismaAuthRepository implements AuthRepository {
     email: string;
     passwordHash: string;
     role: 'PUBLIC_USER';
-    privacyAcceptedAt: Date;
-    privacyNoticeVersion: string;
   }): Promise<CreateAuthUserResult> {
     try {
       const user = await this.prisma.user.create({
@@ -37,8 +35,6 @@ export class PrismaAuthRepository implements AuthRepository {
           email: input.email,
           passwordHash: input.passwordHash,
           role: input.role,
-          privacyAcceptedAt: input.privacyAcceptedAt,
-          privacyNoticeVersion: input.privacyNoticeVersion,
         },
       });
       return { kind: 'created', user: this.toAuthUser(user) };

@@ -17,8 +17,7 @@ Node.js 22.6 o posterior para ejecutar TypeScript con `--experimental-strip-type
 ## Administración y privacidad
 
 Las categorías y la creación de usuarios del panel son demostraciones locales; las contraseñas
-del formulario de usuarios no se almacenan y no se crean cuentas reales. El registro requiere
-la aceptación y conserva en el servidor la fecha y la versión del aviso; la aceptación está
-respaldada por los campos `privacyAcceptedAt` y `privacyNoticeVersion` de `User`. El aviso legal
-completo, la identificación del responsable y los canales de contacto aún deben completarse, por
-lo que la integración técnica no constituye por sí sola cumplimiento de la Ley 1581 de 2012.
+del formulario de usuarios no se almacenan y no se crean cuentas reales. El registro comprueba
+la aceptación en el navegador, pero todavía no conserva evidencia de consentimiento en el servidor.
+La eliminación de la cuenta propia permanece deshabilitada hasta que exista una integración real.
+Estos elementos no constituyen por sí solos cumplimiento de la Ley 1581 de 2012.

@@ -46,16 +46,11 @@ test("envía las credenciales y valida la respuesta del servidor", async (t) => 
     assert.deepEqual(JSON.parse(options.body), {
       email: "a@b.co",
       password: "password",
-      privacyAccepted: true,
     });
     return new Response(JSON.stringify(session), { status: 201 });
   });
   assert.deepEqual(
-    await authRequest("register", {
-      email: "a@b.co",
-      password: "password",
-      privacyAccepted: true,
-    }),
+    await authRequest("register", { email: "a@b.co", password: "password" }),
     session,
   );
 });
@@ -70,11 +65,7 @@ test("muestra errores útiles de API, red y respuesta inválida", async (t) => {
       }),
   );
   await assert.rejects(
-    authRequest("register", {
-      email: "a@b.co",
-      password: "password",
-      privacyAccepted: true,
-    }),
+    authRequest("register", { email: "a@b.co", password: "password" }),
     /ya tiene una cuenta/,
   );
   fetchMock.mock.mockImplementation(

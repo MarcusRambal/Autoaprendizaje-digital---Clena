@@ -11,10 +11,6 @@ export interface Credentials {
   password: string;
 }
 
-export interface RegistrationCredentials extends Credentials {
-  privacyAccepted: true;
-}
-
 export class AuthError extends Error {
   readonly status?: number;
   readonly statusCode?: number;
