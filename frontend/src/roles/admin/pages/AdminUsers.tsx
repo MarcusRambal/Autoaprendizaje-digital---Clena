@@ -334,7 +334,7 @@ export function AdminUsers() {
           <input ref={emailInput} id="account-email" aria-label="Correo electrónico" type="email" autoComplete="off" maxLength={254} required value={email} onChange={(event) => setEmail(event.target.value)} />
           <label htmlFor="account-password">Contraseña inicial</label>
           <input ref={passwordInput} id="account-password" aria-label="Contraseña" type="password" autoComplete="new-password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} aria-describedby="account-password-help" />
-          <small id="account-password-help">Mínimo 8 caracteres y máximo 72 bytes. Entrégala de forma segura.</small>
+          <small id="account-password-help">Mínimo 8 caracteres y máximo 72 caracteres. Entrégala de forma segura.</small>
           <label htmlFor="account-role">Rol</label>
           <select ref={roleInput} id="account-role" value={role} onChange={event => setRole(event.target.value === 'STAFF' ? 'STAFF' : 'PUBLIC_USER')}>
             <option value="PUBLIC_USER">Usuario público</option>

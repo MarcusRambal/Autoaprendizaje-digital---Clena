@@ -30,9 +30,5 @@ export const StaffDashboard = () => (
         <span className="staff-dashboard-card__action">Ver estadísticas <span aria-hidden="true">→</span></span>
       </Link>
     </nav>
-
-    <p className="staff-dashboard-note" role="status">
-      Las estadísticas aún muestran datos de demostración.
-    </p>
   </section>
 );
