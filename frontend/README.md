@@ -54,9 +54,11 @@ sesión para usar esa función. En el panel del personal, la gestión de
 solicitudes se conecta a los mismos endpoints: permite registrar, buscar por
 solicitante, filtrar por estado y fecha, actualizar el estado y eliminar. Las
 estadísticas y lecciones del panel siguen siendo demostraciones en memoria. El
-formulario para preparar usuarios y las acciones de privacidad son
-demostraciones de frontend; el formulario no crea cuentas reales ni se persiste
-el consentimiento. Auditoría y respaldos siguen sin implementarse.
+formulario para preparar usuarios es una demostración de frontend y no crea
+cuentas reales. El registro sí requiere aceptar el aviso y guarda la fecha y la
+versión aceptada en la cuenta. El aviso legal completo, la identificación del
+responsable y los canales de contacto aún deben completarse. Auditoría y
+respaldos siguen sin implementarse.
 
 La administración de categorías consulta y modifica el endpoint `/api/v1/categories`
 del backend; listar es público y las operaciones de creación, edición y borrado

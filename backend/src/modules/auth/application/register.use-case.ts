@@ -13,7 +13,10 @@ import { AuthApplicationError } from './auth-application.error';
 export interface RegisterInput {
   email: string;
   password: string;
+  privacyAccepted: boolean;
 }
+
+export const PRIVACY_NOTICE_VERSION = 'v1';
 
 export class RegisterUseCase {
   constructor(
@@ -25,7 +28,8 @@ export class RegisterUseCase {
     if (
       !input ||
       typeof input.email !== 'string' ||
-      typeof input.password !== 'string'
+      typeof input.password !== 'string' ||
+      input.privacyAccepted !== true
     ) {
       throw new AuthApplicationError(
         400,
@@ -47,10 +51,13 @@ export class RegisterUseCase {
     }
 
     const passwordHash = await this.credentialHasher.hash(input.password);
+    const privacyAcceptedAt = new Date();
     const result = await this.repository.createUser({
       email: emailValue,
       passwordHash,
       role: 'PUBLIC_USER',
+      privacyAcceptedAt,
+      privacyNoticeVersion: PRIVACY_NOTICE_VERSION,
     });
 
     if (result.kind === 'duplicate') {
