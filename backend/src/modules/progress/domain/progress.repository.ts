@@ -1,14 +1,18 @@
-export interface ProgressCounts {
-  completedGuides: number;
-  totalGuides: number;
-  completedLessons: number;
-  totalLessons: number;
+export interface ProgressActivity {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface ProgressActivities {
+  guides: ProgressActivity[];
+  lessons: ProgressActivity[];
 }
 
 export type TrackProgressResult = 'tracked' | 'not-found';
 
 export interface ProgressRepository {
-  getCounts(userId: string): Promise<ProgressCounts>;
+  getActivities(userId: string): Promise<ProgressActivities>;
   markGuideRead(userId: string, guideId: string): Promise<TrackProgressResult>;
   markLessonCompleted(
     userId: string,

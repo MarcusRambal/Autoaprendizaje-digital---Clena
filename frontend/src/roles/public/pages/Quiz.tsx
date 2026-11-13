@@ -85,9 +85,8 @@ const LessonPlayer = ({
       );
       setCheckedAnswers(updatedCheckedAnswers);
       if (
-        result.correct &&
         updatedCheckedAnswers.length > 0 &&
-        updatedCheckedAnswers.every((answer) => answer?.correct) &&
+        updatedCheckedAnswers.every((answer) => answer !== null) &&
         isAuthenticated &&
         user?.userRole === "student" &&
         !progressSaved
@@ -226,7 +225,9 @@ const LessonPlayer = ({
         )}
         {isChecking && <p role="status">Comprobando respuesta…</p>}
         {progressError && (
-          <p className="public-error" role="alert">{progressError}</p>
+          <p className="public-error" role="alert">
+            {progressError}
+          </p>
         )}
         {progressSaved && (
           <p role="status">Lección completada. Tu progreso se guardó.</p>
